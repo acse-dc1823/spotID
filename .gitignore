@@ -1,0 +1,6 @@
+# Ignore DS Store and other files
+*.DS_Store
+
+# Ignore Data
+Data/
+

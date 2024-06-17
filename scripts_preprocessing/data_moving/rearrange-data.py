@@ -1,7 +1,14 @@
+"""
+We go from the given dataset from NCF, which is split by location, year,
+flank, etc, to a simplet usable dataset, which joins all the ID's
+from different years into one single ID (So from MML2016-01M to
+MML01_left or right in the destination dataset).
+"""
+
+
 import os
 import shutil
 
-# Assuming the script is being run from the directory containing all location directories
 src_dir = os.path.join(os.getcwd(), "Data")  # This sets the source directory to the current working directory
 dest_dir = os.path.join(src_dir, 'joined_dataset')  # Path to the destination directory
 

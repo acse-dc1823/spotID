@@ -1,9 +1,27 @@
 """
-This script iterates through the given directory in base_input_dir,
-through all the subdirectories,  and creates bounding boxes using
-PytorchWildlife (based on YOLO) around the animal. Both the cropped
-image and the full image with the bounding box around the animal will
-be saved in different directories in the same root.
+This script processes images in the specified base_input_dir to create bounding boxes 
+around animals using PytorchWildlife (based on YOLO). It saves both cropped images 
+and full images with bounding boxes in separate directories.
+
+Steps:
+
+1. **Setup:**
+   - Configures logging and device settings (CUDA if available).
+   - Initializes the MegaDetectorV5 model from PytorchWildlife.
+   - Defines base directories for input and output data, creating them if they don't exist.
+   - Sets up image transformation parameters.
+
+2. **Functions:**
+   - `process_image(img_path, full_output_path, crop_output_path)`:
+   Processes a single image to detect animals, save the full image with bounding boxes,
+   and save cropped images of detected animals. Logs processing time for each image.
+
+3. **Main Loop:**
+   - Iterates through all subdirectories and images in base_input_dir.
+   - Processes each image, saving results in the appropriate output directories.
+   - Logs the processing time for each directory and calculates average times for images and directories.
+
+Finally, the script logs the total processing time and prints a confirmation message upon completion.
 """
 
 import logging

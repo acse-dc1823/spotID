@@ -1,7 +1,23 @@
 """
-Simply create a train and test random dataset with a given percentage of test
-dataset. We split through leopards, not images, so the percentage of.
-images will not be the same.
+This script splits a dataset into training and testing sets based on a specified test percentage. 
+The split is done by directories (e.g., by leopard), so the image proportions may vary.
+
+Steps:
+
+1. **Function Definitions:**
+   - `count_images(directory)`: Counts all `.jpg` images in a directory and its subdirectories.
+   - `copy_directory(src, dest)`: Copies a directory from the source path to the destination path.
+   - `split_data(src_directory, test_split=0.2, seed=12)`: Splits the directories into training and testing datasets based on the specified test split fraction and random seed.
+
+2. **Main Processing:**
+   - Sets the random seed for reproducibility.
+   - Defines and creates the `train_dataset` and `test_dataset` directories.
+   - Lists, shuffles, and splits the subdirectories from the source directory.
+   - Copies the directories to the respective train and test directories.
+   - Counts and prints the number of images in each dataset and the percentage in the training set.
+
+Usage:
+- Set the source directory path and call `split_data(src_directory, test_split=0.1)` with the desired test split percentage.
 """
 
 import os

@@ -2,3 +2,4 @@ numpy==1.26.4 # Change to 2.0.0 soon
 # torch==2.2.1
 # torchvision==0.17.1
 PytorchWildlife==1.0.2.15
+rembg==2.0.57

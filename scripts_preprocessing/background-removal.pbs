@@ -1,11 +1,11 @@
 # Job name
-#PBS -N bbox
+#PBS -N background-removal
 
 # Resource requirements
-#PBS -l select=1:ncpus=16:mem=4gb:ngpus=1
+#PBS -l select=1:ncpus=16:mem=16gb
 
 # Time required in hh:mm:ss
-#PBS -l walltime=1:00:00
+#PBS -l walltime=6:30:00
 
 # Files to contain standard error and standard output
 #PBS -o stdout
@@ -13,7 +13,10 @@
 
 module load tools/prod
 module load anaconda3/personal
-source activate bbox-env
+source activate background-removal
+# background-removal has rembg installed. Don't try gpu one, messes everything.
+
+pip list | grep rembg
 
 # Makes sure that when our job starts it cd's to whatever directory we submitted job from. 
 # Submit this one from scripts_preprocessing 

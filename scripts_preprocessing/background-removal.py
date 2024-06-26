@@ -13,8 +13,8 @@ logging.basicConfig(filename='../data/processing_log.log',
                     format='%(asctime)s:%(levelname)s:%(message)s')
 
 # Base directories for datasets and outputs
-base_input_dir = "../data/crop_output_subset"
-base_output_dir = "../data/background_removed_subset"
+base_input_dir = "../data/crop_output"
+base_output_dir = "../data/background_removed"
 reference_path_for_matching = "../data/crop_output/BGL01_left/0_0_BG-01A-2019-02-05_05-10-44.jpg"
 reference_image = io.imread(reference_path_for_matching)
 if reference_image is None:

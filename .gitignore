@@ -1,5 +1,6 @@
 # Ignore DS Store and other files
 *.DS_Store
+.vscode/
 
 # Ignore Data
 data/
@@ -7,3 +8,7 @@ data/
 # Ignore stderr and stdout
 scripts_preprocessing/stderr
 scripts_preprocessing/stdout
+
+# Ignore pycache
+.pytest_cache/
+__pycache__/

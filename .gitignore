@@ -2,5 +2,8 @@
 *.DS_Store
 
 # Ignore Data
-Data/
+data/
 
+# Ignore stderr and stdout
+scripts_preprocessing/stderr
+scripts_preprocessing/stdout

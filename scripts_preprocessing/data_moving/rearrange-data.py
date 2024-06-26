@@ -1,7 +1,26 @@
+"""
+This script processes a dataset from the NCF, which is organized by location, year, flank, etc., and consolidates it into a simpler format.
+It combines IDs from different years into a unified ID format (e.g., converting `MML2016-01M` to `MML01_left` or `MML01_right`).
+
+The script performs the following steps:
+
+1. Defines the source directory as the current working directory and creates a destination directory called `joined_dataset` within the source directory.
+2. Contains utility functions:
+   - `valid_directory(path)`: Checks if the given path is a valid directory and not a system file like `.DS_Store`.
+   - `extract_id(id_dir)`: Extracts and normalizes the ID in the desired format by taking the first three characters as the prefix and the digits after the first hyphen.
+3. Iterates through the directories and subdirectories in the source directory:
+   - Skips the destination directory `joined_dataset`.
+   - For each location and year, processes the `All_flanks_uncropped` subdirectory.
+   - For each ID directory, normalizes the ID and processes the left and right flank subdirectories.
+   - Copies `.jpg` images from the original directories to the new destination directories, organized by the normalized ID and flank side.
+
+Finally, the script prints a confirmation message once all images have been reorganized.
+"""
+
+
 import os
 import shutil
 
-# Assuming the script is being run from the directory containing all location directories
 src_dir = os.path.join(os.getcwd(), "Data")  # This sets the source directory to the current working directory
 dest_dir = os.path.join(src_dir, 'joined_dataset')  # Path to the destination directory
 

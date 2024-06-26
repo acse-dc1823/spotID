@@ -1,0 +1,25 @@
+# Job name
+#PBS -N bbox
+
+# Resource requirements
+#PBS -l select=1:ncpus=16:mem=4gb:ngpus=1:gpu_type=RTX6000
+
+# Time required in hh:mm:ss
+#PBS -l walltime=1:00:00
+
+# Files to contain standard error and standard output
+#PBS -o stdout
+#PBS -e stderr
+
+module load tools/prod
+module load anaconda3/personal
+source activate bbox-env
+# bbox-env has PytorchWildlife in the environment.
+
+# Makes sure that when our job starts it cd's to whatever directory we submitted job from. 
+# Submit this one from scripts_preprocessing 
+cd $PBS_O_WORKDIR
+
+python3 bbox-creation.py
+
+# Run the code

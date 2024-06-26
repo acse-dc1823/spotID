@@ -16,7 +16,6 @@ jobs:
     - name: Package and data setup
       run: |
         pip install -r requirements.txt
-        pip install -e .
 
     # Run tests
     - name: run tests

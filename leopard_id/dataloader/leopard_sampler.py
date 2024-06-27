@@ -1,6 +1,7 @@
 import numpy as np
 import random
 from torch.utils.data import BatchSampler
+
 # from torch.utils.data import DataLoader
 # from torchvision import transforms
 
@@ -73,37 +74,68 @@ class LeopardBatchSampler(BatchSampler):
            finalize and yield any remaining images if they meet
            the batch size requirements.
         """
-        available_indices = {leopard: indices.copy() for leopard, indices
-                             in self.leopard_to_indices.items()}
+        available_indices = {
+            leopard: indices.copy()
+            for leopard, indices in self.leopard_to_indices.items()
+        }
         batch = []
         while True:
-            # Calculate weights based on the number of available indices for each leopard
-            weights = [np.log(len(available_indices[leopard])+1) for
-                       leopard in self.leopards if available_indices[leopard]]
-            leopards_with_indices = [leopard for leopard in self.leopards
-                                     if available_indices[leopard]]
+            # Calculate weights based on the number of available
+            #  indices for each leopard
+            weights = [
+                np.log(len(available_indices[leopard]) + 1)
+                for leopard in self.leopards
+                if available_indices[leopard]
+            ]
+            leopards_with_indices = [
+                leopard
+                for leopard in self.leopards
+                if available_indices[leopard]
+            ]
 
-            while sum(weights) > 0:  # While there are still indices to process
-                # Choose a leopard based on the number of available indices (weighted choice)
-                chosen_leopard = random.choices(leopards_with_indices,
-                                                weights=weights, k=1)[0]
+            while (
+                sum(weights) > 0
+            ):  # While there are still indices to process choose a leopard
+                # based on the number of available indices (weighted choice)
+                chosen_leopard = random.choices(
+                    leopards_with_indices, weights=weights, k=1
+                )[0]
                 num_images = min(len(available_indices[chosen_leopard]), 4)
                 selected_indices = random.sample(
-                    available_indices[chosen_leopard], num_images)
+                    available_indices[chosen_leopard], num_images
+                )
                 batch.extend(selected_indices)
-                available_indices[chosen_leopard] = [idx for idx in available_indices[chosen_leopard] if idx not in selected_indices]
+                available_indices[chosen_leopard] = [
+                    idx
+                    for idx in available_indices[chosen_leopard]
+                    if idx not in selected_indices
+                ]
 
-                print(f"Selected indices for {chosen_leopard}: {selected_indices}")
-                print(f"Remaining indices for {chosen_leopard}: {available_indices[chosen_leopard]}")
+                print(
+                    f"Selected indices for {chosen_leopard}: {selected_indices}"
+                )
+                print(
+                    f"Remaining indices for {chosen_leopard}: {available_indices[chosen_leopard]}"
+                )
 
                 while len(batch) >= self.batch_size:
                     print(f"Yielding batch of size {self.batch_size}")
-                    yield batch[:self.batch_size]
-                    batch = batch[self.batch_size:]  # Correctly manage overflow
+                    yield batch[: self.batch_size]
+                    batch = batch[
+                        self.batch_size:
+                    ]  # Correctly manage overflow
 
                 # Recalculate weights after updating indices
-                weights = [np.log(len(available_indices[leopard])+1) for leopard in leopards_with_indices if available_indices[leopard]]
-                leopards_with_indices = [leopard for leopard in leopards_with_indices if available_indices[leopard]]
+                weights = [
+                    np.log(len(available_indices[leopard]) + 1)
+                    for leopard in leopards_with_indices
+                    if available_indices[leopard]
+                ]
+                leopards_with_indices = [
+                    leopard
+                    for leopard in leopards_with_indices
+                    if available_indices[leopard]
+                ]
 
             if len(batch) > 0:
                 print(f"Yielding final batch of size {len(batch)}")
@@ -111,17 +143,25 @@ class LeopardBatchSampler(BatchSampler):
                 batch = []  # Ensure batch is cleared after yielding
 
             # Summing up available images
-            available_images = np.sum([len(indices) for indices in available_indices.values()])
+            available_images = np.sum(
+                [len(indices) for indices in available_indices.values()]
+            )
             if available_images == 0:
                 break  # Exit loop if all indices have been used
 
     def __len__(self):
         """
-        Provides an estimate of the number of batches per epoch based on total images and batch size.
+        Provides an estimate of the number of batches per epoch based
+        on total images and batch size.
         """
-        # Sum up all indices available across all leopards and calculate the number of batches
-        total_images = np.sum([len(indices) for indices in self.leopard_to_indices.values()])
-        return (total_images + self.batch_size - 1) // self.batch_size  # Ceiling division for complete batches
+        # Sum up all indices available across all leopards and calculate
+        # the number of batches
+        total_images = np.sum(
+            [len(indices) for indices in self.leopard_to_indices.values()]
+        )
+        return (
+            total_images + self.batch_size - 1
+        ) // self.batch_size  # Ceiling division for complete batches
 
 
 # root_dir = '../data/crop_output'

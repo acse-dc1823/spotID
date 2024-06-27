@@ -1,4 +1,4 @@
-from torch.utils.data import Dataset, DataLoader, BatchSampler
+from torch.utils.data import Dataset
 from PIL import Image
 import os
 import random
@@ -8,8 +8,10 @@ class LeopardDataset(Dataset):
     def __init__(self, root_dir, transform=None):
         """
         Args:
-            root_dir (string): Directory with all the leopard images (subdirectories per leopard).
-            transform (callable, optional): Optional transform to be applied on a sample.
+            root_dir (string): Directory with all the leopard images
+              (subdirectories per leopard).
+            transform (callable, optional): Optional transform to be
+              applied on a sample.
         """
         self.root_dir = root_dir
         self.transform = transform
@@ -21,8 +23,8 @@ class LeopardDataset(Dataset):
             leopard_folder = os.path.join(root_dir, leopard_id)
             if os.path.isdir(leopard_folder):
                 img_files = os.listdir(leopard_folder)
-                # Shuffle images to remove any bias (images come sorted through location)
-                random.shuffle(img_files)  
+                # Shuffle images to remove any bias
+                random.shuffle(img_files)
                 for img_file in img_files:
                     self.images.append(os.path.join(leopard_folder, img_file))
                     self.leopards.append(leopard_id)
@@ -32,7 +34,7 @@ class LeopardDataset(Dataset):
 
     def __getitem__(self, idx):
         img_path = self.images[idx]
-        image = Image.open(img_path).convert('RGB')
+        image = Image.open(img_path).convert("RGB")
         label = self.leopards[idx]
 
         if self.transform:

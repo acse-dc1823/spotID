@@ -112,10 +112,12 @@ class LeopardBatchSampler(BatchSampler):
                 ]
 
                 print(
-                    f"Selected indices for {chosen_leopard}: {selected_indices}"
+                    f"Selected indices for {chosen_leopard}: "
+                    f"{selected_indices}"
                 )
                 print(
-                    f"Remaining indices for {chosen_leopard}: {available_indices[chosen_leopard]}"
+                    f"Remaining indices for {chosen_leopard}: "
+                    f"{available_indices[chosen_leopard]}"
                 )
 
                 while len(batch) >= self.batch_size:

@@ -4,3 +4,7 @@
 PytorchWildlife==1.0.2.15
 rembg==2.0.57
 pytest
+timm==1.0.7
+livelossplot==0.5.5
+scikit-learn==1.3.0
+torch==2.3.1

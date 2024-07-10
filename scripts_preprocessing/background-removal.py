@@ -1,3 +1,37 @@
+"""
+Image Processing Script for Contour Detection and Edge Highlighting
+
+This script processes a subset of images from a specified directory, applies contour detection and edge highlighting,
+and saves the processed images into designated output directories. The script performs the following tasks:
+
+1. Sets up logging to record processing details and errors.
+2. Ensures that the output directories for binary edge-detected images and merged contour-highlighted images exist.
+3. Defines a function `process_image` that:
+   - Loads an image from the specified path.
+   - Converts the image to grayscale and applies Gaussian blur to reduce noise.
+   - Uses Canny edge detection to highlight the edges in the image.
+   - Finds contours in the edge-detected image and draws them on the original image.
+   - Saves the edge-detected binary image and the merged image with highlighted contours to the respective output paths.
+4. Traverses the input dataset directory to process each image file:
+   - For each image, determines the output subdirectories and ensures their existence.
+   - Logs the start time, processes the image using the `process_image` function, and records the elapsed time for each image.
+5. Logs the average and total processing times for all images.
+
+Directories:
+- Input Directory: ../data/background_removed
+- Binary Output Directory: ../data/binary_output
+- Merged Output Directory: ../data/merged_output
+
+Requirements:
+- OpenCV (cv2)
+- os and time modules for file handling and performance measurement
+- Logging module for recording processing details
+
+Usage:
+- Run the script to process all .jpg images in the input directory.
+- The processed images will be saved in the respective output directories with binary edge detection and merged contour highlights.
+"""
+
 import logging
 import time
 import os
@@ -13,8 +47,8 @@ logging.basicConfig(filename='../data/processing_log.log',
                     format='%(asctime)s:%(levelname)s:%(message)s')
 
 # Base directories for datasets and outputs
-base_input_dir = "../data/crop_output_subset"
-base_output_dir = "../data/background_removed_subset"
+base_input_dir = "../data/crop_output"
+base_output_dir = "../data/background_removed_histogram_matching"
 reference_path_for_matching = "../data/crop_output/BGL01_left/0_0_BG-01A-2019-02-05_05-10-44.jpg"
 reference_image = io.imread(reference_path_for_matching)
 if reference_image is None:

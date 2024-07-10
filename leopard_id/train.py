@@ -30,7 +30,9 @@ def setup_data_loader(verbose):
         ),
     )
 
-    test_sampler = LeopardBatchSampler(test_dataset, batch_size=32, verbose)
+    # TODO: Change verbose here
+    test_sampler = LeopardBatchSampler(test_dataset, batch_size=32,
+                                       verbose=False)
     return DataLoader(test_dataset, batch_sampler=test_sampler)
 
 
@@ -42,7 +44,8 @@ def main():
 
     model = TripletNetwork(backbone_model="resnet18").to(device)
     resnet_model = train_model(
-        model, test_loader, None, lr=1e-3, epochs=3, device=device, verbose=verbose
+        model, test_loader, None, lr=1e-3, epochs=3, device=device,
+        verbose=verbose
     )
     # save model
     save_path = os.path.join(project_root, "weights", "leopard-id.pth")

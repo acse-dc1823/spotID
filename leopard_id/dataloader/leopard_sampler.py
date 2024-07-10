@@ -21,7 +21,7 @@ class LeopardBatchSampler(BatchSampler):
         batch_size (int): The number of items in each batch.
     """
 
-    def __init__(self, dataset, batch_size):
+    def __init__(self, dataset, batch_size, verbose=False):
         """
         Initializes the batch sampler with dataset information, batch size.
         """
@@ -29,6 +29,7 @@ class LeopardBatchSampler(BatchSampler):
         self.batch_size = batch_size
         self.leopard_to_indices = self._map_leopards_to_indices()
         self.leopards = list(self.leopard_to_indices.keys())
+        self.verbose = verbose
 
     def _map_leopards_to_indices(self):
         """
@@ -52,7 +53,10 @@ class LeopardBatchSampler(BatchSampler):
         logarithm of the number of available images, such that leopards
         with more instances are more likely to be selected, but not
         overwhelmingly so due to the logarithm. We do this so that later
-        batches aren't dominated by a single leopard.
+        batches aren't dominated by a single leopard (uniform probability of
+        choosing leopards would actually mean leopards with more instances
+        aren't consumed till the end, as they need to be chosen many times
+        to consume them).
 
         Yields:
             list: A batch of image indices. Each batch is constrained
@@ -111,17 +115,19 @@ class LeopardBatchSampler(BatchSampler):
                     if idx not in selected_indices
                 ]
 
-                print(
-                    f"Selected indices for {chosen_leopard}: "
-                    f"{selected_indices}"
-                )
-                print(
-                    f"Remaining indices for {chosen_leopard}: "
-                    f"{available_indices[chosen_leopard]}"
-                )
+                if self.verbose:
+                    print(
+                        f"Selected indices for {chosen_leopard}: "
+                        f"{selected_indices}"
+                    )
+                    print(
+                        f"Remaining indices for {chosen_leopard}: "
+                        f"{available_indices[chosen_leopard]}"
+                    )
 
                 while len(batch) >= self.batch_size:
-                    print(f"Yielding batch of size {self.batch_size}")
+                    if self.verbose:
+                        print(f"Yielding batch of size {self.batch_size}")
                     yield batch[: self.batch_size]
                     batch = batch[
                         self.batch_size:
@@ -140,7 +146,8 @@ class LeopardBatchSampler(BatchSampler):
                 ]
 
             if len(batch) > 0:
-                print(f"Yielding final batch of size {len(batch)}")
+                if self.verbose:
+                    print(f"Yielding final batch of size {len(batch)}")
                 yield batch
                 batch = []  # Ensure batch is cleared after yielding
 

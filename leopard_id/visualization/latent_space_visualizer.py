@@ -14,8 +14,8 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 def create_latent_space(encoder, data_loader, device):
     """
-    Extract embeddings and their corresponding labels
-    from the encoder model.
+    Extract embeddings representing rich features of leopards and
+    their corresponding labels from the model.
     """
     encoder.eval()
     embeddings_list = []
@@ -35,7 +35,13 @@ def create_latent_space(encoder, data_loader, device):
 
 def plot_embeddings(embeddings, labels,
                     title='2D Visualization of Embeddings'):
-    """Plot embeddings using t-SNE."""
+    """
+    Plot embeddings using t-SNE. We reduce the dimensions of the latent space
+    from N to 2 through dimensionality reduction algorithm. Of course, we
+    are losing a lot of information, so this should really only be taken as an
+    approximation and a visual queue of how the model is performing and
+    separating labels.
+    """
     tsne = TSNE(n_components=2, random_state=0)
     embeddings_2d = tsne.fit_transform(embeddings)
 
@@ -53,7 +59,8 @@ def plot_embeddings(embeddings, labels,
 
 def main_executor_visualization(model=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # load model from path
+    # load model from path.
+    # TODO: Check if this works.
     if model is None:
         path_model = os.path.join(project_root, "weights", "leopard-id.pth")
         model = TripletNetwork()

@@ -30,7 +30,6 @@ def setup_data_loader():
         ),
     )
 
-    # Print first tensor image
     test_sampler = LeopardBatchSampler(test_dataset, batch_size=32)
     return DataLoader(test_dataset, batch_sampler=test_sampler)
 

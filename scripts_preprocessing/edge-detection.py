@@ -10,8 +10,8 @@ logging.basicConfig(filename='../data/processing_log.log',
 
 # Base directories for datasets and outputs
 base_input_dir = "../data/background_removed"
-base_binary_output_dir = "../data/binary_output_2"
-base_merged_output_dir = "../data/merged_output_2"
+base_binary_output_dir = "../data/binary_output"
+base_merged_output_dir = "../data/merged_output"
 
 # Ensure output directories exist
 os.makedirs(base_binary_output_dir, exist_ok=True)
@@ -33,7 +33,7 @@ def process_image(img_path, binary_output_path, merged_output_path):
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
 
     # Use Canny edge detection to highlight edges
-    edges = cv2.Canny(blurred, 40, 130)
+    edges = cv2.Canny(blurred, 55, 160)
 
     # Find contours in the edge-detected image
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)

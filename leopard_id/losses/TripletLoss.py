@@ -18,7 +18,7 @@ def euclidean_dist(x, y):
 
 
 class TripletLoss(nn.Module):
-    def __init__(self, margin=1.0, verbose=False):
+    def __init__(self, margin=2.0, verbose=False):
         super(TripletLoss, self).__init__()
         self.margin = margin
         self.ranking_loss = nn.MarginRankingLoss(margin=self.margin)

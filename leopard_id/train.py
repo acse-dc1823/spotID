@@ -11,7 +11,7 @@ import os
 project_root = os.path.dirname(os.path.abspath(__file__))
 
 
-def setup_data_loader():
+def setup_data_loader(verbose):
     root_dir = os.path.join(project_root, "data",
                             "crop_output_subset")
     # check root_dir is valid directory
@@ -30,17 +30,19 @@ def setup_data_loader():
         ),
     )
 
-    test_sampler = LeopardBatchSampler(test_dataset, batch_size=32)
+    test_sampler = LeopardBatchSampler(test_dataset, batch_size=32, verbose)
     return DataLoader(test_dataset, batch_sampler=test_sampler)
 
 
 def main():
+    verbose = True
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    test_loader = setup_data_loader()
+    print(f"Using device: {device}")
+    test_loader = setup_data_loader(verbose=verbose)
 
     model = TripletNetwork(backbone_model="resnet18").to(device)
     resnet_model = train_model(
-        model, test_loader, None, lr=1e-3, epochs=2, device=device
+        model, test_loader, None, lr=1e-3, epochs=3, device=device, verbose=verbose
     )
     # save model
     save_path = os.path.join(project_root, "weights", "leopard-id.pth")

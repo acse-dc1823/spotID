@@ -48,7 +48,7 @@ def evaluate_epoch(model, data_loader, criterion, device):
     return avg_loss
 
 
-def train_model(model, train_loader, test_loader, lr, epochs, device):
+def train_model(model, train_loader, test_loader, lr, epochs, device, verbose):
     """
     Train and evaluate the model, focusing only on the last added
     embedding layer.
@@ -60,7 +60,7 @@ def train_model(model, train_loader, test_loader, lr, epochs, device):
     # Only parameters of the embedding layer are trainable
     optimizer = optim.Adam(model.embedding_layer.parameters(), lr=lr)
 
-    criterion = TripletLoss()
+    criterion = TripletLoss(verbose=verbose)
     writer = SummaryWriter()  # TensorBoard summary writer initialized here
 
     model.to(device)

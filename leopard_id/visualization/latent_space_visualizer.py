@@ -70,7 +70,7 @@ def main_executor_visualization(model=None):
 
     # Initialize the dataset and DataLoader
     root_dir = os.path.join(project_root, "data",
-                            "crop_output_subset")
+                            "crop_output_subset_2")
     val_dataset = LeopardDataset(
         root_dir=root_dir,
         transform=transforms.Compose([

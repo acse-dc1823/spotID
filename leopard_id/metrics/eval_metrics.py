@@ -16,8 +16,8 @@ def compute_dynamic_k_avg_precision(dist_matrix, labels, max_k, device):
     :param max_k: The maximum k for calculating average precision.
     :return: The mean average precision across all valid samples.
     """
-    dist_mat = dist_mat.to(device)
-    targets = targets.to(device)
+    dist_matrix = dist_matrix.to(device)
+    labels = labels.to(device)
     num_samples = dist_matrix.size(0)
     avg_precisions = torch.zeros(num_samples)
     valid_counts = 0

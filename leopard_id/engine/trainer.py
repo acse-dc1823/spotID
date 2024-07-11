@@ -7,6 +7,7 @@ import time
 from losses import TripletLoss, euclidean_dist
 from metrics import compute_dynamic_k_avg_precision
 
+import time
 
 def train_epoch(model, data_loader, optimizer, criterion, device):
     """
@@ -31,7 +32,7 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
     return avg_loss
 
 
-def evaluate_epoch(model, data_loader, device, max_k=5):
+def evaluate_epoch(model, data_loader, device, max_k=5, verbose=False):
     """
     Evaluate the model and return the average precision and average loss.
     """
@@ -43,10 +44,17 @@ def evaluate_epoch(model, data_loader, device, max_k=5):
             inputs, targets = inputs.to(device), targets.to(device)
 
             outputs = model(inputs)
+            start_time = time.time()
             dist_mat = euclidean_dist(outputs, outputs)
+            end_time_dist = time.time() - start_time
+            if verbose:
+                print("time taken to compute distance matrix {:.2f} s".format(
+                    end_time_dist))
             batch_precision = compute_dynamic_k_avg_precision(dist_mat,
-                                                              targets, max_k,
-                                                              device)
+                                                              targets, max_k)
+            if verbose:
+                print("time taken to calculate precision {:.2f} s".format(
+                    time.time() - end_time_dist))
 
             total_precision += batch_precision
 
@@ -84,7 +92,7 @@ def train_model(model, train_loader, test_loader, lr, epochs, device, verbose):
         writer.add_scalar("Precision/Train", train_precision, epoch)
 
         if test_loader is not None:
-            test_precision = evaluate_epoch(model, test_loader, device)
+            test_precision = evaluate_epoch(model, test_loader, device, verbose=True)
             # Log the training and validation loss for TensorBoard
             writer.add_scalar("Precision/Test", test_precision, epoch)
 

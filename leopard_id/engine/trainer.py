@@ -51,7 +51,8 @@ def evaluate_epoch(model, data_loader, device, max_k=5, verbose=False):
                 print("time taken to compute distance matrix {:.2f} s".format(
                     end_time_dist))
             batch_precision = compute_dynamic_k_avg_precision(dist_mat,
-                                                              targets, max_k)
+                                                              targets, max_k,
+                                                              device)
             if verbose:
                 print("time taken to calculate precision {:.2f} s".format(
                     time.time() - end_time_dist))

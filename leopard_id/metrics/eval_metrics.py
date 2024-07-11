@@ -1,11 +1,14 @@
 import torch
 
 
-def compute_dynamic_k_avg_precision(dist_matrix, labels, max_k):
+def compute_dynamic_k_avg_precision(dist_matrix, labels, max_k, device):
     """
     Calculate the top-k average precision for each sample, with dynamic
     adjustment based on class size,and return the mean of these
-    values excluding cases where dynamic k is zero.
+    values excluding cases where dynamic k is zero. Dynamic k is introduced
+    because some classes just have a few exemplars per image, fewer than
+    max_k. In these cases, the typical top k average precision would be 
+    capped at a maximum of num_exemplars_in_class / k, lower than 1.
 
     :param dist_matrix: A 2D PyTorch tensor where dist_matrix[i, j]
         is the distance from sample i to sample j.
@@ -13,6 +16,8 @@ def compute_dynamic_k_avg_precision(dist_matrix, labels, max_k):
     :param max_k: The maximum k for calculating average precision.
     :return: The mean average precision across all valid samples.
     """
+    dist_mat = dist_mat.to(device)
+    targets = targets.to(device)
     num_samples = dist_matrix.size(0)
     avg_precisions = torch.zeros(num_samples)
     valid_counts = 0

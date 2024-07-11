@@ -45,7 +45,8 @@ def evaluate_epoch(model, data_loader, device, max_k=5):
             outputs = model(inputs)
             dist_mat = euclidean_dist(outputs, outputs)
             batch_precision = compute_dynamic_k_avg_precision(dist_mat,
-                                                              targets, max_k)
+                                                              targets, max_k,
+                                                              device)
 
             total_precision += batch_precision
 

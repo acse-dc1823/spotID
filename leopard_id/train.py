@@ -13,7 +13,7 @@ project_root = os.path.dirname(os.path.abspath(__file__))
 
 def setup_data_loader(verbose):
     root_dir = os.path.join(project_root, "data",
-                            "crop_output_subset")
+                            "crop_output")
     # check root_dir is valid directory
     if not os.path.isdir(root_dir):
         raise NotADirectoryError(f"Directory {root_dir} does not exist.")
@@ -42,9 +42,9 @@ def main():
     print(f"Using device: {device}")
     test_loader = setup_data_loader(verbose=verbose)
 
-    model = TripletNetwork(backbone_model="resnet18").to(device)
+    model = TripletNetwork(backbone_model="resnet50").to(device)
     resnet_model = train_model(
-        model, test_loader, None, lr=1e-3, epochs=3, device=device,
+        model, test_loader, None, lr=1e-3, epochs=30, device=device,
         verbose=verbose
     )
     # save model

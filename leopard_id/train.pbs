@@ -2,10 +2,10 @@
 #PBS -N train-model
 
 # Resource requirements
-#PBS -l select=1:ncpus=16:mem=4gb:ngpus=1:gpu_type=RTX6000
+#PBS -l select=1:ncpus=16:mem=8gb:ngpus=1:gpu_type=RTX6000
 
 # Time required in hh:mm:ss
-#PBS -l walltime=0:30:00
+#PBS -l walltime=6:30:00
 
 # Files to contain standard error and standard output
 #PBS -o stdout

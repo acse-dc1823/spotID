@@ -1,6 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
+from torchsummary import summary
 
 from model import TripletNetwork
 from dataloader import LeopardDataset, LeopardBatchSampler, ResizeTransform
@@ -58,13 +59,14 @@ def main():
     print(f"Using device: {device}")
     train_loader, test_loader = setup_data_loader(verbose=verbose)
 
-    model = TripletNetwork(backbone_model="resnet18").to(device)
+    model = TripletNetwork(backbone_model="resnet50").to(device)
+    print(summary(model, (3, 256, 512)))
     resnet_model = train_model(
         model,
         train_loader,
         test_loader,
         lr=1e-3,
-        epochs=3,
+        epochs=40,
         device=device,
         verbose=verbose,
     )

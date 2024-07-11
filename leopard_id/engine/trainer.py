@@ -4,7 +4,8 @@ import torch.optim as optim
 # To launch TensorBoard, run tensorboard --logdir runs
 from torch.utils.tensorboard import SummaryWriter
 import time
-from losses import TripletLoss
+from losses import TripletLoss, euclidean_dist
+from metrics import compute_dynamic_k_avg_precision
 
 
 def train_epoch(model, data_loader, optimizer, criterion, device):
@@ -30,22 +31,27 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
     return avg_loss
 
 
-def evaluate_epoch(model, data_loader, criterion, device):
+def evaluate_epoch(model, data_loader, device, max_k=5):
     """
-    Evaluate the model and return the average loss.
+    Evaluate the model and return the average precision and average loss.
     """
     model.eval()
-    total_loss = 0
+    total_precision = 0
+
     with torch.no_grad():
         for inputs, targets in data_loader:
             inputs, targets = inputs.to(device), targets.to(device)
 
             outputs = model(inputs)
-            loss = criterion(outputs, targets)
-            total_loss += loss.item()
+            dist_mat = euclidean_dist(outputs, outputs)
+            batch_precision = compute_dynamic_k_avg_precision(dist_mat,
+                                                              targets, max_k)
 
-    avg_loss = total_loss / len(data_loader)  # Average loss per batch
-    return avg_loss
+            total_precision += batch_precision
+
+    average_precision = total_precision / len(data_loader)
+
+    return average_precision
 
 
 def train_model(model, train_loader, test_loader, lr, epochs, device, verbose):
@@ -71,21 +77,25 @@ def train_model(model, train_loader, test_loader, lr, epochs, device, verbose):
         train_loss = train_epoch(
             model, train_loader, optimizer, criterion, device
         )
+        train_precision = evaluate_epoch(model, train_loader, device)
+
+        writer.add_scalar("Loss/Train", train_loss, epoch)
+        writer.add_scalar("Precision/Train", train_precision, epoch)
+
         if test_loader is not None:
-            test_loss = evaluate_epoch(model, test_loader, criterion, device)
+            test_precision = evaluate_epoch(model, test_loader, device)
             # Log the training and validation loss for TensorBoard
-            writer.add_scalar("Loss/Train", train_loss, epoch)
-            writer.add_scalar("Loss/Test", test_loss, epoch)
-        else:
-            # Log only the training loss if no test loader is provided
-            writer.add_scalar("Loss/Train", train_loss, epoch)
+            writer.add_scalar("Precision/Test", test_precision, epoch)
 
         elapsed_time = time.time() - start_time
         print(
             f"Epoch {epoch+1}/{epochs} - "
             f"Train Loss: {train_loss:.4f} - "
+            f"Train Precision: {train_precision:.4f} - "
             f"Time: {elapsed_time:.2f} s"
         )
+        if test_loader is not None:
+            print(f"Test Precision: {test_precision:.4f}")
 
     writer.close()
     return model

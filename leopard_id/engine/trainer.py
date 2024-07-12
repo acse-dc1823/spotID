@@ -12,6 +12,10 @@ from metrics import (
     compute_class_distance_ratio,
 )
 
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
 
 def train_epoch(model, data_loader, optimizer, criterion, device):
     """
@@ -41,20 +45,24 @@ def evaluate_epoch(model, data_loader, device, max_k=5, verbose=False):
     Evaluate the model and return the average precision and class distance
     ratio using logging for verbose output.
     """
-    # Configure logging
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-    )
 
     model.eval()
     total_precision = 0
     total_class_distance_ratio = 0
 
+    general_time = time.time()
     with torch.no_grad():
         for inputs, targets in data_loader:
+            time_acccess = time.time()
+            if verbose:
+                logging.info(f"Time to access data: "
+                             f"{time_acccess - general_time}")
             inputs, targets = inputs.to(device), targets.to(device)
             outputs = model(inputs)
-
+            time_outputs = time.time()
+            if verbose:
+                logging.info(f"Time to get outputs: "
+                             f"{time_outputs - time_acccess}")
             # Distance matrix computation
             start_time = time.time()
             dist_mat = euclidean_dist(outputs, outputs)
@@ -128,15 +136,22 @@ def train_model(model, train_loader, test_loader, device, criterion, config):
         "max_k": config["max_k"],
     }
 
+    cumulative_train_eval_time = 0
+    cumulative_test_eval_time = 0
+
     for epoch in range(config["epochs"]):
         start_time = time.time()
 
         train_loss = train_epoch(
             model, train_loader, optimizer, criterion, device
         )
+
+        start_eval_train = time.time()
         train_precision, train_class_distance_ratio = evaluate_epoch(
             model, train_loader, device, max_k=config["max_k"]
         )
+        eval_train_duration = time.time() - start_eval_train
+        cumulative_train_eval_time += eval_train_duration
 
         writer.add_scalar("Loss/Train", train_loss, epoch)
         writer.add_scalar("Precision/Train", train_precision, epoch)
@@ -145,27 +160,35 @@ def train_model(model, train_loader, test_loader, device, criterion, config):
         )
 
         if test_loader is not None:
-            test_precision, test_class_distance_ratio = evaluate_epoch(
+            start_eval_test = time.time()
+            test_precision, test_class_dist_ratio = evaluate_epoch(
                 model, test_loader, device, verbose=True, max_k=config["max_k"]
             )
+            eval_test_duration = time.time() - start_eval_test
+            cumulative_test_eval_time += eval_test_duration
+
             writer.add_scalar("Precision/Test", test_precision, epoch)
             writer.add_scalar(
-                "Class Distance Ratio/Test", test_class_distance_ratio, epoch
+                "Class Distance Ratio/Test", test_class_dist_ratio, epoch
             )
 
         elapsed_time = time.time() - start_time
-        epochs = config["epochs"]
-        print(
-            f"Epoch {epoch+1}/{epochs} - "
+
+        logging.info(
+            f"Epoch {epoch+1}/{config['epochs']} - "
             f"Train Loss: {train_loss:.4f} - "
             f"Train Precision: {train_precision:.4f} - "
             f"Train Class Distance Ratio: {train_class_distance_ratio:.4f} - "
             f"Time: {elapsed_time:.2f} s"
         )
+        logging.info(f"Cumulative Train Eval Time: "
+                     f"{cumulative_train_eval_time:.2f} s")
+
         if test_loader is not None:
-            print(
+            logging.info(
                 f"Test Precision: {test_precision:.4f} - "
-                f"Test Class Distance Ratio: {test_class_distance_ratio:.4f}"
+                f"Test Class Distance Ratio: {test_class_dist_ratio:.4f} - "
+                f"Cumulative Test Eval Time: {cumulative_test_eval_time:.2f} s"
             )
 
     final_metrics = {

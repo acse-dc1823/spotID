@@ -1,0 +1,15 @@
+{
+    "train_data_dir": "data/train_dataset",
+    "test_data_dir": "data/test_dataset",
+    "resize_width": 512,
+    "resize_height": 256,
+    "batch_size": 32,
+    "learning_rate": 0.001,
+    "epochs": 40,
+    "device": "cuda",
+    "verbose": False,
+    "backbone_model": "resnet50",
+    "margin": 0.2,
+    "max_k": 5,
+    "save_path": "weights/leopard-id.pth"
+}

@@ -65,7 +65,7 @@ def evaluate_epoch(model, data_loader, device, max_k=5, verbose=False):
     return average_precision
 
 
-def train_model(model, train_loader, test_loader, lr, epochs, device, verbose):
+def train_model(model, train_loader, test_loader, lr, epochs, device, verbose, criterion, backbone_model, max_k):
     """
     Train and evaluate the model, focusing only on the last added
     embedding layer.
@@ -81,6 +81,16 @@ def train_model(model, train_loader, test_loader, lr, epochs, device, verbose):
     writer = SummaryWriter()  # TensorBoard summary writer initialized here
 
     model.to(device)
+    
+    hparams = {
+        'lr': lr,
+        'epochs': epochs,
+        'batch_size': train_loader.batch_size if hasattr(train_loader, 'batch_size') else None,
+        'device': device,
+        'margin': criterion.margin if hasattr(criterion, 'margin') else None,
+        'backbone_model': backbone_model,
+        'max_k': max_k
+    }
 
     for epoch in range(epochs):
         start_time = time.time()
@@ -88,13 +98,13 @@ def train_model(model, train_loader, test_loader, lr, epochs, device, verbose):
         train_loss = train_epoch(
             model, train_loader, optimizer, criterion, device
         )
-        train_precision = evaluate_epoch(model, train_loader, device)
+        train_precision = evaluate_epoch(model, train_loader, device, max_k=max_k)
 
         writer.add_scalar("Loss/Train", train_loss, epoch)
         writer.add_scalar("Precision/Train", train_precision, epoch)
 
         if test_loader is not None:
-            test_precision = evaluate_epoch(model, test_loader, device, verbose=True)
+            test_precision = evaluate_epoch(model, test_loader, device, verbose=True, max_k=max_k)
             # Log the training and validation loss for TensorBoard
             writer.add_scalar("Precision/Test", test_precision, epoch)
 
@@ -107,6 +117,11 @@ def train_model(model, train_loader, test_loader, lr, epochs, device, verbose):
         )
         if test_loader is not None:
             print(f"Test Precision: {test_precision:.4f}")
+
+    final_metrics = {
+        'final_train_precision': train_precision,
+        'final_test_precision': test_precision if test_loader is not None else None}
+    writer.add_hparams(hparam_dict=hparams, metric_dict=final_metrics)
 
     writer.close()
     return model

@@ -18,11 +18,9 @@ module load tools/prod
 # Change to source activate leopard-id for non cx3
 source /rds/general/user/dc1823/home/anaconda3/bin/activate leopard-id
 
-# Verify if rembg is installed
 which python
 which pip
-# background-removal has rembg installed. Don't try gpu one, messes everything.
-
+å
 # Makes sure that when our job starts it cd's to whatever directory we submitted job from. 
 # Submit this one from scripts_preprocessing 
 cd $PBS_O_WORKDIR

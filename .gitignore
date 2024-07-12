@@ -17,6 +17,7 @@ __pycache__/
 runs/
 weights/
 
-# Ignore stderr and stdout
+# Ignore stderr and stdout and logging
 stderr
 stdout
+*.log

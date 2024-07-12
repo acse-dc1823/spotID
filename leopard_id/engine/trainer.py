@@ -12,9 +12,8 @@ from metrics import (
     compute_class_distance_ratio,
 )
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(filename='timings.log', level=logging.INFO, 
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def train_epoch(model, data_loader, optimizer, criterion, device):

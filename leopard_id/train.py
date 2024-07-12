@@ -14,8 +14,9 @@ import os
 
 project_root = os.path.dirname(os.path.abspath(__file__))
 
-with open(os.path.join(project_root, 'config.json'), 'r') as f:
+with open(os.path.join(project_root, "config.json"), "r") as f:
     config = json.load(f)
+
 
 def setup_data_loader(config):
     root_dir_train = os.path.join(project_root, config["train_data_dir"])
@@ -30,7 +31,10 @@ def setup_data_loader(config):
         root_dir=root_dir_train,
         transform=transforms.Compose(
             [
-                ResizeTransform(width=config["resize_width"], height=config["resize_height"]),
+                ResizeTransform(
+                    width=config["resize_width"],
+                    height=config["resize_height"],
+                ),
                 transforms.ToTensor(),  # Convert images to tensor
             ]
         ),
@@ -40,7 +44,10 @@ def setup_data_loader(config):
         root_dir=root_dir_test,
         transform=transforms.Compose(
             [
-                ResizeTransform(width=config["resize_width"], height=config["resize_height"]),
+                ResizeTransform(
+                    width=config["resize_width"],
+                    height=config["resize_height"],
+                ),
                 transforms.ToTensor(),  # Convert images to tensor
             ]
         ),
@@ -48,7 +55,9 @@ def setup_data_loader(config):
 
     # TODO: Change verbose here
     train_sampler = LeopardBatchSampler(
-        train_dataset, batch_size=config["batch_size"], verbose=config["verbose"]
+        train_dataset,
+        batch_size=config["batch_size"],
+        verbose=config["verbose"],
     )
     # DataLoader for test should have batch size equal to the number of images
     return DataLoader(train_dataset, batch_sampler=train_sampler), DataLoader(
@@ -58,9 +67,11 @@ def setup_data_loader(config):
 
 def main():
     verbose = config["verbose"]
-    device = torch.device(config["device"] if torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        config["device"] if torch.cuda.is_available() else "cpu"
+    )
     print(f"Using device: {device}")
-    train_loader, test_loader = setup_data_loader(verbose=verbose)
+    train_loader, test_loader = setup_data_loader(config)
 
     model = TripletNetwork(backbone_model=config["backbone_model"]).to(device)
     criterion = TripletLoss(margin=config["margin"], verbose=verbose)
@@ -75,7 +86,7 @@ def main():
         verbose=verbose,
         criterion=criterion,
         backbone_model=config["backbone_model"],
-        max_k=config["max_k"]
+        max_k=config["max_k"],
     )
     # save model
     save_path = os.path.join(project_root, config["save_path"])

@@ -7,7 +7,6 @@ import time
 from losses import TripletLoss, euclidean_dist
 from metrics import compute_dynamic_k_avg_precision
 
-import time
 
 def train_epoch(model, data_loader, optimizer, criterion, device):
     """
@@ -49,14 +48,24 @@ def evaluate_epoch(model, data_loader, device, max_k=5, verbose=False):
             time_taken_dist = time.time() - start_time
 
             if verbose:
-                print("Time taken to compute distance matrix {:.2f} s".format(time_taken_dist))
+                print(
+                    "Time taken to compute distance matrix {:.2f} s".format(
+                        time_taken_dist
+                    )
+                )
 
             start_time_precision = time.time()
-            batch_precision = compute_dynamic_k_avg_precision(dist_mat, targets, max_k, device)
-            time_taken_precision = time.time() - start_time_precision 
+            batch_precision = compute_dynamic_k_avg_precision(
+                dist_mat, targets, max_k, device
+            )
+            time_taken_precision = time.time() - start_time_precision
 
             if verbose:
-                print("Time taken to calculate precision {:.2f} s".format(time_taken_precision))
+                print(
+                    "Time taken to calculate precision {:.2f} s".format(
+                        time_taken_precision
+                    )
+                )
 
             total_precision += batch_precision
 
@@ -65,7 +74,18 @@ def evaluate_epoch(model, data_loader, device, max_k=5, verbose=False):
     return average_precision
 
 
-def train_model(model, train_loader, test_loader, lr, epochs, device, verbose, criterion, backbone_model, max_k):
+def train_model(
+    model,
+    train_loader,
+    test_loader,
+    lr,
+    epochs,
+    device,
+    verbose,
+    criterion,
+    backbone_model,
+    max_k,
+):
     """
     Train and evaluate the model, focusing only on the last added
     embedding layer.
@@ -81,15 +101,19 @@ def train_model(model, train_loader, test_loader, lr, epochs, device, verbose, c
     writer = SummaryWriter()  # TensorBoard summary writer initialized here
 
     model.to(device)
-    
+
     hparams = {
-        'lr': lr,
-        'epochs': epochs,
-        'batch_size': train_loader.batch_size if hasattr(train_loader, 'batch_size') else None,
-        'device': device,
-        'margin': criterion.margin if hasattr(criterion, 'margin') else None,
-        'backbone_model': backbone_model,
-        'max_k': max_k
+        "lr": lr,
+        "epochs": epochs,
+        "batch_size": (
+            train_loader.batch_size
+            if hasattr(train_loader, "batch_size")
+            else None
+        ),
+        "device": device,
+        "margin": criterion.margin if hasattr(criterion, "margin") else None,
+        "backbone_model": backbone_model,
+        "max_k": max_k,
     }
 
     for epoch in range(epochs):
@@ -98,13 +122,18 @@ def train_model(model, train_loader, test_loader, lr, epochs, device, verbose, c
         train_loss = train_epoch(
             model, train_loader, optimizer, criterion, device
         )
-        train_precision = evaluate_epoch(model, train_loader, device, max_k=max_k)
+        train_precision = evaluate_epoch(
+            model, train_loader, device, max_k=max_k
+        )
 
         writer.add_scalar("Loss/Train", train_loss, epoch)
         writer.add_scalar("Precision/Train", train_precision, epoch)
 
         if test_loader is not None:
-            test_precision = evaluate_epoch(model, test_loader, device, verbose=True, max_k=max_k)
+            # precision on test is on whole test set.
+            test_precision = evaluate_epoch(
+                model, test_loader, device, verbose=True, max_k=max_k
+            )
             # Log the training and validation loss for TensorBoard
             writer.add_scalar("Precision/Test", test_precision, epoch)
 
@@ -119,8 +148,11 @@ def train_model(model, train_loader, test_loader, lr, epochs, device, verbose, c
             print(f"Test Precision: {test_precision:.4f}")
 
     final_metrics = {
-        'final_train_precision': train_precision,
-        'final_test_precision': test_precision if test_loader is not None else None}
+        "final_train_precision": train_precision,
+        "final_test_precision": (
+            test_precision if test_loader is not None else None
+        ),
+    }
     writer.add_hparams(hparam_dict=hparams, metric_dict=final_metrics)
 
     writer.close()

@@ -7,8 +7,10 @@ def compute_dynamic_k_avg_precision(dist_matrix, labels, max_k, device):
     adjustment based on class size,and return the mean of these
     values excluding cases where dynamic k is zero. Dynamic k is introduced
     because some classes just have a few exemplars per image, fewer than
-    max_k. In these cases, the typical top k average precision would be 
+    max_k. In these cases, the typical top k average precision would be
     capped at a maximum of num_exemplars_in_class / k, lower than 1.
+    Calculated each batch. Obviously, the larger the dataset, the lower
+    the precision, as the chance of finding the correct match is lower.
 
     :param dist_matrix: A 2D PyTorch tensor where dist_matrix[i, j]
         is the distance from sample i to sample j.
@@ -39,7 +41,7 @@ def compute_dynamic_k_avg_precision(dist_matrix, labels, max_k, device):
 
             # Find the top dynamic k smallest distances.
             _, top_k_indices = torch.topk(dists, dynamic_k, largest=False,
-                                               sorted=True)
+                                          sorted=True)
 
             # Get the labels of the top k closest samples
             top_k_labels = labels[top_k_indices]

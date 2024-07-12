@@ -7,7 +7,7 @@
     "learning_rate": 0.001,
     "epochs": 40,
     "device": "cuda",
-    "verbose": False,
+    "verbose": false,
     "backbone_model": "resnet50",
     "margin": 0.2,
     "max_k": 5,

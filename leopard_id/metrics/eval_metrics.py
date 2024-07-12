@@ -87,36 +87,30 @@ def compute_class_distance_ratio(dist_matrix, labels, device):
     dist_matrix = dist_matrix.to(device)
     labels = labels.to(device)
     num_samples = dist_matrix.size(0)
-    ratios = torch.zeros(num_samples, device=device)
+    ratios = []
 
-    # Get unique classes and their counts
-    unique_classes, counts = torch.unique(labels, return_counts=True)
-
-    # Iterate through each sample to compute ratios
     for i in range(num_samples):
         # Intra-class distances (masking other classes)
         intra_mask = labels == labels[i]
         intra_mask[i] = False  # Exclude self distance
         intra_distances = dist_matrix[i, intra_mask]
-        mean_intra_distance = (
-            intra_distances.mean()
-            if intra_distances.numel() > 0
-            else torch.tensor(float("inf"), device=device)
-        )
 
         # Inter-class distances (masking the same class)
         inter_mask = labels != labels[i]
         inter_distances = dist_matrix[i, inter_mask]
-        mean_inter_distance = (
-            inter_distances.mean()
-            if inter_distances.numel() > 0
-            else torch.tensor(0.0, device=device)
-        )  # Prevent division by zero
 
-        # Ratio of intra-class to inter-class distances
-        ratio = mean_intra_distance / mean_inter_distance
-        ratios[i] = ratio
+        if intra_distances.numel() > 0 and inter_distances.numel() > 0:
+            mean_intra_distance = intra_distances.mean()
+            mean_inter_distance = inter_distances.mean()
 
-    # Compute the mean of all ratios
-    mean_ratio = ratios.mean()
+            # Ratio of intra-class to inter-class distances
+            ratio = mean_intra_distance / mean_inter_distance
+            ratios.append(ratio)
+
+    # Compute the mean of all ratios if any valid ratios were calculated
+    if ratios:
+        mean_ratio = torch.tensor(ratios, device=device).mean()
+    else:
+        mean_ratio = torch.tensor(float('nan'), device=device)
+
     return mean_ratio

@@ -140,6 +140,7 @@ def train_model(
             model, train_loader, device, max_k=config["max_k"]
         )
 
+        writer.add_scalar("Loss/Train", train_loss, epoch)
         writer.add_scalar("Precision/Train", train_precision, epoch)
         writer.add_scalar(
             "Class Distance Ratio/Train", train_class_distance_ratio, epoch

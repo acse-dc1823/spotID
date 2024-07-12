@@ -97,13 +97,9 @@ def train_model(
     model,
     train_loader,
     test_loader,
-    lr,
-    epochs,
     device,
-    verbose,
     criterion,
-    backbone_model,
-    max_k,
+    config
 ):
     """
     Train and evaluate the model, focusing only on the last added
@@ -114,35 +110,34 @@ def train_model(
         param.requires_grad = False
 
     # Only parameters of the embedding layer are trainable
-    optimizer = optim.Adam(model.embedding_layer.parameters(), lr=lr)
+    optimizer = optim.Adam(model.embedding_layer.parameters(),
+                           lr=config["learning_rate"])
 
-    criterion = TripletLoss(verbose=verbose)
+    criterion = TripletLoss(verbose=config["verbose"])
     writer = SummaryWriter()  # TensorBoard summary writer initialized here
 
     model.to(device)
 
     hparams = {
-        "lr": lr,
-        "epochs": epochs,
-        "batch_size": (
-            train_loader.batch_size
-            if hasattr(train_loader, "batch_size")
-            else None
-        ),
-        "device": device,
-        "margin": criterion.margin if hasattr(criterion, "margin") else None,
-        "backbone_model": backbone_model,
-        "max_k": max_k,
+        "lr": config["learning_rate"],
+        "epochs": config["epochs"],
+        "batch_size": config["batch_size"],
+        "device": str(device),
+        "margin": criterion.margin if hasattr(criterion, "margin") else -1,
+        "backbone_model": config["backbone_model"],
+        "max_k": config["max_k"],
     }
 
-    for epoch in range(epochs):
+    print("Training the model... with hyperparameters:")
+    print(hparams)
+    for epoch in range(config["epochs"]):
         start_time = time.time()
 
         train_loss = train_epoch(
             model, train_loader, optimizer, criterion, device
         )
         train_precision, train_class_distance_ratio = evaluate_epoch(
-            model, train_loader, device, max_k=max_k
+            model, train_loader, device, max_k=config["max_k"]
         )
 
         writer.add_scalar("Precision/Train", train_precision, epoch)
@@ -152,7 +147,7 @@ def train_model(
 
         if test_loader is not None:
             test_precision, test_class_distance_ratio = evaluate_epoch(
-                model, test_loader, device, verbose=True, max_k=max_k
+                model, test_loader, device, verbose=True, max_k=config["max_k"]
             )
             writer.add_scalar("Precision/Test", test_precision, epoch)
             writer.add_scalar(
@@ -160,6 +155,7 @@ def train_model(
             )
 
         elapsed_time = time.time() - start_time
+        epochs = config["epochs"]
         print(
             f"Epoch {epoch+1}/{epochs} - "
             f"Train Loss: {train_loss:.4f} - "

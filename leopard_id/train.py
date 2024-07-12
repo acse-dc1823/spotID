@@ -66,7 +66,6 @@ def setup_data_loader(config):
 
 
 def main():
-    verbose = config["verbose"]
     device = torch.device(
         config["device"] if torch.cuda.is_available() else "cpu"
     )
@@ -74,19 +73,15 @@ def main():
     train_loader, test_loader = setup_data_loader(config)
 
     model = TripletNetwork(backbone_model=config["backbone_model"]).to(device)
-    criterion = TripletLoss(margin=config["margin"], verbose=verbose)
+    criterion = TripletLoss(margin=config["margin"], verbose=config["verbose"])
     print(summary(model, (3, config["resize_height"], config["resize_width"])))
     resnet_model = train_model(
         model,
         train_loader,
         test_loader,
-        lr=config["learning_rate"],
-        epochs=config["epochs"],
         device=device,
-        verbose=verbose,
         criterion=criterion,
-        backbone_model=config["backbone_model"],
-        max_k=config["max_k"],
+        config=config,
     )
     # save model
     save_path = os.path.join(project_root, config["save_path"])

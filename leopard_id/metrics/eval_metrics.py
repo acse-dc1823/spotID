@@ -19,16 +19,11 @@ def compute_dynamic_k_avg_precision(dist_matrix, labels, max_k, device):
     dist_matrix = dist_matrix.to(device)
     labels = labels.to(device)
     num_samples = dist_matrix.size(0)
-    avg_precisions = torch.zeros(num_samples)
+    avg_precisions = torch.zeros(num_samples, device=device)
     valid_counts = 0
 
     # Calculate the count of each class minus one (for self-comparison)
     class_counts = torch.bincount(labels) - 1
-    print("labels size", labels.size())
-    print("matrix size", dist_matrix.size())
-    print("labels", labels)
-    print("class counts size", class_counts.size())
-    print("class_counts", class_counts)
 
     for i in range(num_samples):
         # Get current sample's class
@@ -43,25 +38,20 @@ def compute_dynamic_k_avg_precision(dist_matrix, labels, max_k, device):
             dists[i] = float("inf")
 
             # Find the top dynamic k smallest distances.
-            dists1, top_k_indices = torch.topk(dists, dynamic_k, largest=False,
+            _, top_k_indices = torch.topk(dists, dynamic_k, largest=False,
                                                sorted=True)
-            print("dists1", dists1)
-            print("top k indices", top_k_indices)
 
             # Get the labels of the top k closest samples
             top_k_labels = labels[top_k_indices]
-            print("top k labels", top_k_labels)
 
             # True positives at each k position
             true_positives = (top_k_labels == current_class).float()
-            print("true positives", true_positives)
 
             # Cum sum of true positives to calculate precision at each cut-off
             cum_true_positives = true_positives.cumsum(0)
 
             # Ranks (1-based) for each of the top k
-            ranks = torch.arange(1, dynamic_k + 1).float()
-
+            ranks = torch.arange(1, dynamic_k + 1, device=device).float()
             # Precision at each k
             precision_at_k = cum_true_positives / ranks
 

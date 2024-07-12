@@ -34,7 +34,7 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
 
 def evaluate_epoch(model, data_loader, device, max_k=5, verbose=False):
     """
-    Evaluate the model and return the average precision and average loss.
+    Evaluate the model and return the average precision.
     """
     model.eval()
     total_precision = 0
@@ -46,16 +46,17 @@ def evaluate_epoch(model, data_loader, device, max_k=5, verbose=False):
             outputs = model(inputs)
             start_time = time.time()
             dist_mat = euclidean_dist(outputs, outputs)
-            end_time_dist = time.time() - start_time
+            time_taken_dist = time.time() - start_time
+
             if verbose:
-                print("time taken to compute distance matrix {:.2f} s".format(
-                    end_time_dist))
-            batch_precision = compute_dynamic_k_avg_precision(dist_mat,
-                                                              targets, max_k,
-                                                              device)
+                print("Time taken to compute distance matrix {:.2f} s".format(time_taken_dist))
+
+            start_time_precision = time.time()
+            batch_precision = compute_dynamic_k_avg_precision(dist_mat, targets, max_k, device)
+            time_taken_precision = time.time() - start_time_precision 
+
             if verbose:
-                print("time taken to calculate precision {:.2f} s".format(
-                    time.time() - end_time_dist))
+                print("Time taken to calculate precision {:.2f} s".format(time_taken_precision))
 
             total_precision += batch_precision
 

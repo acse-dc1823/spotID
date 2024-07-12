@@ -39,6 +39,7 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
     return avg_loss
 
 
+#TODO: Change from one epoch to it being done in the train above, as accessing the data is what seems to be the bottleneck.
 def evaluate_epoch(model, data_loader, device, max_k=5, verbose=False):
     """
     Evaluate the model and return the average precision and class distance
@@ -120,7 +121,7 @@ def train_model(model, train_loader, test_loader, device, criterion, config):
         model.embedding_layer.parameters(), lr=config["learning_rate"]
     )
 
-    criterion = TripletLoss(verbose=config["verbose"])
+    criterion = TripletLoss(verbose=config["verbose"], margin=config["margin"])
     writer = SummaryWriter()  # TensorBoard summary writer initialized here
 
     model.to(device)

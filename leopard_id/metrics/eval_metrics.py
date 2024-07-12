@@ -40,8 +40,9 @@ def compute_dynamic_k_avg_precision(dist_matrix, labels, max_k, device):
             dists[i] = float("inf")
 
             # Find the top dynamic k smallest distances.
-            _, top_k_indices = torch.topk(dists, dynamic_k, largest=False,
-                                          sorted=True)
+            _, top_k_indices = torch.topk(
+                dists, dynamic_k, largest=False, sorted=True
+            )
 
             # Get the labels of the top k closest samples
             top_k_labels = labels[top_k_indices]
@@ -70,3 +71,52 @@ def compute_dynamic_k_avg_precision(dist_matrix, labels, max_k, device):
         )  # In case all classes have only one sample
 
     return mean_avg_precision
+
+
+def compute_class_distance_ratio(dist_matrix, labels, device):
+    """
+    Calculate the ratio of the average intra-class distance to the average
+    inter-class distance. A lower value indicates that the model is learning
+    correctly to tell the difference between different classes.
+
+    :param dist_matrix: A 2D PyTorch tensor where dist_matrix[i, j]
+        is the distance from sample i to sample j.
+    :param labels: A 1D PyTorch tensor with class labels for each sample.
+    :return: The mean ratio of intra-class to inter-class distances.
+    """
+    dist_matrix = dist_matrix.to(device)
+    labels = labels.to(device)
+    num_samples = dist_matrix.size(0)
+    ratios = torch.zeros(num_samples, device=device)
+
+    # Get unique classes and their counts
+    unique_classes, counts = torch.unique(labels, return_counts=True)
+
+    # Iterate through each sample to compute ratios
+    for i in range(num_samples):
+        # Intra-class distances (masking other classes)
+        intra_mask = labels == labels[i]
+        intra_mask[i] = False  # Exclude self distance
+        intra_distances = dist_matrix[i, intra_mask]
+        mean_intra_distance = (
+            intra_distances.mean()
+            if intra_distances.numel() > 0
+            else torch.tensor(float("inf"), device=device)
+        )
+
+        # Inter-class distances (masking the same class)
+        inter_mask = labels != labels[i]
+        inter_distances = dist_matrix[i, inter_mask]
+        mean_inter_distance = (
+            inter_distances.mean()
+            if inter_distances.numel() > 0
+            else torch.tensor(0.0, device=device)
+        )  # Prevent division by zero
+
+        # Ratio of intra-class to inter-class distances
+        ratio = mean_intra_distance / mean_inter_distance
+        ratios[i] = ratio
+
+    # Compute the mean of all ratios
+    mean_ratio = ratios.mean()
+    return mean_ratio

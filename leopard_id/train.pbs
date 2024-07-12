@@ -20,7 +20,7 @@ source /rds/general/user/dc1823/home/anaconda3/bin/activate leopard-id
 
 which python
 which pip
-å
+
 # Makes sure that when our job starts it cd's to whatever directory we submitted job from. 
 # Submit this one from scripts_preprocessing 
 cd $PBS_O_WORKDIR

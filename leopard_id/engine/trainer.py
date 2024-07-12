@@ -4,6 +4,8 @@ import torch.optim as optim
 # To launch TensorBoard, run tensorboard --logdir runs
 from torch.utils.tensorboard import SummaryWriter
 import time
+import logging
+
 from losses import TripletLoss, euclidean_dist
 from metrics import (
     compute_dynamic_k_avg_precision,
@@ -37,8 +39,13 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
 def evaluate_epoch(model, data_loader, device, max_k=5, verbose=False):
     """
     Evaluate the model and return the average precision and class distance
-    ratio.
+    ratio using logging for verbose output.
     """
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    )
+
     model.eval()
     total_precision = 0
     total_class_distance_ratio = 0
@@ -46,7 +53,6 @@ def evaluate_epoch(model, data_loader, device, max_k=5, verbose=False):
     with torch.no_grad():
         for inputs, targets in data_loader:
             inputs, targets = inputs.to(device), targets.to(device)
-
             outputs = model(inputs)
 
             # Distance matrix computation
@@ -72,17 +78,17 @@ def evaluate_epoch(model, data_loader, device, max_k=5, verbose=False):
             total_class_distance_ratio += class_distance_ratio
 
             if verbose:
-                print(
-                    f"Time taken to calculate class distance:"
+                logging.info(
+                    f"Time taken to calculate class distance: "
                     f"{time_taken_dist:.2f} s"
                 )
-                print(
+                logging.info(
                     f"Time taken to calculate precision: "
                     f"{time_taken_precision:.2f} s"
                 )
-                print(
-                    f"Time taken to calculate class distance ratio"
-                    f"ratio: {time_taken_ratio:.2f} s"
+                logging.info(
+                    f"Time taken to calculate class distance ratio: "
+                    f"{time_taken_ratio:.2f} s"
                 )
 
     average_precision = total_precision / len(data_loader)
@@ -93,14 +99,7 @@ def evaluate_epoch(model, data_loader, device, max_k=5, verbose=False):
     return average_precision, average_class_distance_ratio
 
 
-def train_model(
-    model,
-    train_loader,
-    test_loader,
-    device,
-    criterion,
-    config
-):
+def train_model(model, train_loader, test_loader, device, criterion, config):
     """
     Train and evaluate the model, focusing only on the last added
     embedding layer.
@@ -110,8 +109,9 @@ def train_model(
         param.requires_grad = False
 
     # Only parameters of the embedding layer are trainable
-    optimizer = optim.Adam(model.embedding_layer.parameters(),
-                           lr=config["learning_rate"])
+    optimizer = optim.Adam(
+        model.embedding_layer.parameters(), lr=config["learning_rate"]
+    )
 
     criterion = TripletLoss(verbose=config["verbose"])
     writer = SummaryWriter()  # TensorBoard summary writer initialized here
@@ -128,8 +128,6 @@ def train_model(
         "max_k": config["max_k"],
     }
 
-    print("Training the model... with hyperparameters:")
-    print(hparams)
     for epoch in range(config["epochs"]):
         start_time = time.time()
 

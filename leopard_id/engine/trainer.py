@@ -136,6 +136,9 @@ def train_model(model, train_loader, test_loader, device, criterion, config):
         "max_k": config["max_k"],
     }
 
+    # Initialize logging of hyperparameters at the start of training
+    writer.add_hparams(hparam_dict=hparams, metric_dict={})
+
     cumulative_train_eval_time = 0
     cumulative_test_eval_time = 0
 
@@ -197,7 +200,9 @@ def train_model(model, train_loader, test_loader, device, criterion, config):
             test_precision if test_loader is not None else None
         ),
     }
-    writer.add_hparams(hparam_dict=hparams, metric_dict=final_metrics)
+
+    # Update final metrics at the end of training
+    writer.add_hparams(hparam_dict={}, metric_dict=final_metrics)
 
     writer.close()
     return model

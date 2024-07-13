@@ -39,8 +39,8 @@ class TripletLoss(nn.Module):
         dist_mat = euclidean_dist(features, features)
         batch_size = features.size(0)
 
-        if self.verbose:
-            logging.info(f"batch size: {batch_size}")
+        # if self.verbose:
+        #     logging.info(f"batch size: {batch_size}")
 
         triplet_loss = 0.0
 
@@ -81,9 +81,9 @@ class TripletLoss(nn.Module):
         else:
             triplet_loss = torch.tensor(0.0, device=features.device)
 
-        if self.verbose:
-            logging.info(f"total number of positive-positive"
-                         f"with random negative pairs is: {counter}")
+        # if self.verbose:
+        #     logging.info(f"total number of positive-positive"
+        #                  f"with random negative pairs is: {counter}")
         return triplet_loss
 
 

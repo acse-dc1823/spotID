@@ -22,11 +22,22 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
     """
     model.train()
     total_loss = 0
+    total_data_time = 0
+    total_forward_time = 0
+
     for inputs, targets in data_loader:
+        start_data_time = time.time()
         inputs, targets = inputs.to(device), targets.to(device)
+        data_time = time.time() - start_data_time
+        total_data_time += data_time
+
         optimizer.zero_grad()
 
+        start_forward_time = time.time()
         outputs = model(inputs)
+        forward_time = time.time() - start_forward_time
+        total_forward_time += forward_time
+
         loss = criterion(outputs, targets)
         loss.backward()
         optimizer.step()
@@ -36,6 +47,11 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
 
     # Average loss per batch
     avg_loss = total_loss / len(data_loader)
+
+    # Logging the cumulative times
+    logging.info(f"Cumulative data loading time for training: {total_data_time:.4f} seconds")
+    logging.info(f"Cumulative forward pass time for training: {total_forward_time:.4f} seconds")
+
     return avg_loss
 
 
@@ -50,59 +66,74 @@ def evaluate_epoch(model, data_loader, device, max_k=5, verbose=False):
     total_precision = 0
     total_class_distance_ratio = 0
 
-    general_time = time.time()
+    # Cumulative times
+    cumulative_data_access_time = 0
+    cumulative_output_time = 0
+    cumulative_distance_time = 0
+    cumulative_precision_time = 0
+    cumulative_ratio_time = 0
+
     with torch.no_grad():
         for inputs, targets in data_loader:
-            time_acccess = time.time()
-            if verbose:
-                logging.info(f"Time to access data: "
-                             f"{time_acccess - general_time}")
+            general_time = time.time()
+
+            # Data access time measurement
             inputs, targets = inputs.to(device), targets.to(device)
+            time_access = time.time()
+            data_access_time = time_access - general_time
+            cumulative_data_access_time += data_access_time
+
+            if verbose:
+                logging.info(f"Time to access data: {data_access_time:.4f} seconds")
+
+            # Output computation time measurement
             outputs = model(inputs)
             time_outputs = time.time()
+            output_time = time_outputs - time_access
+            cumulative_output_time += output_time
+
             if verbose:
-                logging.info(f"Time to get outputs: "
-                             f"{time_outputs - time_acccess}")
+                logging.info(f"Time to get outputs: {output_time:.4f} seconds")
+
             # Distance matrix computation
             start_time = time.time()
             dist_mat = euclidean_dist(outputs, outputs)
             time_taken_dist = time.time() - start_time
+            cumulative_distance_time += time_taken_dist
+
+            if verbose:
+                logging.info(f"Time taken to calculate class distance: {time_taken_dist:.2f} s")
 
             # Precision calculation
             start_time_precision = time.time()
-            batch_precision = compute_dynamic_k_avg_precision(
-                dist_mat, targets, max_k, device
-            )
+            batch_precision = compute_dynamic_k_avg_precision(dist_mat, targets, max_k, device)
             time_taken_precision = time.time() - start_time_precision
+            cumulative_precision_time += time_taken_precision
+
+            if verbose:
+                logging.info(f"Time taken to calculate precision: {time_taken_precision:.2f} s")
 
             # Class distance ratio calculation
             start_time_ratio = time.time()
-            class_distance_ratio = compute_class_distance_ratio(
-                dist_mat, targets, device
-            )
+            class_distance_ratio = compute_class_distance_ratio(dist_mat, targets, device)
             time_taken_ratio = time.time() - start_time_ratio
+            cumulative_ratio_time += time_taken_ratio
+
+            if verbose:
+                logging.info(f"Time taken to calculate class distance ratio: {time_taken_ratio:.2f} s")
 
             total_precision += batch_precision
             total_class_distance_ratio += class_distance_ratio
 
-            if verbose:
-                logging.info(
-                    f"Time taken to calculate class distance: "
-                    f"{time_taken_dist:.2f} s"
-                )
-                logging.info(
-                    f"Time taken to calculate precision: "
-                    f"{time_taken_precision:.2f} s"
-                )
-                logging.info(
-                    f"Time taken to calculate class distance ratio: "
-                    f"{time_taken_ratio:.2f} s"
-                )
-
     average_precision = total_precision / len(data_loader)
-    average_class_distance_ratio = total_class_distance_ratio / len(
-        data_loader
-    )
+    average_class_distance_ratio = total_class_distance_ratio / len(data_loader)
+
+    # Logging cumulative times after the epoch
+    logging.info(f"Cumulative data access time: {cumulative_data_access_time:.4f} seconds")
+    logging.info(f"Cumulative output computation time: {cumulative_output_time:.4f} seconds")
+    logging.info(f"Cumulative distance matrix computation time: {cumulative_distance_time:.4f} seconds")
+    logging.info(f"Cumulative precision computation time: {cumulative_precision_time:.4f} seconds")
+    logging.info(f"Cumulative ratio computation time: {cumulative_ratio_time:.4f} seconds")
 
     return average_precision, average_class_distance_ratio
 

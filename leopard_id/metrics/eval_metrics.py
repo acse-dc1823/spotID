@@ -11,6 +11,8 @@ def compute_dynamic_top_k_avg_precision(dist_matrix, labels, max_k, device):
     capped at a maximum of num_exemplars_in_class / k, lower than 1.
     Calculated each batch. Obviously, the larger the dataset, the lower
     the precision, as the chance of finding the correct match is lower.
+    Metric is good because it gives higher precision to those having matches
+    closer to the anchor, as they'll count for all the k comparisons.
 
     :param dist_matrix: A 2D PyTorch tensor where dist_matrix[i, j]
         is the distance from sample i to sample j.
@@ -119,7 +121,7 @@ def compute_class_distance_ratio(dist_matrix, labels, device):
 def compute_top_k_rank_match_detection(dist_matrix, labels, max_k, device):
     """
     Calculate the Top-k Rank match detection: If there is a match in the
-    top-k most similar ranks for each sample and return
+    top-k most similar ranks for each sample. Return
     the accuracy for each k from 1 to max_k.
 
     :param dist_matrix: A 2D PyTorch tensor where dist_matrix[i, j]

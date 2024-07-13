@@ -118,21 +118,21 @@ def compute_class_distance_ratio(dist_matrix, labels, device):
 
 def compute_top_k_rank_match_detection(dist_matrix, labels, max_k, device):
     """
-    Calculate the Top-k Rank Accuracy for each sample and return
-    the accuracy for each k from 1 to max_k. Also, return the array
-    of accuracies for each rank to visualize the curve similar to the graph in the figure.
-    
+    Calculate the Top-k Rank match detection: If there is a match in the
+    top-k most similar ranks for each sample and return
+    the accuracy for each k from 1 to max_k.
+
     :param dist_matrix: A 2D PyTorch tensor where dist_matrix[i, j]
         is the distance from sample i to sample j.
     :param labels: A 1D PyTorch tensor with class labels for each sample.
     :param max_k: The maximum k for calculating rank accuracy.
-    :return: A tuple containing (mean accuracies for each k, accuracies for all samples for each k).
+    :return: mean match rates for each k in ascending order.
     """
     dist_matrix = dist_matrix.to(device)
     labels = labels.to(device)
     num_samples = dist_matrix.size(0)
     accuracies = torch.zeros(max_k, device=device)
-    
+
     # For storing individual accuracies per k to visualize the distribution
     all_accuracies = torch.zeros((num_samples, max_k), device=device)
 
@@ -143,7 +143,7 @@ def compute_top_k_rank_match_detection(dist_matrix, labels, max_k, device):
 
         # Get indices of the elements sorted by closest distance
         _, indices = torch.sort(dists)
-        
+
         # Get the labels of the sorted elements
         sorted_labels = labels[indices]
 
@@ -153,8 +153,8 @@ def compute_top_k_rank_match_detection(dist_matrix, labels, max_k, device):
         # Record results for each k
         for k in range(max_k):
             all_accuracies[i, k] = matches[:, :k+1].any(dim=1).float()
-    
+
     # Calculate the mean accuracy for each k
     accuracies = all_accuracies.mean(dim=0)
-    
+
     return accuracies

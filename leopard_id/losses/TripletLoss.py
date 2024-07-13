@@ -2,6 +2,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+import logging
+
+logging.basicConfig(filename='logs', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def euclidean_dist(x, y):
     """
@@ -33,10 +36,10 @@ class TripletLoss(nn.Module):
         """
         dist_mat = euclidean_dist(features, features)
         batch_size = features.size(0)
+        
         if self.verbose:
-            print("batch size:", batch_size)
+            logging.info(f"batch size: {batch_size}")
 
-        # Initialize triplet loss
         triplet_loss = 0.0
 
         # Iterate over each anchor, select all positive and random negative
@@ -77,11 +80,7 @@ class TripletLoss(nn.Module):
             triplet_loss = torch.tensor(0.0, device=features.device)
 
         if self.verbose:
-            print(
-                "total number of positive-positive",
-                "with random negative pairs is:",
-                counter,
-            )
+            logging.info(f"total number of positive-positive with random negative pairs is: {counter}")
         return triplet_loss
 
 

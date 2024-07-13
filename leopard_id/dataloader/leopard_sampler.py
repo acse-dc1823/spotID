@@ -1,6 +1,7 @@
 import numpy as np
 import random
 from torch.utils.data import BatchSampler
+import logging
 
 # from torch.utils.data import DataLoader
 # from torchvision import transforms
@@ -8,6 +9,8 @@ from torch.utils.data import BatchSampler
 # from leopard_dataset import LeopardDataset
 # from transforms import ResizeTransform
 
+# Configure logging
+logging.basicConfig(filename='logs', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class LeopardBatchSampler(BatchSampler):
     """
@@ -116,18 +119,12 @@ class LeopardBatchSampler(BatchSampler):
                 ]
 
                 if self.verbose:
-                    print(
-                        f"Selected indices for {chosen_leopard}: "
-                        f"{selected_indices}"
-                    )
-                    print(
-                        f"Remaining indices for {chosen_leopard}: "
-                        f"{available_indices[chosen_leopard]}"
-                    )
+                    logging.info(f"Selected indices for {chosen_leopard}: {selected_indices}")
+                    logging.info(f"Remaining indices for {chosen_leopard}: {available_indices[chosen_leopard]}")
 
                 while len(batch) >= self.batch_size:
                     if self.verbose:
-                        print(f"Yielding batch of size {self.batch_size}")
+                        logging.info(f"Yielding batch of size {self.batch_size}")
                     yield batch[: self.batch_size]
                     batch = batch[
                         self.batch_size:
@@ -147,7 +144,7 @@ class LeopardBatchSampler(BatchSampler):
 
             if len(batch) > 0:
                 if self.verbose:
-                    print(f"Yielding final batch of size {len(batch)}")
+                    logging.info(f"Yielding final batch of size {len(batch)}")
                 yield batch
                 batch = []  # Ensure batch is cleared after yielding
 

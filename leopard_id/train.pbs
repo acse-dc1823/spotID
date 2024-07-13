@@ -13,10 +13,10 @@
 
 module load tools/prod
 # uncomment the below if we are running from normal hpc, not cx3
-# module load anaconda3/personal
+module load anaconda3/personal
 
 # Change to source activate leopard-id for non cx3
-source /rds/general/user/dc1823/home/anaconda3/bin/activate leopard-id
+source /rds/general/user/dc1823/home/anaconda3/bin/activate leopard-id2
 
 which python
 which pip

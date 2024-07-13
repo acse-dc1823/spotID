@@ -24,9 +24,8 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
     total_loss = 0
     total_data_time = 0
     total_forward_time = 0
-
+    start_data_time = time.time()
     for inputs, targets in data_loader:
-        start_data_time = time.time()
         inputs, targets = inputs.to(device), targets.to(device)
         data_time = time.time() - start_data_time
         total_data_time += data_time
@@ -44,6 +43,7 @@ def train_epoch(model, data_loader, optimizer, criterion, device):
 
         # loss is already averaged per comparison
         total_loss += loss.item()
+        start_data_time = time.time()
 
     # Average loss per batch
     avg_loss = total_loss / len(data_loader)
@@ -74,13 +74,12 @@ def evaluate_epoch(model, data_loader, device, max_k=5, verbose=False):
     cumulative_ratio_time = 0
 
     with torch.no_grad():
+        start_time = time.time()
         for inputs, targets in data_loader:
-            general_time = time.time()
-
             # Data access time measurement
             inputs, targets = inputs.to(device), targets.to(device)
             time_access = time.time()
-            data_access_time = time_access - general_time
+            data_access_time = time_access - start_time
             cumulative_data_access_time += data_access_time
 
             if verbose:
@@ -124,6 +123,7 @@ def evaluate_epoch(model, data_loader, device, max_k=5, verbose=False):
 
             total_precision += batch_precision
             total_class_distance_ratio += class_distance_ratio
+            start_time = time.time()
 
     average_precision = total_precision / len(data_loader)
     average_class_distance_ratio = total_class_distance_ratio / len(data_loader)

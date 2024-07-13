@@ -66,6 +66,7 @@ def evaluate_epoch(model, data_loader, device, max_k=5, verbose=False):
     model.eval()
     total_precision = 0
     total_class_distance_ratio = 0
+    total_match_rate = 0
 
     # Cumulative times
     cumulative_data_access_time = 0
@@ -190,6 +191,7 @@ def train_model(model, train_loader, test_loader, device, criterion, config):
 
     cumulative_train_eval_time = 0
     cumulative_test_eval_time = 0
+    max_k = config["max_k"]
 
     for epoch in range(config["epochs"]):
         start_time = time.time()
@@ -200,7 +202,7 @@ def train_model(model, train_loader, test_loader, device, criterion, config):
 
         start_eval_train = time.time()
         train_precision, train_class_distance_ratio, train_match_rate = evaluate_epoch(
-            model, train_loader, device, max_k=config["max_k"]
+            model, train_loader, device, max_k=max_k
         )
         eval_train_duration = time.time() - start_eval_train
         cumulative_train_eval_time += eval_train_duration
@@ -211,13 +213,13 @@ def train_model(model, train_loader, test_loader, device, criterion, config):
             "Class Distance Ratio/Train", train_class_distance_ratio, epoch
         )
         writer.add_scalar(
-            "top {} match rate/Train".format(config["max_k"]), train_match_rate, epoch
+            "top {} match rate/Train".format(max_k), train_match_rate, epoch
         )
 
         if test_loader is not None:
             start_eval_test = time.time()
             test_precision, test_class_dist_ratio, test_match_rate = evaluate_epoch(
-                model, test_loader, device, verbose=True, max_k=config["max_k"]
+                model, test_loader, device, verbose=True, max_k=max_k
             )
             eval_test_duration = time.time() - start_eval_test
             cumulative_test_eval_time += eval_test_duration
@@ -227,7 +229,7 @@ def train_model(model, train_loader, test_loader, device, criterion, config):
                 "Class Distance Ratio/Test", test_class_dist_ratio, epoch
             )
             writer.add_scalar(
-            "top {} match rate/Test".format(config["max_k"]), test_match_rate, epoch
+            "top {} match rate/Test".format(max_k), test_match_rate, epoch
             )
 
         elapsed_time = time.time() - start_time
@@ -237,7 +239,7 @@ def train_model(model, train_loader, test_loader, device, criterion, config):
             f"Train Loss: {train_loss:.4f} - "
             f"Train Precision: {train_precision:.4f} - "
             f"Train Class Distance Ratio: {train_class_distance_ratio:.4f} - "
-            f"Train top {config["max_k"]} match rate: {train_match_rate:.4f} - "
+            f"Train top {max_k} match rate: {train_match_rate:.4f} - "
             f"Time: {elapsed_time:.2f} s"
         )
         logging.info(f"Cumulative Train Eval Time: "
@@ -247,7 +249,7 @@ def train_model(model, train_loader, test_loader, device, criterion, config):
             logging.info(
                 f"Test Precision: {test_precision:.4f} - "
                 f"Test Class Distance Ratio: {test_class_dist_ratio:.4f} - "
-                f"Test top {config["max_k"]} match rate: {test_match_rate:.4f} - "
+                f"Test top {max_k} match rate: {test_match_rate:.4f} - "
                 f"Cumulative Test Eval Time: {cumulative_test_eval_time:.2f} s"
             )
 
@@ -256,7 +258,7 @@ def train_model(model, train_loader, test_loader, device, criterion, config):
         "final_test_precision": (
             test_precision if test_loader is not None else None
         ),
-        "final_test_top {} match rate".format(config["max_k"]): (
+        "final_test_top {} match rate".format(max_k): (
             test_precision if test_loader is not None else None
         ),
     }

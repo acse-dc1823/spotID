@@ -10,7 +10,9 @@ import logging
 # from transforms import ResizeTransform
 
 # Configure logging
-logging.basicConfig(filename='logs', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='logs.log', level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 class LeopardBatchSampler(BatchSampler):
     """

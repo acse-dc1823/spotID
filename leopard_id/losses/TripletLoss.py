@@ -4,7 +4,9 @@ import numpy as np
 
 import logging
 
-logging.basicConfig(filename='logs', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='logs.log', level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 def euclidean_dist(x, y):
     """
@@ -36,7 +38,7 @@ class TripletLoss(nn.Module):
         """
         dist_mat = euclidean_dist(features, features)
         batch_size = features.size(0)
-        
+
         if self.verbose:
             logging.info(f"batch size: {batch_size}")
 
@@ -80,7 +82,8 @@ class TripletLoss(nn.Module):
             triplet_loss = torch.tensor(0.0, device=features.device)
 
         if self.verbose:
-            logging.info(f"total number of positive-positive with random negative pairs is: {counter}")
+            logging.info(f"total number of positive-positive"
+                         f"with random negative pairs is: {counter}")
         return triplet_loss
 
 

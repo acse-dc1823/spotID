@@ -12,7 +12,8 @@ from engine import train_model
 from losses import TripletLoss
 from visualization import main_executor_visualization
 
-logging.basicConfig(filename='logs', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='logs.log', level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 project_root = os.path.dirname(os.path.abspath(__file__))
 
@@ -72,8 +73,8 @@ def main():
 
     model = TripletNetwork(backbone_model=config["backbone_model"]).to(device)
     criterion = TripletLoss(margin=config["margin"], verbose=config["verbose"])
-    logging.info(summary(model, (3, config["resize_height"], config["resize_width"])))
-    
+    print(summary(model, (3, config["resize_height"], config["resize_width"])))
+
     resnet_model = train_model(
         model,
         train_loader,

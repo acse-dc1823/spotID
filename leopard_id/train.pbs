@@ -5,7 +5,7 @@
 #PBS -l select=1:ncpus=16:mem=16gb:ngpus=1:gpu_type=RTX6000
 
 # Time required in hh:mm:ss
-#PBS -l walltime=4:30:00
+#PBS -l walltime=8:00:00
 
 # Files to contain standard error and standard output
 #PBS -o stdout

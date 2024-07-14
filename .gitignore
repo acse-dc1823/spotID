@@ -13,8 +13,7 @@ scripts_preprocessing/stdout
 .pytest_cache/
 __pycache__/
 
-# Ignore weights and runs
-runs/
+# Ignore weights
 weights/
 
 # Ignore stderr and stdout and logging

@@ -5,12 +5,12 @@
     "resize_height": 256,
     "batch_size": 32,
     "learning_rate": 0.001,
-    "epochs": 40,
+    "epochs": 60,
     "device": "cuda",
     "verbose": true,
     "backbone_model": "resnet18",
-    "margin": 0.2,
+    "margin": 0.15,
     "max_k": 5,
     "save_path": "weights/leopard-id.pth",
-    "num_last_layers_to_train": 3
+    "num_last_layers_to_train": 1
 }

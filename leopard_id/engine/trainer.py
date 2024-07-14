@@ -158,6 +158,11 @@ def train_model(model, train_loader, test_loader, device, criterion, config):
     Train and evaluate the model, focusing only on the last added
     embedding layer.
     """
+    if config['num_last_layers_to_train'] > 3:
+        error_message = "Invalid number of layers to train specified: {}. Please set 'num_last_layers_to_train' to a maximum of 3.".format(config['num_last_layers_to_train'])
+        logging.error(error_message)
+        raise ValueError(error_message)
+
     # Freeze all pretrained layers initially
     for param in model.parameters():
         param.requires_grad = False
@@ -200,6 +205,7 @@ def train_model(model, train_loader, test_loader, device, criterion, config):
         "margin": criterion.margin if hasattr(criterion, "margin") else -1,
         "backbone_model": config["backbone_model"],
         "max_k": config["max_k"],
+        "num_last_layers_trained": config['num_last_layers_to_train']
     }
 
     # Initialize logging of hyperparameters at the start of training

@@ -158,14 +158,34 @@ def train_model(model, train_loader, test_loader, device, criterion, config):
     Train and evaluate the model, focusing only on the last added
     embedding layer.
     """
-    # Freeze all pretrained layers
-    for param in model.backbone.parameters():
+    # Freeze all pretrained layers initially
+    for param in model.parameters():
         param.requires_grad = False
 
-    # Only parameters of the embedding layer are trainable
-    optimizer = optim.Adam(
-        model.embedding_layer.parameters(), lr=config["learning_rate"]
-    )
+    trainable_params = []
+
+    # Unfreeze and add the embedding layer parameters
+    if config['num_last_layers_to_train'] >= 1:
+        for param in model.embedding_layer.parameters():
+            param.requires_grad = True
+        trainable_params.append({'params': model.embedding_layer.parameters()})
+
+    # Unfreeze and add the last FC layer parameters if requested
+    if config['num_last_layers_to_train'] >= 2 and hasattr(model.backbone, "fc"):
+        for param in model.backbone.fc.parameters():
+            param.requires_grad = True
+        trainable_params.append({'params': model.backbone.fc.parameters()})
+
+    # Unfreeze and add the last Conv2d layer parameters if requested
+    if config['num_last_layers_to_train'] == 3:
+        last_layer_group = list(model.backbone.layer4.children())[-1]  # Last block of layer4
+        if hasattr(last_layer_group, "conv2"):
+            for param in last_layer_group.conv2.parameters():
+                param.requires_grad = True
+            trainable_params.append({'params': last_layer_group.conv2.parameters()})
+
+    # Setup the optimizer with only the trainable parameters
+    optimizer = optim.Adam(trainable_params, lr=config["learning_rate"])
 
     criterion = TripletLoss(verbose=config["verbose"], margin=config["margin"])
     writer = SummaryWriter()  # TensorBoard summary writer initialized here

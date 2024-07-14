@@ -1,6 +1,6 @@
 {
-    "train_data_dir": "data/train_dataset",
-    "test_data_dir": "data/test_dataset",
+    "train_data_dir": "data/minimum_usable_dataset_2",
+    "test_data_dir": "data/minimum_usable_dataset_2",
     "resize_width": 512,
     "resize_height": 256,
     "batch_size": 32,
@@ -11,5 +11,6 @@
     "backbone_model": "resnet18",
     "margin": 0.2,
     "max_k": 5,
-    "save_path": "weights/leopard-id.pth"
+    "save_path": "weights/leopard-id.pth",
+    "num_last_layers_to_train": 3
 }

@@ -1,0 +1,27 @@
+name: run-tests
+on:
+  push:
+
+# This job installs dependencies and runs tests
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Package and data setup
+      run: |
+        pip install -r requirements.txt
+
+    # Set PYTHONPATH
+    - name: Set PYTHONPATH
+      run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
+
+    # Run tests
+    - name: run tests
+      run: |
+        pytest tests/

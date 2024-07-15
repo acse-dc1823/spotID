@@ -38,7 +38,7 @@ class LeopardDataset(Dataset):
 
     def __getitem__(self, idx):
         img_path = self.images[idx]
-        image = Image.open(img_path)
+        image = Image.open(img_path).convert('RGB')
         label = self.leopards[idx]
         # Convert label from string to integer using the mapping
         label = self.label_to_index[label]

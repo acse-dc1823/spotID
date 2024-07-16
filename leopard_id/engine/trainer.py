@@ -45,7 +45,16 @@ def train_epoch(model, data_loader, optimizer, criterion, device, max_k):
         forward_time = time.time() - start_forward_time
         total_forward_time += forward_time
 
+        if torch.isnan(outputs).any() or torch.isinf(outputs).any():
+            logging.error(f"Detected NaN or Inf in outputs")
+            continue  
+
         loss = criterion(outputs, targets)
+
+        if not loss.grad_fn:
+            logging.error(f"Loss tensor with value: {loss.item()} has no grad_fn, aborting backward to avoid crash")
+            continue  # Skip backward and log the issue, but avoid crashing
+
         loss.backward()
         optimizer.step()
 

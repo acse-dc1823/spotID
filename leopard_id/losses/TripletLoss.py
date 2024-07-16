@@ -79,6 +79,8 @@ class TripletLoss(nn.Module):
             # Average loss over the batch
             triplet_loss = triplet_loss / counter
         else:
+            logging.info(f"labels: {labels}")
+            logging.info("No valid triplets, triplet loss is thus 0.")
             triplet_loss = torch.tensor(0.0, device=features.device)
 
         # if self.verbose:

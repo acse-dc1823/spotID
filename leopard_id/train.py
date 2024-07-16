@@ -2,6 +2,8 @@ import json
 import torch
 import os
 import logging
+from PIL import Image
+
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchsummary import summary
@@ -38,8 +40,11 @@ def setup_data_loader(config):
                     height=config["resize_height"],
                 ),
                 transforms.ToTensor(),
+                # transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                #                      std=[0.229, 0.224, 0.225])
             ]
         ),
+        convert=config["convert_to_RGB"]
     )
 
     test_dataset = LeopardDataset(
@@ -50,9 +55,12 @@ def setup_data_loader(config):
                     width=config["resize_width"],
                     height=config["resize_height"],
                 ),
-                transforms.ToTensor(),  # Convert images to tensor
+                transforms.ToTensor(),
+                # transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                #                      std=[0.229, 0.224, 0.225])
             ]
         ),
+        convert=config["convert_to_RGB"]
     )
 
     train_sampler = LeopardBatchSampler(
@@ -71,9 +79,15 @@ def main():
     logging.info(f"Using device: {device}")
     train_loader, test_loader = setup_data_loader(config)
 
-    model = TripletNetwork(backbone_model=config["backbone_model"]).to(device)
+    num_input_channels = next(iter(train_loader))[0].shape[1]
+    logging.info(f"Number of input channels for the model: {num_input_channels}")
+
+    model = TripletNetwork(backbone_model=config["backbone_model"],
+                           input_channels=num_input_channels).to(device)
     criterion = TripletLoss(margin=config["margin"], verbose=config["verbose"])
-    print(summary(model, (3, config["resize_height"], config["resize_width"])))
+    print(model)
+    print(summary(model, (num_input_channels,
+                          config["resize_height"], config["resize_width"])))
 
     resnet_model = train_model(
         model,

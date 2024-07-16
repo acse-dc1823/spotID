@@ -12,5 +12,6 @@
     "margin": 0.15,
     "max_k": 5,
     "save_path": "weights/leopard-id.pth",
-    "num_last_layers_to_train": 1
+    "num_last_layers_to_train": 1,
+    "convert_to_RGB": false
 }

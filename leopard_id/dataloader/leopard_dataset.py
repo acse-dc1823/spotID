@@ -5,7 +5,7 @@ import random
 
 
 class LeopardDataset(Dataset):
-    def __init__(self, root_dir, transform=None):
+    def __init__(self, root_dir, transform=None, convert=True):
         """
         Args:
             root_dir (string): Directory with all the leopard images
@@ -19,6 +19,7 @@ class LeopardDataset(Dataset):
         self.images = []
         # Dictionary to map leopard identifiers to integers
         self.label_to_index = {}
+        self.convert = convert
 
         idx = 0  # Start index for mapping
         for leopard_id in os.listdir(root_dir):
@@ -38,7 +39,10 @@ class LeopardDataset(Dataset):
 
     def __getitem__(self, idx):
         img_path = self.images[idx]
-        image = Image.open(img_path).convert('RGB')
+        if self.convert:
+            image = Image.open(img_path).convert('RGB')
+        else:
+            image = Image.open(img_path)
         label = self.leopards[idx]
         # Convert label from string to integer using the mapping
         label = self.label_to_index[label]

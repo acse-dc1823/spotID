@@ -203,26 +203,45 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
         logging.info("Unfrozen parameters of last FC layer")
 
     # Unfreeze and add the last Conv2d layer parameters if requested
+    # This structure needed to generalize to other resnet models.
     if config['num_last_layers_to_train'] == 3:
         last_layer_group = list(model.backbone.backbone.layer4.children())[-1]
-        last_conv = None
-        last_conv_name = None
-        # Convert named_children() generator to a list before reversing
-        named_layers = list(last_layer_group.named_children())
-        for name, layer in reversed(named_layers):
-            if isinstance(layer, nn.Conv2d):
-                last_conv = layer
-                last_conv_name = f"layer4.{last_layer_group._get_name()}.{name}"
-                break
-        
-        if last_conv:
-            for param in last_conv.parameters():
-                param.requires_grad = True
-            trainable_params.append({'params': last_conv.parameters()})
-            logging.info(f"Unfrozen parameters of layer: {last_conv_name}")
-        else:
-            logging.error("No Conv2d layer found in the last block.")
+        if config["backbone_model"].lower() == "resnet50":
+            # For ResNet50, if user requests last three, train the last two Conv2d layers in the final block
+            # Do it because last conv layer is actually smaller than resnet18, so need to compensate.
+            named_layers = list(last_layer_group.named_children())
+            conv_layers_to_train = []
+            for name, layer in reversed(named_layers):
+                if isinstance(layer, nn.Conv2d):
+                    conv_layers_to_train.append((name, layer))
+                    if len(conv_layers_to_train) == 2:  # Only keep the last two Conv2d layers
+                        break
 
+            # Unfreeze and prepare for training
+            for name, layer in conv_layers_to_train:
+                for param in layer.parameters():
+                    param.requires_grad = True
+                last_conv_name = f"layer4.{last_layer_group._get_name()}.{name}"
+                trainable_params.append({'params': layer.parameters()})
+                logging.info(f"Unfrozen parameters of layer: {last_conv_name}")
+
+        else:
+            # For other architectures, proceed as usual
+            last_conv = None
+            last_conv_name = None
+            for name, layer in reversed(list(last_layer_group.named_children())):
+                if isinstance(layer, nn.Conv2d):
+                    last_conv = layer
+                    last_conv_name = f"layer4.{last_layer_group._get_name()}.{name}"
+                    break
+
+            if last_conv:
+                for param in last_conv.parameters():
+                    param.requires_grad = True
+                trainable_params.append({'params': last_conv.parameters()})
+                logging.info(f"Unfrozen parameters of layer: {last_conv_name}")
+            else:
+                logging.error("No Conv2d layer found in the last block.")
 
     # Setup the optimizer with only the trainable parameters
     optimizer = optim.Adam(trainable_params, lr=config["learning_rate"])

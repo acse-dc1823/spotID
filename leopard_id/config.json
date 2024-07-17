@@ -1,6 +1,6 @@
 {
-    "train_data_dir": "data/train_dataset_bg_rem_hist_match",
-    "test_data_dir": "data/test_dataset_bg_rem_hist_match",
+    "train_data_dir": "data/bg_rem_test",
+    "test_data_dir": "data/bg_rem_test",
     "resize_width": 512,
     "resize_height": 256,
     "batch_size": 32,

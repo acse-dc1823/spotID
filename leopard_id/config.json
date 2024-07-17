@@ -1,6 +1,6 @@
 {
-    "train_data_dir": "data/bg_rem_test",
-    "test_data_dir": "data/bg_rem_test",
+    "train_data_dir": "data/train_dataset_bg_rem_hist_match",
+    "test_data_dir": "data/test_dataset_bg_rem_hist_match",
     "resize_width": 512,
     "resize_height": 256,
     "batch_size": 32,
@@ -12,6 +12,6 @@
     "margin": 0.15,
     "max_k": 5,
     "save_path": "weights/leopard-id.pth",
-    "num_last_layers_to_train": 1,
-    "convert_to_RGB": false
+    "num_last_layers_to_train": 3,
+    "convert_to_RGB": true
 }

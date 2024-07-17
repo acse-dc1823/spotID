@@ -110,5 +110,5 @@ def split_data(src_directory, test_split=0.2, seed=12):
     print(f"Percentage of images in training set: {100 * train_images_count / (train_images_count + test_images_count):.2f}%")
 
 
-src_directory = os.path.join(os.getcwd(), "Data/joined_dataset")
-split_data(src_directory, test_split=0.1)
+src_directory = os.path.join(os.getcwd(), "data/background_removed")
+split_data(src_directory, test_split=0.07)

@@ -2,7 +2,6 @@ import json
 import torch
 import os
 import logging
-from PIL import Image
 
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -96,6 +95,7 @@ def main():
         device=device,
         criterion=criterion,
         config=config,
+        num_input_channels=num_input_channels
     )
     save_path = os.path.join(project_root, config["save_path"])
     torch.save(resnet_model.state_dict(), save_path)

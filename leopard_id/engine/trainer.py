@@ -162,7 +162,8 @@ def evaluate_epoch_test(model, data_loader, device, max_k, optimizer, verbose=Tr
     return total_precision, total_class_distance_ratio, total_match_rate
 
 
-def train_model(model, train_loader, test_loader, device, criterion, config):
+def train_model(model, train_loader, test_loader, device, criterion, config,
+                num_input_channels):
     """
     Train and evaluate the model, focusing only on the last added
     embedding layer.
@@ -177,6 +178,12 @@ def train_model(model, train_loader, test_loader, device, criterion, config):
         param.requires_grad = False
 
     trainable_params = []
+
+    # If we have more than 3 input channels, we modify the first conv layer, and thus have to train them.
+    if num_input_channels > 3:
+        for param in model.backbone.conv1.parameters():
+            param.requires_grad = True
+        trainable_params.append({'params': model.backbone.conv1.parameters()})
 
     # Unfreeze and add the embedding layer parameters
     if config['num_last_layers_to_train'] >= 1:

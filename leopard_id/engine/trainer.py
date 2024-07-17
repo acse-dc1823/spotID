@@ -193,13 +193,13 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
 
     # Unfreeze and add the last FC layer parameters if requested
     if config['num_last_layers_to_train'] >= 2 and hasattr(model.backbone, "fc"):
-        for param in model.backbone.fc.parameters():
+        for param in model.backbone.backbone.fc.parameters():
             param.requires_grad = True
         trainable_params.append({'params': model.backbone.fc.parameters()})
 
     # Unfreeze and add the last Conv2d layer parameters if requested
     if config['num_last_layers_to_train'] == 3:
-        last_layer_group = list(model.backbone.layer4.children())[-1]  # Last block of layer4
+        last_layer_group = list(model.backbone.backbone.layer4.children())[-1]  # Last block of layer4
         if hasattr(last_layer_group, "conv2"):
             for param in last_layer_group.conv2.parameters():
                 param.requires_grad = True
@@ -221,7 +221,8 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
         "margin": criterion.margin if hasattr(criterion, "margin") else -1,
         "backbone_model": config["backbone_model"],
         "max_k": config["max_k"],
-        "num_last_layers_trained": config['num_last_layers_to_train']
+        "num_last_layers_trained": config['num_last_layers_to_train'],
+        "train_set": config["train_data_dir"]
     }
 
     # Initialize logging of hyperparameters at the start of training

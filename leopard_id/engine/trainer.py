@@ -181,9 +181,9 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
 
     # If we have more than 3 input channels, we modify the first conv layer, and thus have to train them.
     if num_input_channels > 3:
-        for param in model.backbone.conv1.parameters():
+        for param in model.backbone.backbone.conv1.parameters():
             param.requires_grad = True
-        trainable_params.append({'params': model.backbone.conv1.parameters()})
+        trainable_params.append({'params': model.backbone.backbone.conv1.parameters()})
 
     # Unfreeze and add the embedding layer parameters
     if config['num_last_layers_to_train'] >= 1:
@@ -192,10 +192,10 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
         trainable_params.append({'params': model.embedding_layer.parameters()})
 
     # Unfreeze and add the last FC layer parameters if requested
-    if config['num_last_layers_to_train'] >= 2 and hasattr(model.backbone, "fc"):
+    if config['num_last_layers_to_train'] >= 2 and hasattr(model.backbone.backbone, "fc"):
         for param in model.backbone.backbone.fc.parameters():
             param.requires_grad = True
-        trainable_params.append({'params': model.backbone.fc.parameters()})
+        trainable_params.append({'params': model.backbone.backbone.fc.parameters()})
 
     # Unfreeze and add the last Conv2d layer parameters if requested
     if config['num_last_layers_to_train'] == 3:

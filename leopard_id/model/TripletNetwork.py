@@ -20,8 +20,9 @@ class CustomResNet(nn.Module):
         # Retrieve the original first convolutional layer
         original_first_layer = original_model.conv1
 
-        # Modify the first convolutional layer to have the required number of input channels
-        self.conv1 = nn.Conv2d(
+        # Create a new convolutional layer to replace the original first layer
+        # This layer will use the same parameters except for potentially different input channels
+        modified_first_conv = nn.Conv2d(
             num_input_channels,
             original_first_layer.out_channels,
             kernel_size=original_first_layer.kernel_size,
@@ -30,31 +31,28 @@ class CustomResNet(nn.Module):
             bias=(original_first_layer.bias is not None)
         )
 
-        # Initialize the weights for the modified conv1 layer with Parameter wrapping
+        # Initialize the weights and biases for the new convolutional layer
         with torch.no_grad():
-            # Handle cases where the number of input channels is different
             if num_input_channels > 3:
-                # Initialize the extra channel weights (replicating the weights from the first channel as an example)
+                # If there are more input channels than the original, extend the original weights
                 extra_channels = num_input_channels - 3
                 # Copy the original weights for the first 3 channels
-                self.conv1.weight[:, :3, :, :] = original_first_layer.weight.clone()
-                # Replicate the first channel weights for the additional channels
+                modified_first_conv.weight[:, :3, :, :] = original_first_layer.weight.data.clone()
+                # Replicate the first channel's weights for the additional channels
                 for i in range(extra_channels):
-                    self.conv1.weight[:, 3+i, :, :] = original_first_layer.weight[:, 0, :, :].clone()
+                    modified_first_conv.weight[:, 3+i, :, :] = original_first_layer.weight.data[:, 0, :, :].clone()
             else:
-                self.conv1.weight[:, :num_input_channels, :, :] = original_first_layer.weight[:, :num_input_channels, :, :].clone()
+                # If the input channels are 3 or fewer, just use the original weights directly
+                modified_first_conv.weight.data[:num_input_channels, :, :, :] = original_first_layer.weight.data[:num_input_channels, :, :, :]
 
-            # If the original layer has a bias, clone that as well
+            # Handle the bias if it exists
             if original_first_layer.bias is not None:
-                self.conv1.bias = nn.Parameter(original_first_layer.bias.clone())
+                modified_first_conv.bias.data = original_first_layer.bias.data.clone()
 
-        # Ensure the weights and biases are wrapped as nn.Parameter
-        self.conv1.weight = nn.Parameter(self.conv1.weight)
-        if self.conv1.bias is not None:
-            self.conv1.bias = nn.Parameter(self.conv1.bias)
+        # Assign the modified convolutional layer to the original model
+        original_model.conv1 = modified_first_conv
 
-        # Replace the first layer in the original model with the modified layer
-        original_model.conv1 = self.conv1
+        # Assign the modified model to the backbone attribute
         self.backbone = original_model
 
     def forward(self, x):

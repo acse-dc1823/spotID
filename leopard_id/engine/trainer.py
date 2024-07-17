@@ -1,5 +1,6 @@
 import torch
 import torch.optim as optim
+import torch.nn as nn
 
 # To launch TensorBoard, run tensorboard --logdir runs
 from torch.utils.tensorboard import SummaryWriter
@@ -184,26 +185,44 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
         for param in model.backbone.backbone.conv1.parameters():
             param.requires_grad = True
         trainable_params.append({'params': model.backbone.backbone.conv1.parameters()})
+        logging.info("Unfrozen parameters of first conv layer to accept"
+                     "input of more than 3 channels")
 
     # Unfreeze and add the embedding layer parameters
     if config['num_last_layers_to_train'] >= 1:
         for param in model.embedding_layer.parameters():
             param.requires_grad = True
         trainable_params.append({'params': model.embedding_layer.parameters()})
+        logging.info("Unfrozen parameters of embedding layer")
 
     # Unfreeze and add the last FC layer parameters if requested
     if config['num_last_layers_to_train'] >= 2 and hasattr(model.backbone.backbone, "fc"):
         for param in model.backbone.backbone.fc.parameters():
             param.requires_grad = True
         trainable_params.append({'params': model.backbone.backbone.fc.parameters()})
+        logging.info("Unfrozen parameters of last FC layer")
 
     # Unfreeze and add the last Conv2d layer parameters if requested
     if config['num_last_layers_to_train'] == 3:
-        last_layer_group = list(model.backbone.backbone.layer4.children())[-1]  # Last block of layer4
-        if hasattr(last_layer_group, "conv2"):
-            for param in last_layer_group.conv2.parameters():
+        last_layer_group = list(model.backbone.backbone.layer4.children())[-1]
+        last_conv = None
+        last_conv_name = None
+        # Convert named_children() generator to a list before reversing
+        named_layers = list(last_layer_group.named_children())
+        for name, layer in reversed(named_layers):
+            if isinstance(layer, nn.Conv2d):
+                last_conv = layer
+                last_conv_name = f"layer4.{last_layer_group._get_name()}.{name}"
+                break
+        
+        if last_conv:
+            for param in last_conv.parameters():
                 param.requires_grad = True
-            trainable_params.append({'params': last_layer_group.conv2.parameters()})
+            trainable_params.append({'params': last_conv.parameters()})
+            logging.info(f"Unfrozen parameters of layer: {last_conv_name}")
+        else:
+            logging.error("No Conv2d layer found in the last block.")
+
 
     # Setup the optimizer with only the trainable parameters
     optimizer = optim.Adam(trainable_params, lr=config["learning_rate"])

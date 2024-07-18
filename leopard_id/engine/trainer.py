@@ -59,10 +59,6 @@ def train_epoch(model, data_loader, optimizer, criterion, device, max_k):
         loss.backward()
         optimizer.step()
 
-        torch.cuda.empty_cache()
-        del inputs, outputs, loss
-        torch.cuda.empty_cache()
-
         # loss is already averaged per comparison
         total_loss += loss.item()
 
@@ -76,6 +72,10 @@ def train_epoch(model, data_loader, optimizer, criterion, device, max_k):
         total_class_distance_ratio += train_class_distance_ratio
         total_match_rate += train_match_rate
         start_data_time = time.time()
+
+        torch.cuda.empty_cache()
+        del inputs, outputs, loss
+        torch.cuda.empty_cache()
 
     # Average loss per batch
     avg_loss = total_loss / len(data_loader)
@@ -131,6 +131,8 @@ def evaluate_data(model, outputs, targets, device, max_k=5, verbose=False):
             logging.info(f"Time taken to calculate class distance ratio: {time_taken_ratio:.2f} s")
             logging.info(f"Time taken to calculate top k match rate: "
                          f"{time_taken_match_rate:.2f} s")
+        
+        del dist_mat
     model.train()
 
     return batch_precision, class_distance_ratio, batch_match_rate[-1]

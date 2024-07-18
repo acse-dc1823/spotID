@@ -59,6 +59,10 @@ def train_epoch(model, data_loader, optimizer, criterion, device, max_k):
         loss.backward()
         optimizer.step()
 
+        torch.cuda.empty_cache()
+        del inputs, outputs, loss
+        torch.cuda.empty_cache()
+
         # loss is already averaged per comparison
         total_loss += loss.item()
 
@@ -146,17 +150,30 @@ def evaluate_epoch_test(model, data_loader, device, max_k, optimizer, verbose=Tr
     data_time = 0
 
     start_time = time.time()
-    for inputs, targets in data_loader:
-        inputs, targets = inputs.to(device), targets.to(device)
-        data_time += (time.time() - start_time)
 
-        # Is this necessary??
-        optimizer.zero_grad()
-        outputs = model(inputs)
-        batch_precision, class_distance_ratio, batch_match_rate = evaluate_data(model, outputs, targets, device, max_k=max_k, verbose=verbose)
-        total_precision += batch_precision
-        total_class_distance_ratio += class_distance_ratio
-        total_match_rate += batch_match_rate
+    # Check if we are using a CUDA device
+    use_cuda = 'cuda' in device.type
+
+    # Initialize the profiler with memory profiling based on the device type
+    with torch.autograd.profiler.profile(use_cuda=use_cuda, profile_memory=True) as prof:
+        for inputs, targets in data_loader:
+            inputs, targets = inputs.to(device), targets.to(device)
+            data_time += (time.time() - start_time)
+
+            outputs = model(inputs)
+            batch_precision, class_distance_ratio, batch_match_rate = evaluate_data(model, outputs, targets, device, max_k=max_k, verbose=verbose)
+            total_precision += batch_precision
+            total_class_distance_ratio += class_distance_ratio
+            total_match_rate += batch_match_rate
+            torch.cuda.empty_cache() if use_cuda else None
+            del inputs, outputs
+            torch.cuda.empty_cache() if use_cuda else None
+
+            # Reset start time for next batch
+            start_time = time.time()
+
+    # End of profiler context, print profiling results focused on memory usage
+    print(prof.key_averages().table(sort_by="self_cuda_memory_usage" if use_cuda else "cpu_memory_usage"))
 
     logging.info(f"Time taken to access test data {data_time:.2f} s")
 

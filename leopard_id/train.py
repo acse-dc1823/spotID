@@ -39,8 +39,8 @@ def setup_data_loader(config):
                     height=config["resize_height"],
                 ),
                 transforms.ToTensor(),
-                # transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                #                      std=[0.229, 0.224, 0.225])
+                transforms.Normalize(mean=config["mean_normalize"],
+                                     std=config["std_normalize"])
             ]
         ),
         convert=config["convert_to_RGB"]
@@ -55,8 +55,8 @@ def setup_data_loader(config):
                     height=config["resize_height"],
                 ),
                 transforms.ToTensor(),
-                # transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                #                      std=[0.229, 0.224, 0.225])
+                transforms.Normalize(mean=config["mean_normalize"],
+                                     std=config["std_normalize"])
             ]
         ),
         convert=config["convert_to_RGB"]

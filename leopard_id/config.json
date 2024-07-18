@@ -13,5 +13,7 @@
     "max_k": 5,
     "save_path": "weights/leopard-id.pth",
     "num_last_layers_to_train": 3,
-    "convert_to_RGB": true
+    "convert_to_RGB": false,
+    "mean_normalize": [0.485, 0.456, 0.406, 0.456],
+    "std_normalize": [0.229, 0.224, 0.225, 0.225]
 }

@@ -25,41 +25,52 @@ with open(os.path.join(project_root, "config.json"), "r") as f:
 def setup_data_loader(config):
     root_dir_train = os.path.join(project_root, config["train_data_dir"])
     root_dir_test = os.path.join(project_root, config["test_data_dir"])
+
     if not os.path.isdir(root_dir_train):
         raise NotADirectoryError(f"Directory {root_dir_train} does not exist.")
     else:
         logging.info(f"Found directory {root_dir_train}")
 
+    def create_transforms(resize_width, resize_height, mean, std, mean_binary_mask=None, std_binary_mask=None):
+        common_transforms = transforms.Compose([
+            ResizeTransform(width=resize_width, height=resize_height),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean, std=std)
+        ])
+
+        if mean_binary_mask is not None:
+            binary_transforms = transforms.Compose([
+                ResizeTransform(width=resize_width, height=resize_height),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=mean_binary_mask, std=std_binary_mask)
+            ])
+        else:
+            binary_transforms = None
+
+        return common_transforms, binary_transforms
+
+    # Create common transformations
+    common_transform, binary_transform = create_transforms(
+        resize_width=config["resize_width"],
+        resize_height=config["resize_height"],
+        mean=config["mean_normalize"],
+        std=config["std_normalize"],
+        mean_binary_mask=config["mean_normalize_binary_mask"],
+        std_binary_mask=config["std_normalize_binary_mask"]
+    )
+
     train_dataset = LeopardDataset(
         root_dir=root_dir_train,
-        transform=transforms.Compose(
-            [
-                ResizeTransform(
-                    width=config["resize_width"],
-                    height=config["resize_height"],
-                ),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=config["mean_normalize"],
-                                     std=config["std_normalize"])
-            ]
-        ),
-        convert=config["convert_to_RGB"]
+        transform=common_transform,
+        transform_binary=binary_transform,
+        mask_dir=config["train_binary_mask_dir"]
     )
 
     test_dataset = LeopardDataset(
         root_dir=root_dir_test,
-        transform=transforms.Compose(
-            [
-                ResizeTransform(
-                    width=config["resize_width"],
-                    height=config["resize_height"],
-                ),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=config["mean_normalize"],
-                                     std=config["std_normalize"])
-            ]
-        ),
-        convert=config["convert_to_RGB"]
+        transform=common_transform,
+        transform_binary=binary_transform,
+        mask_dir=config["test_binary_mask_dir"]
     )
 
     train_sampler = LeopardBatchSampler(
@@ -67,6 +78,7 @@ def setup_data_loader(config):
         batch_size=config["batch_size"],
         verbose=config["verbose"],
     )
+
     # DataLoader for test should have batch size equal to the number of images
     return DataLoader(train_dataset, batch_sampler=train_sampler, num_workers=4), DataLoader(
         test_dataset, batch_size=len(test_dataset)

@@ -12,10 +12,8 @@ class LeopardDataset(Dataset):
         Args:
             root_dir (string): Directory with all the RGB leopard images.
             mask_dir (string, optional): Directory with all the mask images.
-            use_masks (bool, optional): Flag to determine whether to load masks.
             transform (callable, optional): Optional transform to be applied on a sample.
             transform_binary (callable, optional): Optional transform to be applied on a binary mask.
-
         """
         self.root_dir = root_dir
         self.mask_dir = mask_dir
@@ -36,9 +34,12 @@ class LeopardDataset(Dataset):
                 random.shuffle(img_files)
                 for img_file in img_files:
                     img_path = os.path.join(leopard_folder, img_file)
-                    if self.mask_dir is not None:
-                        mask_path = os.path.join(mask_dir, leopard_id, img_file)
-                        self.images.append((img_path, mask_path))
+                    if self.mask_dir:
+                        mask_path = os.path.join(self.mask_dir, leopard_id, img_file)
+                        if os.path.exists(mask_path):  # Check if the mask exists
+                            self.images.append((img_path, mask_path))
+                        else:
+                            continue  # Skip this image since mask is missing
                     else:
                         self.images.append(img_path)
                     self.leopards.append(leopard_id)
@@ -52,7 +53,6 @@ class LeopardDataset(Dataset):
             image = Image.open(img_path).convert('RGB')
             mask = Image.open(mask_path).convert('L')  # Load mask as single channel
 
-            # Apply transformations if any, check if ToTensor is already included
             if self.transform:
                 image = self.transform(image)
             else:
@@ -67,8 +67,7 @@ class LeopardDataset(Dataset):
             combined = torch.cat((image, mask), 0)  # Ensure mask is a single-channel tensor
         else:
             img_path = self.images[idx]
-            image = Image.open(img_path)
-            image = image.convert('RGB')
+            image = Image.open(img_path).convert('RGB')
             
             if self.transform:
                 image = self.transform(image)

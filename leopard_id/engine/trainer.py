@@ -203,9 +203,9 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
 
     # If we have more than 3 input channels, we modify the first conv layer, and thus have to train them.
     if num_input_channels > 3:
-        for param in model.backbone.backbone.conv1.parameters():
+        for param in model.final_backbone.conv1.parameters():
             param.requires_grad = True
-        trainable_params.append({'params': model.backbone.backbone.conv1.parameters()})
+        trainable_params.append({'params': model.final_backbone.conv1.parameters()})
         logging.info("Unfrozen parameters of first conv layer to accept"
                      "input of more than 3 channels")
 
@@ -217,16 +217,16 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
         logging.info("Unfrozen parameters of embedding layer")
 
     # Unfreeze and add the last FC layer parameters if requested
-    if config['num_last_layers_to_train'] >= 2 and hasattr(model.backbone.backbone, "fc"):
-        for param in model.backbone.backbone.fc.parameters():
+    if config['num_last_layers_to_train'] >= 2 and hasattr(model.final_backbone, "fc"):
+        for param in model.final_backbone.fc.parameters():
             param.requires_grad = True
-        trainable_params.append({'params': model.backbone.backbone.fc.parameters()})
+        trainable_params.append({'params': model.final_backbone.fc.parameters()})
         logging.info("Unfrozen parameters of last FC layer")
 
     # Unfreeze and add the last Conv2d layer parameters if requested
     # This structure needed to generalize to other resnet models.
     if config['num_last_layers_to_train'] == 3:
-        last_layer_group = list(model.backbone.backbone.layer4.children())[-1]
+        last_layer_group = list(model.final_backbone.layer4.children())[-1]
         if config["backbone_model"].lower() == "resnet50":
             # For ResNet50, if user requests last three, train the last two Conv2d layers in the final block
             # Do it because last conv layer is actually smaller than resnet18, so need to compensate.

@@ -2,8 +2,6 @@ import torch.nn as nn
 import timm
 import torch
 
-import copy
-
 
 class Normalize(nn.Module):
     def __init__(self, p=2, dim=1):
@@ -70,30 +68,28 @@ class TripletNetwork(nn.Module):
             # Use a custom modification if there are not 3 input channels
             original_model = timm.create_model(backbone_model, pretrained=True, features_only=False)
             self.final_backbone = CustomResNet(original_model, num_input_channels=input_channels)
-        
+
         # Determine the number of features from the backbone's last layer
-        print(self.final_backbone)
-        print(dir(self.final_backbone))
         if hasattr(self.final_backbone, "classifier"):
             final_in_features = self.final_backbone.classifier.in_features
         elif hasattr(self.final_backbone, "fc"):
             final_in_features = self.final_backbone.fc.out_features
         else:
             raise NotImplementedError("Backbone model must end with a recognizable classifier or fc layer.")
-        
+
         # Define a new embedding layer
         self.embedding_layer = nn.Linear(final_in_features, num_dims)
-        
+
         # Add normalization layer
         self.normalization = nn.LayerNorm(num_dims)
 
     def forward(self, x):
         # Forward pass through the backbone model
         features = self.final_backbone(x)
-        
+
         # Pass the output of the backbone's final layer to the embedding layer
         embeddings = self.embedding_layer(features)
-        
+
         # Normalize the embeddings
         embeddings = self.normalization(embeddings)
         return embeddings

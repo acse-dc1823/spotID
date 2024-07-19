@@ -38,64 +38,63 @@ class TripletLoss(nn.Module):
             features: feature matrix with shape (batch_size, features_dim)
             labels: ground truth numerical labels with shape (batch_size)
             from dataset.label_to_index
+            epoch: epoch we currently are at. Used for semi-hard negative
+            mining.
         """
         dist_mat = euclidean_dist(features, features)
         batch_size = features.size(0)
 
+
+        # if self.verbose:
+        #     logging.info(f"batch size: {batch_size}")
+
+        
         # if self.verbose:
         #     logging.info(f"batch size: {batch_size}")
 
         triplet_loss = 0.0
-
-        # Iterate over each anchor, select all positive and random negative
         counter = 0
         for i in range(batch_size):
-            all_pos_indices = (
-                (labels == labels[i]).nonzero(as_tuple=False).view(-1)
-            )
-
-            # Only consider one-way pairs, also removing anchor itself
-            pos_indices = all_pos_indices[all_pos_indices > i]
-            neg_indices = (
-                (labels != labels[i]).nonzero(as_tuple=False).view(-1)
-            )
+            pos_indices = (labels == labels[i]).nonzero(as_tuple=False).view(-1)
+            pos_indices = pos_indices[pos_indices > i]  # Exclude the anchor itself
+            neg_indices = (labels != labels[i]).nonzero(as_tuple=False).view(-1)
 
             if len(pos_indices) == 0 or len(neg_indices) == 0:
                 continue  # No valid triplets
-
+            
             # Iterate over all positive pairs for the anchor
             for pos_idx in pos_indices:
                 pos_dist = dist_mat[i, pos_idx]
-                
                 # Only implement semi hard mining after a few epochs.
                 # Otherwise, learning stagnates.
                 if epoch > 3:
-                    # Mask for semi-hard negatives: further away than the positive
-                    # but less than the anchor-positive distance plus margin
-                    semi_hard_negatives = (dist_mat[i, neg_indices] > pos_dist) & (
-                        dist_mat[i, neg_indices] < pos_dist + self.margin
-                    )
-                    if semi_hard_negatives.any():
-                        # Selecting the hardest semi-hard negative
-                        hardest_negative_idx = neg_indices[semi_hard_negatives][
-                            torch.argmin(
-                                dist_mat[i, neg_indices[semi_hard_negatives]]
-                            )
-                        ]
-                        neg_dist = dist_mat[i, hardest_negative_idx]
-                        counter += 1
+                    # Semi-hard negative mining: negatives harder than the current positive but within margin
+                    semi_hard_negatives = neg_indices[(dist_mat[i, neg_indices] > pos_dist) & (dist_mat[i, neg_indices] < pos_dist + self.margin)]
+                    if len(semi_hard_negatives) == 0:
+                        continue  # Skip if no semi-hard negatives are found
+
+                    # Inverse distance weighting for semi-hard negatives selection
+                    neg_distances = dist_mat[i, semi_hard_negatives]
+                    weights = 1.0 / neg_distances
+                    # Normalize weights to sum to 1
+                    weights = weights / torch.sum(weights)
+
+                    # Weighted random choice of negative indices
+                    neg_idx = np.random.choice(semi_hard_negatives.cpu().detach().numpy(), p=weights.cpu().detach().numpy())
 
                 else:
-                    neg_idx = np.random.choice(neg_indices.cpu().numpy())
-                    neg_dist = dist_mat[i, neg_idx]
-                    counter += 1
-                    # Calculate the triplet loss for the selected triplet
+                    # Random choice from all valid negatives (completely random selection)
+                    neg_idx = np.random.choice(neg_indices.cpu().numpy(), 1)[0]
+
+                neg_dist = dist_mat[i, neg_idx]
+
                 loss = self.ranking_loss(
-                    pos_dist.unsqueeze(0),
                     neg_dist.unsqueeze(0),
+                    pos_dist.unsqueeze(0),
                     torch.tensor([1.0], device=features.device),
                 )
                 triplet_loss += loss
+                counter += 1
 
         if counter > 0:
             # Average loss over the batch
@@ -105,9 +104,6 @@ class TripletLoss(nn.Module):
             logging.info("No valid triplets, triplet loss is thus 0.")
             triplet_loss = torch.tensor(0.0, device=features.device)
 
-        # if self.verbose:
-        #     logging.info(f"total number of positive-positive"
-        #                  f"with random negative pairs is: {counter}")
         return triplet_loss
 
 

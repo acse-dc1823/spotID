@@ -65,6 +65,7 @@ class LeopardDataset(Dataset):
 
             # Concatenate image and mask tensors
             combined = torch.cat((image, mask), 0)  # Ensure mask is a single-channel tensor
+            del mask
         else:
             img_path = self.images[idx]
             image = Image.open(img_path).convert('RGB')
@@ -74,8 +75,8 @@ class LeopardDataset(Dataset):
             else:
                 image = ToTensor()(image)
         
-        combined = image
+        combined = image.clone()
         label = self.leopards[idx]
         label = self.label_to_index[label]
-
+        del image
         return combined, label

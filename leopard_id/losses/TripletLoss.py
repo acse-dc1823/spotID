@@ -1,11 +1,13 @@
 import torch
 import torch.nn as nn
-import numpy as np
 
 import logging
 
-logging.basicConfig(filename='logs.log', level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    filename="logs.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
 
 
 def euclidean_dist(x, y):
@@ -60,20 +62,32 @@ class TripletLoss(nn.Module):
             if len(pos_indices) == 0 or len(neg_indices) == 0:
                 continue  # No valid triplets
 
-            # Choose all positives and one random negative for each positive
-            neg_idx = np.random.choice(neg_indices.cpu().numpy())
-            neg_dist = dist_mat[i, neg_idx]
-
+            # Iterate over all positive pairs for the anchor
             for pos_idx in pos_indices:
                 pos_dist = dist_mat[i, pos_idx]
-                # Calculate the triplet loss, accumulate
-                loss = self.ranking_loss(
-                    neg_dist.unsqueeze(0),
-                    pos_dist.unsqueeze(0),
-                    torch.tensor([1.0], device=features.device),
+
+                # Mask for semi-hard negatives: further away than the positive
+                # but less than the anchor-positive distance plus margin
+                semi_hard_negatives = (dist_mat[i, neg_indices] > pos_dist) & (
+                    dist_mat[i, neg_indices] < pos_dist + self.margin
                 )
-                triplet_loss += loss
-                counter += 1
+                if semi_hard_negatives.any():
+                    # Selecting the hardest semi-hard negative
+                    hardest_negative_idx = neg_indices[semi_hard_negatives][
+                        torch.argmin(
+                            dist_mat[i, neg_indices[semi_hard_negatives]]
+                        )
+                    ]
+                    neg_dist = dist_mat[i, hardest_negative_idx]
+
+                    # Calculate the triplet loss for the selected triplet
+                    loss = self.ranking_loss(
+                        pos_dist.unsqueeze(0),
+                        neg_dist.unsqueeze(0),
+                        torch.tensor([1.0], device=features.device),
+                    )
+                    triplet_loss += loss
+                    counter += 1
 
         if counter > 0:
             # Average loss over the batch

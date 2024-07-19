@@ -31,19 +31,24 @@ def setup_data_loader(config):
     else:
         logging.info(f"Found directory {root_dir_train}")
 
-    def create_transforms(resize_width, resize_height, mean, std, mean_binary_mask=None, std_binary_mask=None):
-        common_transforms = transforms.Compose([
+    def create_transforms(resize_width, resize_height, mean=None, std=None, mean_binary_mask=None, std_binary_mask=None):
+        common_transforms_list = [
             ResizeTransform(width=resize_width, height=resize_height),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std)
-        ])
+            transforms.ToTensor()
+        ]
 
-        if mean_binary_mask is not None:
-            binary_transforms = transforms.Compose([
+        if mean is not None and std is not None:
+            common_transforms_list.append(transforms.Normalize(mean=mean, std=std))
+        
+        common_transforms = transforms.Compose(common_transforms_list)
+
+        if mean_binary_mask is not None and std_binary_mask is not None:
+            binary_transforms_list = [
                 ResizeTransform(width=resize_width, height=resize_height),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=mean_binary_mask, std=std_binary_mask)
-            ])
+            ]
+            binary_transforms = transforms.Compose(binary_transforms_list)
         else:
             binary_transforms = None
 
@@ -53,10 +58,10 @@ def setup_data_loader(config):
     common_transform, binary_transform = create_transforms(
         resize_width=config["resize_width"],
         resize_height=config["resize_height"],
-        mean=config["mean_normalize"],
-        std=config["std_normalize"],
-        mean_binary_mask=config["mean_normalize_binary_mask"],
-        std_binary_mask=config["std_normalize_binary_mask"]
+        mean=config.get("mean_normalize"),
+        std=config.get("std_normalize"),
+        mean_binary_mask=config.get("mean_normalize_binary_mask"),
+        std_binary_mask=config.get("std_normalize_binary_mask")
     )
 
     train_dataset = LeopardDataset(

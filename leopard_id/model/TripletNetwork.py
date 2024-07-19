@@ -2,6 +2,8 @@ import torch.nn as nn
 import timm
 import torch
 
+import copy
+
 
 class Normalize(nn.Module):
     def __init__(self, p=2, dim=1):
@@ -18,8 +20,8 @@ class CustomResNet(nn.Module):
         super(CustomResNet, self).__init__()
         assert num_input_channels > 3, "CustomResNet should only be used when there are more than 3 input channels."
 
-        # Create a new first layer with more input channels
-        self.first_conv = nn.Conv2d(
+        # Create a new first layer with the adjusted number of input channels
+        self.conv1 = nn.Conv2d(
             in_channels=num_input_channels,
             out_channels=original_model.conv1.out_channels,
             kernel_size=original_model.conv1.kernel_size,
@@ -27,33 +29,35 @@ class CustomResNet(nn.Module):
             padding=original_model.conv1.padding,
             bias=(original_model.conv1.bias is not None)
         )
-        
-        # Initialize the new weights and bias for the new convolutional layer
+
+        # Initialize the new first layer's weights based on the original first layer
         self._initialize_weights(original_model.conv1, num_input_channels)
 
-        # Rest of the original model except the first layer
-        self.backbone = nn.Sequential(
-            self.first_conv,
-            *list(original_model.children())[1:]  # Remaining layers of the original model
-        )
-    
-    def _initialize_weights(self, original_first_layer, num_input_channels):
-        # Initialize the new weights by copying and extending from the original weights
-        with torch.no_grad():
-            # Extend the original weights if more input channels are used
-            extra_channels = num_input_channels - 3
-            # Initialize the weights for the first 3 channels
-            self.first_conv.weight[:, :3, :, :] = original_first_layer.weight.data.clone()
-            # Replicate the first channel's weights for the additional channels
-            for i in range(extra_channels):
-                self.first_conv.weight[:, 3+i, :, :] = original_first_layer.weight.data[:, 0, :, :].clone()
+        # Assign all other components of the original model directly to this modified model
+        for name, module in original_model.named_children():
+            if name != 'conv1':  # Skip replacing the first conv layer
+                setattr(self, name, module)
 
-            # Handle the bias if it exists
+    def _initialize_weights(self, original_first_layer, num_input_channels):
+        # Extend the original weights if more input channels are used
+        extra_channels = num_input_channels - 3
+        with torch.no_grad():
+            # Copy weights for the first 3 channels
+            self.conv1.weight[:, :3, :, :] = original_first_layer.weight.data.clone()
+            # Initialize weights for additional channels by copying the first channel's weights
+            for i in range(extra_channels):
+                self.conv1.weight[:, 3+i, :, :] = original_first_layer.weight.data[:, 0, :, :].clone()
             if original_first_layer.bias is not None:
-                self.first_conv.bias.data = original_first_layer.bias.data.clone()
+                self.conv1.bias.data = original_first_layer.bias.data.clone()
 
     def forward(self, x):
-        return self.backbone(x)
+        # Use the modified first layer and then proceed with the original layers
+        x = self.conv1(x)
+        # Continue with the rest of the original model's forward pass
+        # You must skip this part in forward and directly use the remaining forward definition from the original model if defined elsewhere
+        for module in list(self.children())[1:]:  # Skip the first layer which is already applied
+            x = module(x)
+        return x
 
 
 class TripletNetwork(nn.Module):
@@ -68,6 +72,8 @@ class TripletNetwork(nn.Module):
             self.final_backbone = CustomResNet(original_model, num_input_channels=input_channels)
         
         # Determine the number of features from the backbone's last layer
+        print(self.final_backbone)
+        print(dir(self.final_backbone))
         if hasattr(self.final_backbone, "classifier"):
             final_in_features = self.final_backbone.classifier.in_features
         elif hasattr(self.final_backbone, "fc"):

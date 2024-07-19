@@ -18,7 +18,7 @@ logging.basicConfig(filename='timings.log', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-def train_epoch(model, data_loader, optimizer, criterion, device, max_k):
+def train_epoch(model, data_loader, optimizer, criterion, device, max_k, epoch):
     """
     Train the model for one epoch and return the average loss. Also evaluate the model
     with the chosen metrics on the training data. Do it in one function to avoid accessing
@@ -48,9 +48,9 @@ def train_epoch(model, data_loader, optimizer, criterion, device, max_k):
 
         if torch.isnan(outputs).any() or torch.isinf(outputs).any():
             logging.error(f"Detected NaN or Inf in outputs")
-            continue  
+            continue
 
-        loss = criterion(outputs, targets)
+        loss = criterion(outputs, targets, epoch)
 
         if not loss.grad_fn:
             logging.error(f"Loss tensor with value: {loss.item()} has no grad_fn, aborting backward to avoid crash")
@@ -294,7 +294,7 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
         start_time = time.time()
 
         train_loss, train_precision, train_class_distance_ratio, train_match_rate = train_epoch(
-            model, train_loader, optimizer, criterion, device, max_k
+            model, train_loader, optimizer, criterion, device, max_k, epoch
         )
 
         writer.add_scalar("Loss/Train", train_loss, epoch)

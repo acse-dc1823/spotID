@@ -74,8 +74,7 @@ class LeopardDataset(Dataset):
                 image = self.transform(image)
             else:
                 image = ToTensor()(image)
-        
-        combined = image.clone()
+            combined = image.clone()
         label = self.leopards[idx]
         label = self.label_to_index[label]
         del image

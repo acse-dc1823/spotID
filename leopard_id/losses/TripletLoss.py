@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import numpy as np
 
 import logging
 
@@ -31,7 +32,7 @@ class TripletLoss(nn.Module):
         self.ranking_loss = nn.MarginRankingLoss(margin=self.margin)
         self.verbose = verbose
 
-    def forward(self, features, labels):
+    def forward(self, features, labels, epoch=0):
         """
         Args:
             features: feature matrix with shape (batch_size, features_dim)
@@ -65,29 +66,36 @@ class TripletLoss(nn.Module):
             # Iterate over all positive pairs for the anchor
             for pos_idx in pos_indices:
                 pos_dist = dist_mat[i, pos_idx]
-
-                # Mask for semi-hard negatives: further away than the positive
-                # but less than the anchor-positive distance plus margin
-                semi_hard_negatives = (dist_mat[i, neg_indices] > pos_dist) & (
-                    dist_mat[i, neg_indices] < pos_dist + self.margin
-                )
-                if semi_hard_negatives.any():
-                    # Selecting the hardest semi-hard negative
-                    hardest_negative_idx = neg_indices[semi_hard_negatives][
-                        torch.argmin(
-                            dist_mat[i, neg_indices[semi_hard_negatives]]
-                        )
-                    ]
-                    neg_dist = dist_mat[i, hardest_negative_idx]
-
-                    # Calculate the triplet loss for the selected triplet
-                    loss = self.ranking_loss(
-                        pos_dist.unsqueeze(0),
-                        neg_dist.unsqueeze(0),
-                        torch.tensor([1.0], device=features.device),
+                
+                # Only implement semi hard mining after a few epochs.
+                # Otherwise, learning stagnates.
+                if epoch > 3:
+                    # Mask for semi-hard negatives: further away than the positive
+                    # but less than the anchor-positive distance plus margin
+                    semi_hard_negatives = (dist_mat[i, neg_indices] > pos_dist) & (
+                        dist_mat[i, neg_indices] < pos_dist + self.margin
                     )
-                    triplet_loss += loss
+                    if semi_hard_negatives.any():
+                        # Selecting the hardest semi-hard negative
+                        hardest_negative_idx = neg_indices[semi_hard_negatives][
+                            torch.argmin(
+                                dist_mat[i, neg_indices[semi_hard_negatives]]
+                            )
+                        ]
+                        neg_dist = dist_mat[i, hardest_negative_idx]
+                        counter += 1
+
+                else:
+                    neg_idx = np.random.choice(neg_indices.cpu().numpy())
+                    neg_dist = dist_mat[i, neg_idx]
                     counter += 1
+                    # Calculate the triplet loss for the selected triplet
+                loss = self.ranking_loss(
+                    pos_dist.unsqueeze(0),
+                    neg_dist.unsqueeze(0),
+                    torch.tensor([1.0], device=features.device),
+                )
+                triplet_loss += loss
 
         if counter > 0:
             # Average loss over the batch

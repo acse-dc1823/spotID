@@ -179,8 +179,6 @@ def evaluate_epoch_test(model, data_loader, device, max_k, verbose=True):
             model, all_outputs, all_targets, device, max_k=max_k, verbose=verbose
         )
 
-    # End of profiler context, print profiling results focused on memory usage
-
     logging.info(f"Time taken to access test data {data_time:.2f} s")
 
     return total_precision, class_distance_ratio, total_match_rate

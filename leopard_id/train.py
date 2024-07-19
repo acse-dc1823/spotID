@@ -81,7 +81,7 @@ def setup_data_loader(config):
 
     # DataLoader for test should have batch size equal to the number of images
     return DataLoader(train_dataset, batch_sampler=train_sampler, num_workers=4), DataLoader(
-        test_dataset, batch_size=len(test_dataset)
+        test_dataset, batch_size=min(len(test_dataset), 64)
     )
 
 

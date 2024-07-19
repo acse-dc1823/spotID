@@ -74,7 +74,7 @@ def train_epoch(model, data_loader, optimizer, criterion, device, max_k):
         start_data_time = time.time()
 
         torch.cuda.empty_cache()
-        del inputs, outputs, loss
+        del inputs, outputs, loss, targets
         torch.cuda.empty_cache()
 
     # Average loss per batch
@@ -138,48 +138,52 @@ def evaluate_data(model, outputs, targets, device, max_k=5, verbose=False):
     return batch_precision, class_distance_ratio, batch_match_rate[-1]
 
 
-def evaluate_epoch_test(model, data_loader, device, max_k, optimizer, verbose=True):
+def evaluate_epoch_test(model, data_loader, device, max_k, verbose=True):
     """
-    Evaluation speficically for testing data inside an epoch. Accesses testing
-    data, and calls evaluate_data(), which already calculates the metrics needed
-    for a batch (in this case the whole test dataset).
+    Evaluate specifically for testing data inside an epoch. Collects outputs across
+    batches and then evaluates them all together to compute metrics for the entire test dataset.
     """
-
     model.eval()
-    total_precision = 0
-    total_class_distance_ratio = 0
-    total_match_rate = 0
+    all_outputs = []
+    all_targets = []
+
     data_time = 0
 
-    start_time = time.time()
-
-    # Check if we are using a CUDA device
     use_cuda = 'cuda' in device.type
 
-    # Initialize the profiler with memory profiling based on the device type
-    with torch.autograd.profiler.profile(use_cuda=use_cuda, profile_memory=True) as prof:
+    with torch.no_grad():  # Disable gradient computation to save memory and computations
         for inputs, targets in data_loader:
+            batch_start_time = time.time()
             inputs, targets = inputs.to(device), targets.to(device)
-            data_time += (time.time() - start_time)
-
+            
+            # Forward pass for current batch
             outputs = model(inputs)
-            batch_precision, class_distance_ratio, batch_match_rate = evaluate_data(model, outputs, targets, device, max_k=max_k, verbose=verbose)
-            total_precision += batch_precision
-            total_class_distance_ratio += class_distance_ratio
-            total_match_rate += batch_match_rate
-            torch.cuda.empty_cache() if use_cuda else None
-            del inputs, outputs
-            torch.cuda.empty_cache() if use_cuda else None
+            
+            # Store outputs and targets to compute metrics later
+            all_outputs.append(outputs.detach())  # Detach outputs to avoid saving computation graph
+            all_targets.append(targets.detach())
 
-            # Reset start time for next batch
-            start_time = time.time()
+            data_time += (time.time() - batch_start_time)
+
+            # Clean up to prevent memory leaks
+            del inputs, outputs, targets
+            if use_cuda:
+                    torch.cuda.empty_cache()
+
+        # Concatenate all collected outputs and targets
+        all_outputs = torch.cat(all_outputs, dim=0)
+        all_targets = torch.cat(all_targets, dim=0)
+
+        # Evaluate the entire dataset at once
+        total_precision, class_distance_ratio, total_match_rate = evaluate_data(
+            model, all_outputs, all_targets, device, max_k=max_k, verbose=verbose
+        )
 
     # End of profiler context, print profiling results focused on memory usage
-    print(prof.key_averages().table(sort_by="self_cuda_memory_usage" if use_cuda else "cpu_memory_usage"))
 
     logging.info(f"Time taken to access test data {data_time:.2f} s")
 
-    return total_precision, total_class_distance_ratio, total_match_rate
+    return total_precision, class_distance_ratio, total_match_rate
 
 
 def train_model(model, train_loader, test_loader, device, criterion, config,
@@ -307,8 +311,7 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
         if test_loader is not None:
             start_eval_test = time.time()
             test_precision, test_class_dist_ratio, test_match_rate = evaluate_epoch_test(
-                model, test_loader, device, max_k=max_k, optimizer=optimizer, verbose=True
-            )
+                model, test_loader, device, max_k=max_k, verbose=True)
             eval_test_duration = time.time() - start_eval_test
             cumulative_test_eval_time += eval_test_duration
 

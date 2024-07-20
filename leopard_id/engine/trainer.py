@@ -135,7 +135,7 @@ def evaluate_data(model, outputs, targets, device, max_k=5, verbose=False):
         del dist_mat
     model.train()
 
-    return batch_precision, class_distance_ratio, batch_match_rate[-1]
+    return batch_precision, class_distance_ratio, batch_match_rate
 
 
 def evaluate_epoch_test(model, data_loader, device, max_k, verbose=True):
@@ -195,11 +195,23 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
         logging.error(error_message)
         raise ValueError(error_message)
 
-    # Freeze all pretrained layers initially
-    for param in model.parameters():
-        param.requires_grad = False
+    if config.get('train_all_layers', False):
+        logging.info("All layers are set to be trainable.")
+        for param in model.parameters():
+            param.requires_grad = True
+    else:
+        # Freeze all pretrained layers initially
+        for param in model.parameters():
+            param.requires_grad = False
 
     trainable_params = []
+
+    def print_layer_status(model):
+        for name, module in model.named_modules():
+            if any(param.requires_grad for param in module.parameters()):
+                logging.info(f"Layer {name} is unfrozen for training.")
+            else:
+                logging.info(f"Layer {name} is frozen.")
 
     # If we have more than 3 input channels, we modify the first conv layer, and thus have to train them.
     if num_input_channels > 3:
@@ -264,6 +276,8 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
             else:
                 logging.error("No Conv2d layer found in the last block.")
 
+    print_layer_status(model)
+
     # Setup the optimizer with only the trainable parameters
     optimizer = optim.Adam(trainable_params, lr=config["learning_rate"])
 
@@ -303,7 +317,7 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
             "Class Distance Ratio/Train", train_class_distance_ratio, epoch
         )
         writer.add_scalar(
-            "top {} match rate/Train".format(max_k), train_match_rate, epoch
+            "top {} match rate/Train".format(max_k), train_match_rate[-1], epoch
         )
 
         if test_loader is not None:
@@ -318,7 +332,7 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
                 "Class Distance Ratio/Test", test_class_dist_ratio, epoch
             )
             writer.add_scalar(
-            "top {} match rate/Test".format(max_k), test_match_rate, epoch
+            "top {} match rate/Test".format(max_k), test_match_rate[-1], epoch
             )
 
         elapsed_time = time.time() - start_time
@@ -328,7 +342,7 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
             f"Train Loss: {train_loss:.4f} - "
             f"Train Precision: {train_precision:.4f} - "
             f"Train Class Distance Ratio: {train_class_distance_ratio:.4f} - "
-            f"Train top {max_k} match rate: {train_match_rate:.4f} - "
+            f"Train top {max_k} match rate: {train_match_rate[-1]:.4f} - "
             f"Time: {elapsed_time:.2f} s"
         )
 
@@ -336,10 +350,15 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
             logging.info(
                 f"Test Precision: {test_precision:.4f} - "
                 f"Test Class Distance Ratio: {test_class_dist_ratio:.4f} - "
-                f"Test top {max_k} match rate: {test_match_rate:.4f} - "
+                f"Test top {max_k} match rate: {test_match_rate[-1]:.4f} - "
                 f"Cumulative Test Eval Time: {cumulative_test_eval_time:.2f} s"
             )
 
+    _, _, final_test_match_rate = evaluate_epoch_test(
+        model, test_loader, device, max_k=20, verbose=True)
+    for k in range(final_test_match_rate.size(0)):
+        writer.add_scalar("top k final match rate/Test Final",
+                          final_test_match_rate[k], k)
     final_metrics = {
         "final_train_precision": train_precision,
         "final_test_precision": (

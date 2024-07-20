@@ -19,5 +19,6 @@
     "mean_normalize": [0.485, 0.456, 0.406],
     "std_normalize": [0.229, 0.224, 0.225],
     "mean_normalize_binary_mask": [0.456],
-    "std_normalize_binary_mask": [0.225]
+    "std_normalize_binary_mask": [0.225],
+    "train_all_layers": false
 }

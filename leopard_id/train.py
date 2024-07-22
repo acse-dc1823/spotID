@@ -2,6 +2,7 @@ import json
 import torch
 import os
 import logging
+import argparse
 
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -17,9 +18,6 @@ logging.basicConfig(filename='logs.log', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 project_root = os.path.dirname(os.path.abspath(__file__))
-
-with open(os.path.join(project_root, "config.json"), "r") as f:
-    config = json.load(f)
 
 
 def setup_data_loader(config):
@@ -90,10 +88,16 @@ def setup_data_loader(config):
     )
 
 
-def main():
+def main(config_file="config.json"):
+    config_path = os.path.join(project_root, config_file)
+
+    with open(config_path, "r") as f:
+        config = json.load(f)
     device = torch.device(config["device"] if torch.cuda.is_available() else "cpu")
     logging.info(f"Using device: {device}")
     train_loader, test_loader = setup_data_loader(config)
+    print(test_loader.dataset.leopards)
+    exit()
 
     num_input_channels = next(iter(train_loader))[0].shape[1]
     logging.info(f"Number of input channels for the model: {num_input_channels}")
@@ -120,4 +124,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Run the triplet network training with an optional configuration file.")
+    parser.add_argument("--config_file", type=str, default="config.json", help="Path to the configuration JSON file. Default is 'config.json'.")
+    args = parser.parse_args()
+    main(args.config_file)

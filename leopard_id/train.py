@@ -96,8 +96,6 @@ def main(config_file="config.json"):
     device = torch.device(config["device"] if torch.cuda.is_available() else "cpu")
     logging.info(f"Using device: {device}")
     train_loader, test_loader = setup_data_loader(config)
-    print(test_loader.dataset.leopards)
-    exit()
 
     num_input_channels = next(iter(train_loader))[0].shape[1]
     logging.info(f"Number of input channels for the model: {num_input_channels}")

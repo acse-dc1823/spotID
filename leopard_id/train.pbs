@@ -2,10 +2,10 @@
 #PBS -N train-model
 
 # Resource requirements
-#PBS -l select=1:ncpus=16:mem=16gb:ngpus=1:gpu_type=RTX6000
+#PBS -l select=1:ncpus=16:mem=32gb:ngpus=1
 
 # Time required in hh:mm:ss
-#PBS -l walltime=8:00:00
+#PBS -l walltime=16:00:00
 
 # Files to contain standard error and standard output
 #PBS -o stdout
@@ -25,6 +25,9 @@ which pip
 # Submit this one from scripts_preprocessing 
 cd $PBS_O_WORKDIR
 
-python3 train.py
+python3 train.py --config_file config1.json
+python3 train.py --config_file config2.json
+python3 train.py --config_file config3.json
+python3 train.py --config_file config4.json
 
 # Run the code

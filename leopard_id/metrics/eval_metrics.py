@@ -128,35 +128,42 @@ def compute_top_k_rank_match_detection(dist_matrix, labels, max_k, device):
         is the distance from sample i to sample j.
     :param labels: A 1D PyTorch tensor with class labels for each sample.
     :param max_k: The maximum k for calculating rank accuracy.
+    :param device: The device (CPU or GPU) to perform computations.
     :return: mean match rates for each k in ascending order.
     """
     dist_matrix = dist_matrix.to(device)
     labels = labels.to(device)
     num_samples = dist_matrix.size(0)
-    accuracies = torch.zeros(max_k, device=device)
 
     # For storing individual accuracies per k to visualize the distribution
     all_accuracies = torch.zeros((num_samples, max_k), device=device)
+    mask = torch.zeros(num_samples, dtype=torch.bool, device=device)  # Mask to track processed samples
+
+    # Count each label in the dataset excluding the sample itself
+    class_counts = torch.bincount(labels) - 1
 
     for i in range(num_samples):
-        # Set distance to itself to infinity to ignore it
-        dists = dist_matrix[i].clone()
-        dists[i] = float("inf")
+        # Only compute if there are other sampler with the same label
+        if class_counts[labels[i]] > 0:
+            mask[i] = True
+            dists = dist_matrix[i].clone()
+            # Ignore self in distance matrix
+            dists[i] = float("inf")
 
-        # Get indices of the elements sorted by closest distance
-        _, indices = torch.sort(dists)
+            # Get indices of the elements sorted by closest distance
+            _, indices = torch.sort(dists)
 
-        # Get the labels of the sorted elements
-        sorted_labels = labels[indices]
+            # Get the labels of the sorted elements
+            sorted_labels = labels[indices]
 
-        # Check for matches in top k elements
-        matches = (sorted_labels[:max_k] == labels[i]).unsqueeze(0)
+            # Check for matches in top k elements
+            matches = (sorted_labels[:max_k] == labels[i]).unsqueeze(0)
 
-        # Record results for each k
-        for k in range(max_k):
-            all_accuracies[i, k] = matches[:, :k+1].any(dim=1).float()
+            # Record results for each k
+            for k in range(max_k):
+                all_accuracies[i, k] = matches[:, :k+1].any(dim=1).float()
 
-    # Calculate the mean accuracy for each k
-    accuracies = all_accuracies.mean(dim=0)
+    # Only consider rows in `all_accuracies` where `mask` is True
+    accuracies = all_accuracies[mask].mean(dim=0)
 
     return accuracies

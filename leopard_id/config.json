@@ -20,5 +20,6 @@
     "std_normalize": [0.229, 0.224, 0.225],
     "mean_normalize_binary_mask": null,
     "std_normalize_binary_mask": null,
-    "train_all_layers": true
+    "train_all_layers": true,
+    "max_images_individual_leopard_sampler": 4
 }

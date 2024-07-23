@@ -79,6 +79,7 @@ def setup_data_loader(config):
     train_sampler = LeopardBatchSampler(
         train_dataset,
         batch_size=config["batch_size"],
+        max_images_indiv=config["max_images_individual_leopard_sampler"],
         verbose=config["verbose"],
     )
 

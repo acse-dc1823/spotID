@@ -1,6 +1,7 @@
 import torch
 import torch.optim as optim
 import torch.nn as nn
+from torch.nn import CrossEntropyLoss
 
 # To launch TensorBoard, run tensorboard --logdir runs
 from torch.utils.tensorboard import SummaryWriter
@@ -8,6 +9,7 @@ import time
 import logging
 
 from losses import TripletLoss, euclidean_dist
+from model import CosFace, cosine_dist
 from metrics import (
     compute_dynamic_top_k_avg_precision,
     compute_class_distance_ratio,
@@ -18,7 +20,7 @@ logging.basicConfig(filename='timings.log', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-def train_epoch(model, data_loader, optimizer, criterion, device, max_k, epoch):
+def train_epoch(model, data_loader, optimizer, criterion, device, max_k, epoch, method="triplet"):
     """
     Train the model for one epoch and return the average loss. Also evaluate the model
     with the chosen metrics on the training data. Do it in one function to avoid accessing
@@ -50,7 +52,17 @@ def train_epoch(model, data_loader, optimizer, criterion, device, max_k, epoch):
             logging.error(f"Detected NaN or Inf in outputs")
             continue
 
-        loss = criterion(outputs, targets, epoch)
+        if method == "triplet": # add this later
+            loss = criterion(outputs, targets, epoch)
+        
+        else: # For now, only else is cosface loss. Might have to change later
+            # For cosface, need to pass the logits through the cosface layer
+            # to get the classification loss
+            num_classes = max(data_loader.dataset.label_to_index.values()) + 1
+            print(f"Num classes: {num_classes}")
+            classifier = CosFace(256, num_classes).to(device)
+            outputs_cosface = classifier(outputs, targets)
+            loss = criterion(outputs_cosface, targets)
 
         if not loss.grad_fn:
             logging.error(f"Loss tensor with value: {loss.item()} has no grad_fn, aborting backward to avoid crash")
@@ -64,7 +76,10 @@ def train_epoch(model, data_loader, optimizer, criterion, device, max_k, epoch):
 
         # start evaluation on training data
         start_eval_time = time.time()
-        train_precision, train_class_distance_ratio, train_match_rate = evaluate_data(model, outputs, targets, device, max_k)
+        train_precision, train_class_distance_ratio, train_match_rate = evaluate_data(model, outputs, targets,
+                                                                                      device,
+                                                                                      method=method,
+                                                                                      max_k=max_k)
         train_eval_time = time.time() - start_eval_time
         total_train_eval_time += train_eval_time
 
@@ -91,7 +106,7 @@ def train_epoch(model, data_loader, optimizer, criterion, device, max_k, epoch):
     return avg_loss, avg_precision, avg_class_distance_ratio, avg_match_rate
 
 
-def evaluate_data(model, outputs, targets, device, max_k=5, verbose=False):
+def evaluate_data(model, outputs, targets, device, method="triplet", max_k=5, verbose=False):
     """
     Evaluate the model and return the average precision, class distance
     ratio and top k match ratio using logging for verbose output. Gets called
@@ -103,7 +118,12 @@ def evaluate_data(model, outputs, targets, device, max_k=5, verbose=False):
     with torch.no_grad():
         # Distance matrix computation
         start_time = time.time()
-        dist_mat = euclidean_dist(outputs, outputs)
+        print("outputs shape: ", outputs.shape)
+        if method == "triplet":
+            dist_mat = euclidean_dist(outputs, outputs)
+        else: # For now, only else is cosface loss. Might have to change later
+            dist_mat = cosine_dist(outputs, outputs)
+            print(dist_mat)
         time_taken_dist = time.time() - start_time
 
         # Precision calculation
@@ -138,7 +158,8 @@ def evaluate_data(model, outputs, targets, device, max_k=5, verbose=False):
     return batch_precision, class_distance_ratio, batch_match_rate
 
 
-def evaluate_epoch_test(model, data_loader, device, max_k, verbose=True):
+def evaluate_epoch_test(model, data_loader, device, max_k, method="triplet",
+                        verbose=True):
     """
     Evaluate specifically for testing data inside an epoch. Collects outputs across
     batches and then evaluates them all together to compute metrics for the entire test dataset.
@@ -168,7 +189,7 @@ def evaluate_epoch_test(model, data_loader, device, max_k, verbose=True):
             # Clean up to prevent memory leaks
             del inputs, outputs, targets
             if use_cuda:
-                    torch.cuda.empty_cache()
+                torch.cuda.empty_cache()
 
         # Concatenate all collected outputs and targets
         all_outputs = torch.cat(all_outputs, dim=0)
@@ -176,7 +197,7 @@ def evaluate_epoch_test(model, data_loader, device, max_k, verbose=True):
 
         # Evaluate the entire dataset at once
         total_precision, class_distance_ratio, total_match_rate = evaluate_data(
-            model, all_outputs, all_targets, device, max_k=max_k, verbose=verbose
+            model, all_outputs, all_targets, device, method=method, max_k=max_k, verbose=verbose
         )
 
     logging.info(f"Time taken to access test data {data_time:.2f} s")
@@ -184,12 +205,14 @@ def evaluate_epoch_test(model, data_loader, device, max_k, verbose=True):
     return total_precision, class_distance_ratio, total_match_rate
 
 
-def train_model(model, train_loader, test_loader, device, criterion, config,
-                num_input_channels):
+def train_model(model, train_loader, test_loader, device, criterion,
+                config, num_input_channels):
     """
     Train and evaluate the model, focusing only on the last added
     embedding layer.
     """
+    method = config["method"]
+    
     if config['num_last_layers_to_train'] > 3:
         error_message = "Invalid number of layers to train specified: {}. Please set 'num_last_layers_to_train' to a maximum of 3.".format(config['num_last_layers_to_train'])
         logging.error(error_message)
@@ -281,7 +304,11 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
     # Setup the optimizer with only the trainable parameters
     optimizer = optim.Adam(trainable_params, lr=config["learning_rate"])
 
-    criterion = TripletLoss(verbose=config["verbose"], margin=config["margin"])
+    if method == "triplet":
+        criterion = TripletLoss(verbose=config["verbose"], margin=config["margin"])
+    else:
+        criterion = CrossEntropyLoss()
+
     writer = SummaryWriter()  # TensorBoard summary writer initialized here
 
     model.to(device)
@@ -308,7 +335,7 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
         start_time = time.time()
 
         train_loss, train_precision, train_class_distance_ratio, train_match_rate = train_epoch(
-            model, train_loader, optimizer, criterion, device, max_k, epoch
+            model, train_loader, optimizer, criterion, device, max_k, epoch, method=method
         )
 
         writer.add_scalar("Loss/Train", train_loss, epoch)
@@ -323,7 +350,7 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
         if test_loader is not None:
             start_eval_test = time.time()
             test_precision, test_class_dist_ratio, test_match_rate = evaluate_epoch_test(
-                model, test_loader, device, max_k=max_k, verbose=True)
+                model, test_loader, device, method=method, max_k=max_k, verbose=True)
             eval_test_duration = time.time() - start_eval_test
             cumulative_test_eval_time += eval_test_duration
 
@@ -355,7 +382,7 @@ def train_model(model, train_loader, test_loader, device, criterion, config,
             )
 
     _, _, final_test_match_rate = evaluate_epoch_test(
-        model, test_loader, device, max_k=20, verbose=True)
+        model, test_loader, device, method=method, max_k=20, verbose=True)
     for k in range(final_test_match_rate.size(0)):
         writer.add_scalar("top k final match rate/Test Final",
                           final_test_match_rate[k], k)

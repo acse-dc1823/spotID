@@ -3,6 +3,7 @@
     "test_data_dir": "data/bg_rem_test",
     "train_binary_mask_dir": null,
     "test_binary_mask_dir": null,
+    "method": "cosface",
     "resize_width": 512,
     "resize_height": 256,
     "batch_size": 32,

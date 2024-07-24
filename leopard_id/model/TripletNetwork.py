@@ -59,7 +59,7 @@ class CustomResNet(nn.Module):
 
 
 class TripletNetwork(nn.Module):
-    def __init__(self, backbone_model="resnet50", num_dims=256, input_channels=3, s=1.0):
+    def __init__(self, backbone_model="resnet50", num_dims=256, input_channels=3, s=16.0):
         super(TripletNetwork, self).__init__()
         self.s = s
         
@@ -81,7 +81,6 @@ class TripletNetwork(nn.Module):
 
         # Define a new embedding layer
 
-        self.activation = nn.ReLU()
         self.embedding_layer = nn.Linear(final_in_features, num_dims)
 
         # Add normalization layer
@@ -90,8 +89,6 @@ class TripletNetwork(nn.Module):
     def forward(self, x):
         # Forward pass through the backbone model
         features = self.final_backbone(x)
-
-        features = self.activation(features)
 
         # Pass the output of the backbone's final layer to the embedding layer
         embeddings = self.embedding_layer(features)

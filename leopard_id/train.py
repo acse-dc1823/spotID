@@ -60,11 +60,9 @@ def setup_data_loader(config):
             binary_transforms_list = [
                 ResizeTransform(width=resize_width, height=resize_height),
                 transforms.ToTensor(),
-                PixelDropout(dropout_prob=dropout_prob, apply_dropout=apply_dropout)
+                PixelDropout(dropout_prob=dropout_prob, apply_dropout=apply_dropout),
+                transforms.Normalize(mean=mean_binary_mask, std=std_binary_mask)
             ]
-
-
-            binary_transforms_list.append(transforms.Normalize(mean=mean_binary_mask, std=std_binary_mask))
         
             binary_transforms = transforms.Compose(binary_transforms_list)
         

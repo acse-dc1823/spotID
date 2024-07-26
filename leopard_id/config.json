@@ -4,6 +4,7 @@
     "train_binary_mask_dir": null,
     "test_binary_mask_dir": null,
     "method": "cosface",
+    "number_embedding_dimensions": 256,
     "resize_width": 512,
     "resize_height": 256,
     "batch_size": 32,

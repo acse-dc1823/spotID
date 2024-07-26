@@ -24,15 +24,18 @@ def cosine_dist(x, y):
 
 class CosFace(nn.Module):
     """
-    Linear layer with normalized weights.
+    Linear layer with normalized weights. Sets up logits to compute the 
+    CosFace loss as in the paper below.
     https://arxiv.org/pdf/1801.09414
     """
-    def __init__(self, in_features, out_features, scale=10.0, margin=0.3):
+    def __init__(self, in_features, out_features, scale=32.0, margin=0.3):
         super(CosFace, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.scale = scale
         self.margin = margin
+        # Initialize the weights for the fc layer from embeddings to num classes
+        # No biases as per paper. requires_grad=True
         self.weight = nn.Parameter(torch.Tensor(out_features, in_features))
         nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
 
@@ -44,7 +47,7 @@ class CosFace(nn.Module):
         W_i^T * x_i, the result of the neural network with no bias at the
         correct class. Since we are speeding up the training process, we will
         calculate it for an entire batch of exemplars, hence we use the linear
-        transformation for the multiplication of weights with the input.
+        transformation for the multiplication of weights with the batch input.
 
         We then apply the margin, but only to the correct class. With the
         modified logits, we can call CrossEntropyLoss safely to calculate the

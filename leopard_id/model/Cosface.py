@@ -28,12 +28,13 @@ class CosFace(nn.Module):
     CosFace loss as in the paper below.
     https://arxiv.org/pdf/1801.09414
     """
-    def __init__(self, in_features, out_features, scale=32.0, margin=0.3):
+    def __init__(self, in_features, out_features, scale=32.0, margin=0.3, m2=0.3):
         super(CosFace, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.scale = scale
         self.margin = margin
+        self.m2 = m2
         # Initialize the weights for the fc layer from embeddings to num classes
         # No biases as per paper. requires_grad=True
         self.weight = nn.Parameter(torch.Tensor(out_features, in_features))
@@ -63,8 +64,17 @@ class CosFace(nn.Module):
         # Apply the margin to the correct class
         one_hot = torch.zeros_like(cosine)
         one_hot.scatter_(1, labels.view(-1, 1), 1)
-        cosine_margin = cosine - self.margin * one_hot
-
+        # Calculate h(theta_y_i) and apply it to the correct class
+        cosine_correct = cosine * one_hot
+        h_theta_yi = self.margin * (1 - cosine_correct.pow(2))
+        
+        # Calculate g(theta_j) and apply it to the incorrect classes
+        g_theta_j = self.m2 * cosine.pow(2) * (1 - one_hot)
+        
+        # Adjust the cosine similarity
+        modified_cosine = cosine - h_theta_yi + g_theta_j
+        
         # Scale the logits
-        logits = cosine_margin * self.scale
+        logits = modified_cosine * self.scale
+
         return logits

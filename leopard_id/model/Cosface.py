@@ -77,7 +77,7 @@ class CosFace(nn.Module):
         # Calculate h(theta_y_i) and apply it to the correct class
         cosine_correct = cosine * one_hot
         # h_theta_yi = self.margin * (1 - cosine_correct.pow(2))
-        h_theta_yi = self.new_margin(cosine_correct)
+        h_theta_yi = self.margin * self.new_margin(cosine_correct)
         
         # Calculate g(theta_j) and apply it to the incorrect classes
         g_theta_j = self.m2 * cosine.pow(2) * (1 - one_hot)

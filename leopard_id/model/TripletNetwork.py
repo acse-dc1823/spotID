@@ -73,7 +73,7 @@ class TripletNetwork(nn.Module):
 
         # Determine the number of features from the backbone's last layer
         if hasattr(self.final_backbone, "classifier"):
-            final_in_features = self.final_backbone.classifier.in_features
+            final_in_features = self.final_backbone.classifier.out_features
         elif hasattr(self.final_backbone, "fc"):
             final_in_features = self.final_backbone.fc.out_features
         else:

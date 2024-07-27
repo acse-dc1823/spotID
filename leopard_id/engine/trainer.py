@@ -204,29 +204,7 @@ def evaluate_epoch_test(model, data_loader, device, max_k, method="triplet",
     return total_precision, class_distance_ratio, total_match_rate
 
 
-def train_model(model, train_loader, test_loader, device,
-                config, num_input_channels):
-    """
-    Train and evaluate the model, focusing only on the last added
-    embedding layer.
-    """
-    method = config["method"]
-    
-    if config['num_last_layers_to_train'] > 3:
-        error_message = "Invalid number of layers to train specified: {}. Please set 'num_last_layers_to_train' to a maximum of 3.".format(config['num_last_layers_to_train'])
-        logging.error(error_message)
-        raise ValueError(error_message)
-
-    if config.get('train_all_layers', False):
-        logging.info("All layers are set to be trainable.")
-        for param in model.parameters():
-            param.requires_grad = True
-    else:
-        # Freeze all pretrained layers initially
-        for param in model.parameters():
-            param.requires_grad = False
-
-    trainable_params = []
+def configure_training(model, config, num_input_channels):
 
     def print_layer_status(model):
         for name, module in model.named_modules():
@@ -234,54 +212,52 @@ def train_model(model, train_loader, test_loader, device,
                 logging.info(f"Layer {name} is unfrozen for training.")
             else:
                 logging.info(f"Layer {name} is frozen.")
+    
+    # Initialize the list for trainable parameters
+    trainable_params = []
 
-    # If we have more than 3 input channels, we modify the first conv layer, and thus have to train them.
-    if num_input_channels > 3:
-        for param in model.final_backbone.conv1.parameters():
+    if config.get('train_all_layers', False):
+        # Set all parameters to trainable
+        for param in model.parameters():
             param.requires_grad = True
-        trainable_params.append({'params': model.final_backbone.conv1.parameters()})
-        logging.info("Unfrozen parameters of first conv layer to accept"
-                     "input of more than 3 channels")
+        # Collect all parameters for the optimizer
+        trainable_params.extend({'params': param} for param in model.parameters())
+        logging.info("All layers are set to be trainable.")
+    else:
+        # Freeze all pretrained layers initially
+        for param in model.parameters():
+            param.requires_grad = False
 
-    # Unfreeze and add the embedding layer parameters
-    if config['num_last_layers_to_train'] >= 1:
-        for param in model.embedding_layer.parameters():
-            param.requires_grad = True
-        trainable_params.append({'params': model.embedding_layer.parameters()})
-        logging.info("Unfrozen parameters of embedding layer")
+        # If we have more than 3 input channels, modify the first conv layer
+        if num_input_channels > 3:
+            for param in model.final_backbone.conv1.parameters():
+                param.requires_grad = True
+            trainable_params.append({'params': model.final_backbone.conv1.parameters()})
+            logging.info("Unfrozen parameters of first conv layer to accept input of more than 3 channels.")
 
-    # Unfreeze and add the last FC layer parameters if requested
-    if config['num_last_layers_to_train'] >= 2 and hasattr(model.final_backbone, "fc"):
-        for param in model.final_backbone.fc.parameters():
-            param.requires_grad = True
-        trainable_params.append({'params': model.final_backbone.fc.parameters()})
-        logging.info("Unfrozen parameters of last FC layer")
+        # Unfreeze specific layers based on configuration
+        if config['num_last_layers_to_train'] > 3:
+            error_message = f"Invalid number of layers to train specified: {config['num_last_layers_to_train']}. Please set 'num_last_layers_to_train' to a maximum of 3."
+            logging.error(error_message)
+            raise ValueError(error_message)
 
-    # Unfreeze and add the last Conv2d layer parameters if requested
-    # This structure needed to generalize to other resnet models.
-    if config['num_last_layers_to_train'] == 3:
-        last_layer_group = list(model.final_backbone.layer4.children())[-1]
-        if config["backbone_model"].lower() == "resnet50":
-            # For ResNet50, if user requests last three, train the last two Conv2d layers in the final block
-            # Do it because last conv layer is actually smaller than resnet18, so need to compensate.
-            named_layers = list(last_layer_group.named_children())
-            conv_layers_to_train = []
-            for name, layer in reversed(named_layers):
-                if isinstance(layer, nn.Conv2d):
-                    conv_layers_to_train.append((name, layer))
-                    if len(conv_layers_to_train) == 2:  # Only keep the last two Conv2d layers
-                        break
+        # Unfreeze and add the embedding layer parameters
+        if config['num_last_layers_to_train'] >= 1:
+            for param in model.embedding_layer.parameters():
+                param.requires_grad = True
+            trainable_params.append({'params': model.embedding_layer.parameters()})
+            logging.info("Unfrozen parameters of embedding layer.")
 
-            # Unfreeze and prepare for training
-            for name, layer in conv_layers_to_train:
-                for param in layer.parameters():
-                    param.requires_grad = True
-                last_conv_name = f"layer4.{last_layer_group._get_name()}.{name}"
-                trainable_params.append({'params': layer.parameters()})
-                logging.info(f"Unfrozen parameters of layer: {last_conv_name}")
+        # Unfreeze and add the last FC layer parameters if requested
+        if config['num_last_layers_to_train'] >= 2 and hasattr(model.final_backbone, "fc"):
+            for param in model.final_backbone.fc.parameters():
+                param.requires_grad = True
+            trainable_params.append({'params': model.final_backbone.fc.parameters()})
+            logging.info("Unfrozen parameters of last FC layer.")
 
-        else:
-            # For other architectures, proceed as usual
+        # Handle ResNet specific adjustments
+        if config['num_last_layers_to_train'] == 3:
+            last_layer_group = list(model.final_backbone.layer4.children())[-1]
             last_conv = None
             last_conv_name = None
             for name, layer in reversed(list(last_layer_group.named_children())):
@@ -298,12 +274,24 @@ def train_model(model, train_loader, test_loader, device,
             else:
                 logging.error("No Conv2d layer found in the last block.")
 
+    # Log the status of each layer
     print_layer_status(model)
 
     # Setup the optimizer with only the trainable parameters
     optimizer = optim.Adam(trainable_params, lr=config["learning_rate"], weight_decay=1e-4)
-    scheduler = StepLR(optimizer, step_size=5, gamma=0.7)
+    return optimizer
 
+
+def train_model(model, train_loader, test_loader, device,
+                config, num_input_channels):
+    """
+    Train and evaluate the model, focusing only on the last added
+    embedding layer.
+    """
+
+    method = config["method"]
+    optimizer = configure_training(model, config, num_input_channels)
+    scheduler = StepLR(optimizer, step_size=5, gamma=0.7)
 
     if method == "triplet":
         criterion = TripletLoss(verbose=config["verbose"], margin=config["margin"])

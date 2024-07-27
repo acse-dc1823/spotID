@@ -4,8 +4,6 @@ import os
 import logging
 import argparse
 
-from torch.utils.data import DataLoader
-from torchvision import transforms
 from torchsummary import summary
 
 from model import TripletNetwork

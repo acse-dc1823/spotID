@@ -122,15 +122,20 @@ class TripletNetwork(nn.Module):
         else:
             # Use a custom modification if there are not 3 input channels
             original_model = timm.create_model(backbone_model, pretrained=True, features_only=False)
-            if backbone_model=="tf_efficientnetv2_b2":
+            if backbone_model == "tf_efficientnetv2_b2":
                 self.final_backbone = CustomEfficientNet(original_model, num_input_channels=input_channels)
                 final_in_features = self.final_backbone.classifier.out_features
-            elif backbone_model=="resnet18":
+            elif backbone_model == "resnet18":
                 self.final_backbone = CustomResNet(original_model, num_input_channels=input_channels)
                 final_in_features = self.final_backbone.fc.out_features
             else:
                 print("Backbone model should be either resnet18 or tf_efficientnetv2_b2")
                 raise ValueError
+        
+        if backbone_model == "tf_efficientnetv2_b2":
+            final_in_features = self.final_backbone.classifier.out_features
+        else:
+            final_in_features = self.final_backbone.fc.out_features
 
         # Define a new embedding layer
         self.embedding_layer = nn.Linear(final_in_features, num_dims)

@@ -228,57 +228,42 @@ def configure_training(model, config, num_input_channels):
         for param in model.parameters():
             param.requires_grad = False
 
-        # If we have more than 3 input channels, modify the first conv layer
+        # If we have more than 3 input channels, modify the first conv layer (conv_stem)
         if num_input_channels > 3:
-            for param in model.final_backbone.conv1.parameters():
+            for param in model.final_backbone.conv_stem.parameters():
                 param.requires_grad = True
-            trainable_params.append({'params': model.final_backbone.conv1.parameters()})
-            logging.info("Unfrozen parameters of first conv layer to accept input of more than 3 channels.")
+            trainable_params.append({'params': model.final_backbone.conv_stem.parameters()})
+            logging.info("Unfrozen parameters of conv_stem layer to accept input of more than 3 channels.")
 
         # Unfreeze specific layers based on configuration
-        if config['num_last_layers_to_train'] > 3:
-            error_message = f"Invalid number of layers to train specified: {config['num_last_layers_to_train']}. Please set 'num_last_layers_to_train' to a maximum of 3."
-            logging.error(error_message)
-            raise ValueError(error_message)
+        num_layers_to_train = config.get('num_last_layers_to_train', 0)
 
-        # Unfreeze and add the embedding layer parameters
-        if config['num_last_layers_to_train'] >= 1:
+        if num_layers_to_train >= 1:
+            # Unfreeze and add the embedding layer parameters
             for param in model.embedding_layer.parameters():
                 param.requires_grad = True
             trainable_params.append({'params': model.embedding_layer.parameters()})
             logging.info("Unfrozen parameters of embedding layer.")
 
-        # Unfreeze and add the last FC layer parameters if requested
-        if config['num_last_layers_to_train'] >= 2 and hasattr(model.final_backbone, "fc"):
-            for param in model.final_backbone.fc.parameters():
+        if num_layers_to_train >= 2:
+            # Unfreeze and add the classifier parameters
+            for param in model.final_backbone.classifier.parameters():
                 param.requires_grad = True
-            trainable_params.append({'params': model.final_backbone.fc.parameters()})
-            logging.info("Unfrozen parameters of last FC layer.")
+            trainable_params.append({'params': model.final_backbone.classifier.parameters()})
+            logging.info("Unfrozen parameters of classifier layer.")
 
-        # Handle ResNet specific adjustments
-        if config['num_last_layers_to_train'] == 3:
-            last_layer_group = list(model.final_backbone.layer4.children())[-1]
-            last_conv = None
-            last_conv_name = None
-            for name, layer in reversed(list(last_layer_group.named_children())):
-                if isinstance(layer, nn.Conv2d):
-                    last_conv = layer
-                    last_conv_name = f"layer4.{last_layer_group._get_name()}.{name}"
-                    break
-
-            if last_conv:
-                for param in last_conv.parameters():
-                    param.requires_grad = True
-                trainable_params.append({'params': last_conv.parameters()})
-                logging.info(f"Unfrozen parameters of layer: {last_conv_name}")
-            else:
-                logging.error("No Conv2d layer found in the last block.")
+        if num_layers_to_train >= 3:
+            # Unfreeze and add the conv_head parameters
+            for param in model.final_backbone.conv_head.parameters():
+                param.requires_grad = True
+            trainable_params.append({'params': model.final_backbone.conv_head.parameters()})
+            logging.info("Unfrozen parameters of conv_head.")
 
     # Log the status of each layer
     print_layer_status(model)
 
     # Setup the optimizer with only the trainable parameters
-    optimizer = optim.Adam(trainable_params, lr=config["learning_rate"], weight_decay=1e-4)
+    optimizer = optim.Adam(trainable_params, lr=config["learning_rate"], weight_decay=config.get("weight_decay", 1e-4))
     return optimizer
 
 

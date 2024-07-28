@@ -2,6 +2,7 @@ import torch.nn as nn
 import timm
 import torch
 
+from copy import deepcopy
 
 class Normalize(nn.Module):
     def __init__(self, p=2, dim=1):
@@ -13,78 +14,79 @@ class Normalize(nn.Module):
         return nn.functional.normalize(x, p=self.p, dim=self.dim)
 
 
-class CustomResNet(nn.Module):
+class CustomEfficientNet(nn.Module):
     def __init__(self, original_model, num_input_channels):
-        super(CustomResNet, self).__init__()
-        assert num_input_channels > 3, "CustomResNet should only be used when there are more than 3 input channels."
+        super(CustomEfficientNet, self).__init__()
+        # Deep copy the original model to modify
+        original_model = deepcopy(original_model)
 
-        # Create a new first layer with the adjusted number of input channels
-        self.conv1 = nn.Conv2d(
+        # Modify the first layer to handle different input channels
+        out_channels = original_model.conv_stem.out_channels
+        kernel_size = original_model.conv_stem.kernel_size
+        stride = original_model.conv_stem.stride
+        padding = original_model.conv_stem.padding
+        bias = original_model.conv_stem.bias is not None
+
+        # Create a new conv_stem with updated in_channels
+        self.conv_stem = nn.Conv2d(
             in_channels=num_input_channels,
-            out_channels=original_model.conv1.out_channels,
-            kernel_size=original_model.conv1.kernel_size,
-            stride=original_model.conv1.stride,
-            padding=original_model.conv1.padding,
-            bias=(original_model.conv1.bias is not None)
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            bias=bias
         )
 
-        # Initialize the new first layer's weights based on the original first layer
-        self._initialize_weights(original_model.conv1, num_input_channels)
+        # Initialize the new conv_stem weights
+        self._initialize_weights(self.conv_stem, original_model.conv_stem, num_input_channels)
 
-        # Assign all other components of the original model directly to this modified model
+        # Transfer all other modules from the original model to this new model
         for name, module in original_model.named_children():
-            if name != 'conv1':  # Skip replacing the first conv layer
+            if name != 'conv_stem':
                 setattr(self, name, module)
 
-    def _initialize_weights(self, original_first_layer, num_input_channels):
-        # Extend the original weights if more input channels are used
+    def _initialize_weights(self, new_layer, original_layer, num_input_channels):
         extra_channels = num_input_channels - 3
         with torch.no_grad():
-            # Copy weights for the first 3 channels
-            self.conv1.weight[:, :3, :, :] = original_first_layer.weight.data.clone()
-            # Initialize weights for additional channels by copying the first channel's weights
+            # Copy weights for the first 3 channels from the original layer
+            new_layer.weight.data[:, :3, :, :] = original_layer.weight.data[:, :3, :, :].clone()
+            # Initialize weights for additional channels by repeating the first channel's weights
             for i in range(extra_channels):
-                self.conv1.weight[:, 3+i, :, :] = original_first_layer.weight.data[:, 0, :, :].clone()
-            if original_first_layer.bias is not None:
-                self.conv1.bias.data = original_first_layer.bias.data.clone()
+                new_layer.weight.data[:, 3+i, :, :] = original_layer.weight.data[:, 0, :, :].clone()
+            # Copy the bias if it exists
+            if original_layer.bias is not None:
+                new_layer.bias.data = original_layer.bias.data.clone()
 
     def forward(self, x):
-        # Use the modified first layer and then proceed with the original layers
-        x = self.conv1(x)
-        # Continue with the rest of the original model's forward pass
-        # You must skip this part in forward and directly use the remaining forward definition from the original model if defined elsewhere
-        for module in list(self.children())[1:]:  # Skip the first layer which is already applied
-            x = module(x)
+        # Manually handle the forward pass for each layer
+        x = self.conv_stem(x)
+        for name, module in self.named_children():
+            if name != 'conv_stem':  # Skip conv_stem since it's already applied
+                x = module(x)
         return x
 
-
 class TripletNetwork(nn.Module):
-    def __init__(self, backbone_model="resnet50", num_dims=256, input_channels=3, s=16.0):
+    def __init__(self, backbone_model="efficientnet_b0", num_dims=256, input_channels=3, s=16.0):
         super(TripletNetwork, self).__init__()
         self.s = s
-        
+        print("num input channels: ", input_channels)
+
         if input_channels == 3:
             # Load the pre-trained model directly if there are 3 input channels
             self.final_backbone = timm.create_model(backbone_model, pretrained=True, features_only=False)
         else:
             # Use a custom modification if there are not 3 input channels
             original_model = timm.create_model(backbone_model, pretrained=True, features_only=False)
-            self.final_backbone = CustomResNet(original_model, num_input_channels=input_channels)
+            self.final_backbone = CustomEfficientNet(original_model, num_input_channels=input_channels)
 
         # Determine the number of features from the backbone's last layer
-        if hasattr(self.final_backbone, "classifier"):
-            final_in_features = self.final_backbone.classifier.out_features
-        elif hasattr(self.final_backbone, "fc"):
-            final_in_features = self.final_backbone.fc.out_features
-        else:
-            raise NotImplementedError("Backbone model must end with a recognizable classifier or fc layer.")
+        final_in_features = self.final_backbone.classifier.out_features
 
         # Define a new embedding layer
-
         self.embedding_layer = nn.Linear(final_in_features, num_dims)
 
         # Add normalization layer
-        self.normalization = Normalize()
+        self.normalization = nn.BatchNorm1d(num_dims)  # Replaced Normalize() with nn.BatchNorm1d for simplicity
 
     def forward(self, x):
         # Forward pass through the backbone model
@@ -95,5 +97,8 @@ class TripletNetwork(nn.Module):
 
         # Normalize the embeddings
         embeddings_normalized = self.normalization(embeddings)
+
+        # Apply scaling
         embeddings_scaled = self.s * embeddings_normalized
+        
         return embeddings_scaled

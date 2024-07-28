@@ -33,8 +33,8 @@ def main(config_file="config.json"):
                            num_dims=config["number_embedding_dimensions"],
                            input_channels=num_input_channels).to(device)
     print(model)
-    print(summary(model, (num_input_channels,
-                          config["resize_height"], config["resize_width"])))
+    # print(summary(model, (num_input_channels,
+    #                       config["resize_height"], config["resize_width"])))
 
     resnet_model = train_model(
         model,

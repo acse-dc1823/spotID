@@ -67,7 +67,7 @@ def setup_data_loader(config, project_root):
         std=config.get("std_normalize"),
         mean_binary_mask=config.get("mean_normalize_binary_mask"),
         std_binary_mask=config.get("std_normalize_binary_mask"),
-        apply_dropout=True
+        apply_dropout=config.get("apply_dropout_pixels", False)
     )
 
     # There is no gain for a class with just one leopard for cosface

@@ -2,7 +2,12 @@ import torch.nn as nn
 import timm
 import torch
 
+import logging
+
 from copy import deepcopy
+
+logging.basicConfig(filename='logs.log', level=logging.INFO, 
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 class Normalize(nn.Module):
     def __init__(self, p=2, dim=1):
@@ -111,7 +116,7 @@ class CustomEfficientNet(nn.Module):
         return x
 
 class TripletNetwork(nn.Module):
-    def __init__(self, backbone_model="tf_efficientnetv2_b2", num_dims=256, input_channels=3, s=16.0):
+    def __init__(self, backbone_model="tf_efficientnetv2_b2", num_dims=256, input_channels=3, s=25.0):
         super(TripletNetwork, self).__init__()
         self.s = s
         print("num input channels: ", input_channels)
@@ -123,9 +128,11 @@ class TripletNetwork(nn.Module):
             # Use a custom modification if there are not 3 input channels
             original_model = timm.create_model(backbone_model, pretrained=True, features_only=False)
             if backbone_model == "tf_efficientnetv2_b2":
+                logging.info("creating custom efficientnet")
                 self.final_backbone = CustomEfficientNet(original_model, num_input_channels=input_channels)
                 final_in_features = self.final_backbone.classifier.out_features
             elif backbone_model == "resnet18":
+                logging.info("creating custom resnet")
                 self.final_backbone = CustomResNet(original_model, num_input_channels=input_channels)
                 final_in_features = self.final_backbone.fc.out_features
             else:
@@ -141,7 +148,7 @@ class TripletNetwork(nn.Module):
         self.embedding_layer = nn.Linear(final_in_features, num_dims)
 
         # Add normalization layer
-        self.normalization = nn.BatchNorm1d(num_dims)  # Replaced Normalize() with nn.BatchNorm1d for simplicity
+        self.normalization = Normalize()
 
     def forward(self, x):
         # Forward pass through the backbone model

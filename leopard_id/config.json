@@ -23,5 +23,7 @@
     "mean_normalize_binary_mask": null,
     "std_normalize_binary_mask": null,
     "train_all_layers": false,
-    "max_images_individual_leopard_sampler": 4
+    "max_images_individual_leopard_sampler": 4,
+    "apply_dropout_pixels": true,
+    "lr_scheduler": true
 }

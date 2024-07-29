@@ -291,7 +291,7 @@ def configure_training(model, config, num_input_channels):
     print_layer_status(model)
 
     # Setup the optimizer with only the trainable parameters
-    optimizer = optim.Adam(trainable_params, lr=config["learning_rate"], weight_decay=config.get("weight_decay", 1e-4))
+    optimizer = optim.Adam(trainable_params, lr=config["learning_rate"])
     return optimizer
 
 
@@ -304,11 +304,14 @@ def train_model(model, train_loader, test_loader, device,
 
     method = config["method"]
     optimizer = configure_training(model, config, num_input_channels)
-    scheduler = StepLR(optimizer, step_size=5, gamma=0.7)
+    if config.get("lr_scheduler"):
+        scheduler = StepLR(optimizer, step_size=5, gamma=0.7)
 
     if method == "triplet":
+        logging.info("setting up triplet loss")
         criterion = TripletLoss(verbose=config["verbose"], margin=config["margin"])
     else:
+        logging.info("setting up Cross Entropy loss for cosface")
         criterion = CrossEntropyLoss()
 
     writer = SummaryWriter()  # TensorBoard summary writer initialized here
@@ -392,7 +395,8 @@ def train_model(model, train_loader, test_loader, device,
                 f"Test top {max_k} match rate: {test_match_rate[-1]:.4f} - "
                 f"Cumulative Test Eval Time: {cumulative_test_eval_time:.2f} s"
             )
-        scheduler.step()
+        if config.get("lr_scheduler"):
+            scheduler.step()
 
     _, _, final_test_match_rate = evaluate_epoch_test(
         model, test_loader, device, method=method, max_k=20, verbose=True)

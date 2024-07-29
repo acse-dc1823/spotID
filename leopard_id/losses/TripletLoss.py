@@ -20,7 +20,6 @@ def euclidean_dist(x, y):
     d = x.size(1)
     x = x.unsqueeze(1).expand(n, m, d)
     y = y.unsqueeze(0).expand(n, m, d)
-    # TODO: Ensure this is correct
     dist_squared = torch.pow(x - y, 2).sum(2)
     return torch.sqrt(torch.clamp(dist_squared, min=1e-11))
 

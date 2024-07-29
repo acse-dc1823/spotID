@@ -26,8 +26,5 @@ which pip
 cd $PBS_O_WORKDIR
 
 python3 train.py --config_file config1.json
-python3 train.py --config_file config2.json
-python3 train.py --config_file config3.json
-python3 train.py --config_file config4.json
 
 # Run the code

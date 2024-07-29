@@ -7,7 +7,8 @@ import random
 
 
 class LeopardDataset(Dataset):
-    def __init__(self, root_dir, mask_dir=None, transform=None, transform_binary=None):
+    def __init__(self, root_dir, mask_dir=None, transform=None,
+                 transform_binary=None, skip_singleton_classes=False):
         """
         Args:
             root_dir (string): Directory with all the RGB leopard images.
@@ -22,27 +23,29 @@ class LeopardDataset(Dataset):
         self.images = []
         self.leopards = []
         self.label_to_index = {}
+        self.skip_singleton_classes = skip_singleton_classes
 
         idx = 0
         for leopard_id in os.listdir(root_dir):
             leopard_folder = os.path.join(root_dir, leopard_id)
             if os.path.isdir(leopard_folder):
-                if leopard_id not in self.label_to_index:
-                    self.label_to_index[leopard_id] = idx
-                    idx += 1
                 img_files = os.listdir(leopard_folder)
-                random.shuffle(img_files)
-                for img_file in img_files:
-                    img_path = os.path.join(leopard_folder, img_file)
-                    if self.mask_dir:
-                        mask_path = os.path.join(self.mask_dir, leopard_id, img_file)
-                        if os.path.exists(mask_path):  # Check if the mask exists
-                            self.images.append((img_path, mask_path))
+                if not self.skip_singleton_classes or (self.skip_singleton_classes and len(img_files) > 1):
+                    if leopard_id not in self.label_to_index:
+                        self.label_to_index[leopard_id] = idx
+                        idx += 1
+                    random.shuffle(img_files)
+                    for img_file in img_files:
+                        img_path = os.path.join(leopard_folder, img_file)
+                        if self.mask_dir:
+                            mask_path = os.path.join(self.mask_dir, leopard_id, img_file)
+                            if os.path.exists(mask_path):  # Check if the mask exists
+                                self.images.append((img_path, mask_path))
+                            else:
+                                continue  # Skip this image since mask is missing
                         else:
-                            continue  # Skip this image since mask is missing
-                    else:
-                        self.images.append(img_path)
-                    self.leopards.append(leopard_id)
+                            self.images.append(img_path)
+                        self.leopards.append(leopard_id)
 
     def __len__(self):
         return len(self.images)

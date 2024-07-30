@@ -58,9 +58,15 @@ def setup_data_loader(config, project_root):
             binary_transforms = None
 
         return common_transforms, binary_transforms
-
-    # Create common transformations
-    common_transform, binary_transform = create_transforms(
+    
+    # There is no gain for a class with just one leopard for cosface
+    # whereas for triplet loss it can be used as a negative
+    if config["method"] == "cosface":
+        skip_singleton_classes = True
+    else:
+        skip_singleton_classes = False
+    
+    common_transform_train, binary_transform_train = create_transforms(
         resize_width=config["resize_width"],
         resize_height=config["resize_height"],
         mean=config.get("mean_normalize"),
@@ -70,25 +76,29 @@ def setup_data_loader(config, project_root):
         apply_dropout=config.get("apply_dropout_pixels", False)
     )
 
-    # There is no gain for a class with just one leopard for cosface
-    # whereas for triplet loss it can be used as a negative
-    if config["method"] == "cosface":
-        skip_singleton_classes = True
-    else:
-        skip_singleton_classes = False
+    # Create transformations for testing without dropout
+    common_transform_test, binary_transform_test = create_transforms(
+        resize_width=config["resize_width"],
+        resize_height=config["resize_height"],
+        mean=config.get("mean_normalize"),
+        std=config.get("std_normalize"),
+        mean_binary_mask=config.get("mean_normalize_binary_mask"),
+        std_binary_mask=config.get("std_normalize_binary_mask"),
+        apply_dropout=False  # Ensure dropout is not applied
+    )
 
     train_dataset = LeopardDataset(
         root_dir=root_dir_train,
-        transform=common_transform,
-        transform_binary=binary_transform,
+        transform=common_transform_train,
+        transform_binary=binary_transform_train,
         mask_dir=config["train_binary_mask_dir"],
         skip_singleton_classes=skip_singleton_classes
     )
 
     test_dataset = LeopardDataset(
         root_dir=root_dir_test,
-        transform=common_transform,
-        transform_binary=binary_transform,
+        transform=common_transform_test,
+        transform_binary=binary_transform_test,
         mask_dir=config["test_binary_mask_dir"],
         skip_singleton_classes=skip_singleton_classes
     )

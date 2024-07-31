@@ -9,6 +9,7 @@ from copy import deepcopy
 logging.basicConfig(filename='logs.log', level=logging.INFO, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
+
 class Normalize(nn.Module):
     def __init__(self, p=2, dim=1):
         super(Normalize, self).__init__()
@@ -17,7 +18,7 @@ class Normalize(nn.Module):
 
     def forward(self, x):
         return nn.functional.normalize(x, p=self.p, dim=self.dim)
-    
+
 
 class CustomResNet(nn.Module):
     def __init__(self, original_model, num_input_channels):
@@ -58,7 +59,6 @@ class CustomResNet(nn.Module):
         # Use the modified first layer and then proceed with the original layers
         x = self.conv1(x)
         # Continue with the rest of the original model's forward pass
-        # You must skip this part in forward and directly use the remaining forward definition from the original model if defined elsewhere
         for module in list(self.children())[1:]:  # Skip the first layer which is already applied
             x = module(x)
         return x
@@ -115,6 +115,7 @@ class CustomEfficientNet(nn.Module):
                 x = module(x)
         return x
 
+
 class TripletNetwork(nn.Module):
     def __init__(self, backbone_model="tf_efficientnetv2_b2", num_dims=256, input_channels=3, s=25.0):
         super(TripletNetwork, self).__init__()
@@ -145,7 +146,6 @@ class TripletNetwork(nn.Module):
 
         # Define a new embedding layer
 
-        self.activation = nn.ReLU()
         self.embedding_layer = nn.Linear(final_in_features, num_dims)
 
         # Add normalization layer
@@ -155,8 +155,6 @@ class TripletNetwork(nn.Module):
         # Forward pass through the backbone model
         features = self.final_backbone(x)
 
-        features = self.activation(features)
-
         # Pass the output of the backbone's final layer to the embedding layer
         embeddings = self.embedding_layer(features)
 
@@ -164,5 +162,5 @@ class TripletNetwork(nn.Module):
         embeddings_normalized = self.normalization(embeddings)
         # Apply scaling
         embeddings_scaled = self.s * embeddings_normalized
-        
+
         return embeddings_scaled

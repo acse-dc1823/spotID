@@ -59,7 +59,7 @@ def load_model(config):
     model = TripletNetwork(backbone_model=config.get("backbone_model"),
                            num_dims=config.get("num_dimensions"),
                            input_channels=config.get("input_channels"))
-    model.load_state_dict(torch.load(config["model_path"]))
+    model.load_state_dict(torch.load(config["model_path"], map_location='cpu'))
     model.eval()
     return model
 
@@ -109,6 +109,15 @@ def run_inference(config_path):
         transform=common_transform,
         transform_binary=binary_transform
     )
+
+    crop_output_folder_absolute = os.path.abspath(config["crop_output_folder"])
+    image_filenames_path = os.path.join(config['output_folder'],
+                                        'image_filenames.txt')
+    with open(image_filenames_path, 'w') as f:
+        for filename in dataset.image_filenames:
+            full_path = os.path.join(crop_output_folder_absolute, filename)
+            f.write(f"{full_path}\n")
+    print(f"Image filenames saved to {image_filenames_path}")
     data_loader = DataLoader(dataset, batch_size=config['batch_size'], shuffle=False)
 
     model = load_model(config)

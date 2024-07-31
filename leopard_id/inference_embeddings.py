@@ -20,17 +20,31 @@ class InferenceDataset(Dataset):
         self.mask_folder = mask_folder
         self.transform = transform
         self.transform_binary = transform_binary
-        self.image_filenames = [f for f in os.listdir(image_folder) if f.endswith(('.png', '.jpg', '.jpeg'))]
+        self.pairs = []
+        
+        # Recursively collect all images and validate corresponding masks
+        for dirpath, _, filenames in os.walk(image_folder):
+            for filename in filenames:
+                if filename.endswith(('.png', '.jpg', '.jpeg')):
+                    img_path = os.path.join(dirpath, filename)
+                    if self.mask_folder:
+                        # Calculate relative path for mask
+                        relative_path = os.path.relpath(img_path, image_folder)
+                        mask_path = os.path.join(mask_folder, relative_path)
+                        # Only add images that have a corresponding mask file
+                        if os.path.exists(mask_path):
+                            self.pairs.append((img_path, mask_path))
+                    else:
+                        self.pairs.append((img_path, None))
 
     def __len__(self):
-        return len(self.image_filenames)
+        return len(self.pairs)
 
     def __getitem__(self, idx):
-        img_name = os.path.join(self.image_folder, self.image_filenames[idx])
+        img_name, mask_name = self.pairs[idx]
         image = Image.open(img_name).convert('RGB')
         
-        if self.mask_folder:
-            mask_name = os.path.join(self.mask_folder, self.image_filenames[idx])
+        if mask_name:
             mask = Image.open(mask_name).convert('L')  # Assuming mask is grayscale
             
             if self.transform:
@@ -96,10 +110,8 @@ def run_inference(config_path):
     base_bg_removed_output_dir = config['bg_removed_output_folder']
     base_binary_output_dir = config['base_binary_output_folder']
     if config["preprocess"]:
-        crop_images_folder(base_input_dir, base_crop_output_dir,
-                           store_full_images=False)
-        remove_background_processor(base_crop_output_dir,
-                                    base_bg_removed_output_dir)
+        crop_images_folder(base_input_dir, base_crop_output_dir, store_full_images=False)
+        remove_background_processor(base_crop_output_dir, base_bg_removed_output_dir)
         edge_detection(base_bg_removed_output_dir, base_binary_output_dir)
     
     common_transform, binary_transform = create_transforms(config)
@@ -114,8 +126,8 @@ def run_inference(config_path):
     image_filenames_path = os.path.join(config['output_folder'],
                                         'image_filenames.txt')
     with open(image_filenames_path, 'w') as f:
-        for filename in dataset.image_filenames:
-            full_path = os.path.join(crop_output_folder_absolute, filename)
+        for img_path, _ in dataset.pairs:
+            full_path = os.path.abspath(img_path)
             f.write(f"{full_path}\n")
     print(f"Image filenames saved to {image_filenames_path}")
     data_loader = DataLoader(dataset, batch_size=config['batch_size'], shuffle=False)
@@ -144,6 +156,7 @@ def run_inference(config_path):
 
     # Optionally, print or log the information about saved files
     print(f"Embeddings and distance matrix saved in {output_folder}")
+
 
 
 if __name__ == "__main__":

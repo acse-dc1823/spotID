@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leopard Image Validation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const LeopardImageValidation = () => {
+            const [anchorImage, setAnchorImage] = useState('');
+            const [comparisonImage, setComparisonImage] = useState('');
+            const [confidence, setConfidence] = useState(0);
+            const [currentComparisonIndex, setCurrentComparisonIndex] = useState(0);
+            const [anchorIndex, setAnchorIndex] = useState(0);
+            const [similarImages, setSimilarImages] = useState([]);
+            const [similarPaths, setSimilarPaths] = useState([]);
+            const [confidences, setConfidences] = useState([]);
+            const [matchDir, setMatchDir] = useState('');
+            const [dbName, setDbName] = useState('');
+            const [feedback, setFeedback] = useState('');
+            const [anchorPath, setAnchorPath] = useState('');
+            const [comparisonPath, setComparisonPath] = useState('');
+
+            useEffect(() => {
+                fetchImages(0);
+            }, []);
+
+            const fetchImages = async (index) => {
+                const response = await fetch(`/get_anchor_and_similar?index=${index}`);
+                const data = await response.json();
+                setAnchorImage(data.anchor);
+                setSimilarImages(data.similar);
+                setSimilarPaths(data.similar_paths);
+                setConfidences(data.confidences);
+                setComparisonImage(data.similar[0]);
+                setConfidence(data.confidences[0]);
+                setCurrentComparisonIndex(0);
+                setAnchorIndex(index);
+                setAnchorPath(data.anchor_path);
+                setComparisonPath(data.similar_paths[0]);
+            };
+
+            const handleDecision = async (isMatch) => {
+                await fetch('/validate_match', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        anchor: anchorIndex,
+                        match: currentComparisonIndex,
+                        is_match: isMatch
+                    }),
+                });
+
+                const nextIndex = currentComparisonIndex + 1;
+                if (nextIndex < similarImages.length) {
+                    setComparisonImage(similarImages[nextIndex]);
+                    setComparisonPath(similarPaths[nextIndex]);
+                    setConfidence(confidences[nextIndex]);
+                    setCurrentComparisonIndex(nextIndex);
+                } else {
+                    const nextAnchorIndex = anchorIndex + 1;
+                    fetchImages(nextAnchorIndex);
+                }
+            };
+
+            const setMatchDirectory = async () => {
+                const response = await fetch('/set_match_dir', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ match_dir: matchDir }),
+                });
+                const data = await response.json();
+                setFeedback(data.message);
+            };
+
+            const createNewDb = async () => {
+                const response = await fetch('/create_new_db', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ db_name: dbName }),
+                });
+                const data = await response.json();
+                setFeedback(data.message);
+            };
+
+            const openExistingDb = async () => {
+                const response = await fetch('/open_existing_db', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ db_name: dbName }),
+                });
+                const data = await response.json();
+                setFeedback(data.message);
+            };
+
+            return (
+                <div className="flex flex-col items-center p-4">
+                    <img src="/static/images/logo.webp" alt="Logo" className="w-64 mb-4" />
+                    <h1 className="text-2xl font-bold mb-4">Leopard Image Validation</h1>
+
+                    <div className="mb-4">
+                        <input 
+                            type="text" 
+                            value={matchDir} 
+                            onChange={(e) => setMatchDir(e.target.value)}
+                            placeholder="Match Directory"
+                            className="border p-2 mr-2"
+                        />
+                        <button 
+                            onClick={setMatchDirectory}
+                            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                        >
+                            Set Match Directory
+                        </button>
+                    </div>
+
+                    <div className="mb-4">
+                        <input 
+                            type="text" 
+                            value={dbName} 
+                            onChange={(e) => setDbName(e.target.value)}
+                            placeholder="Database Name"
+                            className="border p-2 mr-2"
+                        />
+                        <button 
+                            onClick={createNewDb}
+                            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-2"
+                        >
+                            Create New DB
+                        </button>
+                        <button 
+                            onClick={openExistingDb}
+                            className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded"
+                        >
+                            Open Existing DB
+                        </button>
+                    </div>
+
+                    {feedback && <p className="text-blue-500 mb-4">{feedback}</p>}
+
+                    <div className="flex space-x-4 mb-4">
+                        <div className="border rounded p-4 w-[600px]">
+                            <h2 className="text-xl mb-2">Anchor Image</h2>
+                            <img src={anchorImage} alt="Anchor" className="w-full h-auto" />
+                            <p className="text-xs mt-2 break-all">{anchorPath}</p>
+                        </div>
+                        <div className="border rounded p-4 w-[600px]">
+                            <h2 className="text-xl mb-2">Comparison Image</h2>
+                            <img src={comparisonImage} alt="Comparison" className="w-full h-auto" />
+                            <p className="text-xs mt-2 break-all">{comparisonPath}</p>
+                        </div>
+                    </div>
+                    <p className="text-lg mb-4">Confidence: {confidence.toFixed(2)}%</p>
+                    <div className="flex space-x-4 mb-4">
+                        <button 
+                            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                            onClick={() => handleDecision(true)}
+                        >
+                            Match
+                        </button>
+                        <button 
+                            className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+                            onClick={() => handleDecision(false)}
+                        >
+                            Not a Match
+                        </button>
+                    </div>
+                    <button 
+                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                        onClick={() => fetchImages(anchorIndex + 1)}
+                    >
+                        Next Anchor Image
+                    </button>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<LeopardImageValidation />, document.getElementById('root'));
+    </script>
+</body>
+</html>

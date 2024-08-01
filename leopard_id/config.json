@@ -25,5 +25,6 @@
     "train_all_layers": false,
     "max_images_individual_leopard_sampler": 4,
     "apply_dropout_pixels": false,
+    "apply_augmentations": true,
     "lr_scheduler": false
 }

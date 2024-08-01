@@ -7,8 +7,7 @@ import random
 
 
 class LeopardDataset(Dataset):
-    def __init__(self, root_dir, mask_dir=None, transform=None,
-                 transform_binary=None, skip_singleton_classes=False):
+    def __init__(self, root_dir, mask_dir=None, transform=None, skip_singleton_classes=False):
         """
         Args:
             root_dir (string): Directory with all the RGB leopard images.
@@ -19,7 +18,6 @@ class LeopardDataset(Dataset):
         self.root_dir = root_dir
         self.mask_dir = mask_dir
         self.transform = transform
-        self.transform_binary = transform_binary
         self.images = []
         self.leopards = []
         self.label_to_index = {}
@@ -57,24 +55,20 @@ class LeopardDataset(Dataset):
             mask = Image.open(mask_path).convert('L')  # Load mask as single channel
 
             if self.transform:
-                image = self.transform(image)
+                image, mask = self.transform(image, mask)
             else:
                 image = ToTensor()(image)
-            
-            if self.transform_binary:
-                mask = self.transform_binary(mask)
-            else:
                 mask = ToTensor()(mask)
 
             # Concatenate image and mask tensors
-            combined = torch.cat((image, mask), 0)  # Ensure mask is a single-channel tensor
+            combined = torch.cat((image, mask), 0)
             del mask
         else:
             img_path = self.images[idx]
             image = Image.open(img_path).convert('RGB')
             
             if self.transform:
-                image = self.transform(image)
+                image, _ = self.transform(image, None)
             else:
                 image = ToTensor()(image)
             combined = image.clone()

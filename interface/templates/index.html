@@ -3,8 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Leopard Matcher</title>
+    <title>SpotID: Leopard Individual Identification</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body, html {
             height: 100%;
@@ -52,10 +56,10 @@
 </head>
 <body>
     <div id="logo-container">
-        <img id="logo" src="static/images/logo.webp" alt="Leopard Matcher Logo">
+        <img id="logo" src="static/images/logo.webp" alt="SpotID Logo">
     </div>
     <div id="content">
-        <img id="small-logo" src="static/images/logo.webp" alt="Leopard Matcher Logo">
+        <img id="small-logo" src="static/images/logo.webp" alt="SpotID Logo">
         <div id="root"></div>
     </div>
     <script>
@@ -76,13 +80,6 @@
             }, 2000);
         });
     </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.development.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.development.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body>
-    <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
@@ -95,6 +92,7 @@
             const [anchorIndex, setAnchorIndex] = useState(0);
             const [similarImages, setSimilarImages] = useState([]);
             const [similarPaths, setSimilarPaths] = useState([]);
+            const [similarIndices, setSimilarIndices] = useState([]);
             const [confidences, setConfidences] = useState([]);
             const [matchDir, setMatchDir] = useState('');
             const [dbName, setDbName] = useState('');
@@ -112,11 +110,12 @@
                 setAnchorImage(data.anchor);
                 setSimilarImages(data.similar);
                 setSimilarPaths(data.similar_paths);
+                setSimilarIndices(data.similar_indices);
                 setConfidences(data.confidences);
                 setComparisonImage(data.similar[0]);
                 setConfidence(data.confidences[0]);
                 setCurrentComparisonIndex(0);
-                setAnchorIndex(index);
+                setAnchorIndex(data.anchor_index);
                 setAnchorPath(data.anchor_path);
                 setComparisonPath(data.similar_paths[0]);
             };
@@ -129,7 +128,7 @@
                     },
                     body: JSON.stringify({
                         anchor: anchorIndex,
-                        match: currentComparisonIndex,
+                        match: similarIndices[currentComparisonIndex],
                         is_match: isMatch
                     }),
                 });
@@ -141,9 +140,16 @@
                     setConfidence(confidences[nextIndex]);
                     setCurrentComparisonIndex(nextIndex);
                 } else {
-                    const nextAnchorIndex = anchorIndex + 1;
-                    fetchImages(nextAnchorIndex);
+                    const response = await fetch(`/get_next_anchor?current_index=${anchorIndex}`);
+                    const data = await response.json();
+                    fetchImages(data.next_index);
                 }
+            };
+
+            const handleNextAnchor = async () => {
+                const response = await fetch(`/get_next_anchor?current_index=${anchorIndex}`);
+                const data = await response.json();
+                fetchImages(data.next_index);
             };
 
             const setMatchDirectory = async () => {
@@ -158,8 +164,8 @@
                 setFeedback(data.message);
             };
 
-            const createNewDb = async () => {
-                const response = await fetch('/create_new_db', {
+            const createOrOpenDb = async () => {
+                const response = await fetch('/create_or_open_db', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -170,13 +176,9 @@
                 setFeedback(data.message);
             };
 
-            const openExistingDb = async () => {
-                const response = await fetch('/open_existing_db', {
+            const endSession = async () => {
+                const response = await fetch('/end_session', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ db_name: dbName }),
                 });
                 const data = await response.json();
                 setFeedback(data.message);
@@ -211,16 +213,10 @@
                             className="border p-2 mr-2"
                         />
                         <button 
-                            onClick={createNewDb}
-                            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-2"
+                            onClick={createOrOpenDb}
+                            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
                         >
-                            Create New DB
-                        </button>
-                        <button 
-                            onClick={openExistingDb}
-                            className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded"
-                        >
-                            Open Existing DB
+                            Create/Open DB
                         </button>
                     </div>
 
@@ -254,10 +250,16 @@
                         </button>
                     </div>
                     <button 
-                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                        onClick={() => fetchImages(anchorIndex + 1)}
+                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4"
+                        onClick={handleNextAnchor}
                     >
                         Next Anchor Image
+                    </button>
+                    <button 
+                        className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
+                        onClick={endSession}
+                    >
+                        End Session
                     </button>
                 </div>
             );

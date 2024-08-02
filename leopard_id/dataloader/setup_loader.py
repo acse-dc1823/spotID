@@ -23,8 +23,12 @@ class PixelDropout(torch.nn.Module):
     def forward(self, img):
         if self.apply_dropout:
             dropout_mask = torch.rand_like(img[0, :, :]) < self.dropout_prob
-            for c in range(img.shape[0]):
-                img[c, :, :][dropout_mask] = 0
+            dropout_mask = dropout_mask.unsqueeze(0)  # Add a channel dimension to mask
+            dropout_mask = dropout_mask.repeat(img.shape[0], 1, 1)  # Repeat mask for all channels
+            
+            # Apply the mask using a copy of the image tensor
+            img = img.clone()
+            img[dropout_mask] = 0
         return img
 
 

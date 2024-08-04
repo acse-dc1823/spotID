@@ -52,6 +52,29 @@
             max-width: 200px;
             max-height: 100px;
         }
+        .image-container {
+            position: relative;
+            overflow: hidden;
+            cursor: zoom-in;
+        }
+        .zoomed {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            cursor: zoom-out;
+        }
+        .zoomed img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        }
     </style>
 </head>
 <body>
@@ -83,6 +106,43 @@
 
     <script type="text/babel">
         const { useState, useEffect } = React;
+
+        const SideBySideZoomableImages = ({ anchorImage, comparisonImage, anchorPath, comparisonPath }) => {
+            const [zoomed, setZoomed] = useState(false);
+
+            const toggleZoom = () => {
+                setZoomed(!zoomed);
+            };
+
+            return (
+                <div className="relative">
+                    <div className="flex space-x-4 mb-4 cursor-zoom-in" onClick={toggleZoom}>
+                        <div className="border rounded p-4 w-[600px]">
+                            <h2 className="text-xl mb-2">Anchor Image</h2>
+                            <img src={anchorImage} alt="Anchor" className="w-full h-auto" />
+                            <p className="text-xs mt-2 break-all">{anchorPath}</p>
+                        </div>
+                        <div className="border rounded p-4 w-[600px]">
+                            <h2 className="text-xl mb-2">Comparison Image</h2>
+                            <img src={comparisonImage} alt="Comparison" className="w-full h-auto" />
+                            <p className="text-xs mt-2 break-all">{comparisonPath}</p>
+                        </div>
+                    </div>
+                    {zoomed && (
+                        <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-80 flex justify-center items-center z-50" onClick={toggleZoom}>
+                            <div className="flex space-x-4 max-w-[90%] max-h-[90%]">
+                                <div className="w-1/2">
+                                    <img src={anchorImage} alt="Anchor" className="max-w-full max-h-full object-contain" />
+                                </div>
+                                <div className="w-1/2">
+                                    <img src={comparisonImage} alt="Comparison" className="max-w-full max-h-full object-contain" />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
 
         const LeopardImageValidation = () => {
             const [anchorImage, setAnchorImage] = useState('');
@@ -222,18 +282,13 @@
 
                     {feedback && <p className="text-blue-500 mb-4">{feedback}</p>}
 
-                    <div className="flex space-x-4 mb-4">
-                        <div className="border rounded p-4 w-[600px]">
-                            <h2 className="text-xl mb-2">Anchor Image</h2>
-                            <img src={anchorImage} alt="Anchor" className="w-full h-auto" />
-                            <p className="text-xs mt-2 break-all">{anchorPath}</p>
-                        </div>
-                        <div className="border rounded p-4 w-[600px]">
-                            <h2 className="text-xl mb-2">Comparison Image</h2>
-                            <img src={comparisonImage} alt="Comparison" className="w-full h-auto" />
-                            <p className="text-xs mt-2 break-all">{comparisonPath}</p>
-                        </div>
-                    </div>
+                    <SideBySideZoomableImages
+                        anchorImage={anchorImage}
+                        comparisonImage={comparisonImage}
+                        anchorPath={anchorPath}
+                        comparisonPath={comparisonPath}
+                    />
+
                     <p className="text-lg mb-4">Confidence: {confidence.toFixed(2)}%</p>
                     <div className="flex space-x-4 mb-4">
                         <button 

@@ -101,6 +101,23 @@ def create_transforms(config):
     return common_transforms, binary_transforms
 
 
+import os
+import json
+import torch
+import numpy as np
+from PIL import Image
+from torchvision import models, transforms
+from torch.utils.data import DataLoader, Dataset
+from torchvision.transforms.functional import to_tensor
+
+from model import TripletNetwork, cosine_dist
+from losses import euclidean_dist
+from scripts_preprocessing import crop_images_folder, remove_background_processor, edge_detection
+
+project_root = os.path.dirname(os.path.abspath(__file__))
+
+# ... [previous code remains unchanged] ...
+
 def run_inference(config_path):
     with open(config_path, 'r') as file:
         config = json.load(file)
@@ -123,13 +140,25 @@ def run_inference(config_path):
     )
 
     crop_output_folder_absolute = os.path.abspath(config["crop_output_folder"])
-    image_filenames_path = os.path.join(config['output_folder'],
-                                        'image_filenames.txt')
-    with open(image_filenames_path, 'w') as f:
-        for img_path, _ in dataset.pairs:
-            full_path = os.path.abspath(img_path)
-            f.write(f"{full_path}\n")
+    binary_output_folder_absolute = os.path.abspath(config["base_binary_output_folder"])
+    
+    image_filenames_path = os.path.join(config['output_folder'], 'image_filenames.txt')
+    binary_image_filenames_path = os.path.join(config['output_folder'], 'binary_image_filenames.txt')
+    
+    with open(image_filenames_path, 'w') as f_img, open(binary_image_filenames_path, 'w') as f_binary:
+        for img_path, mask_path in dataset.pairs:
+            full_img_path = os.path.abspath(img_path)
+            f_img.write(f"{full_img_path}\n")
+            
+            if mask_path:
+                full_mask_path = os.path.abspath(mask_path)
+                f_binary.write(f"{full_mask_path}\n")
+            else:
+                f_binary.write("No corresponding binary image\n")
+    
     print(f"Image filenames saved to {image_filenames_path}")
+    print(f"Binary image filenames saved to {binary_image_filenames_path}")
+
     data_loader = DataLoader(dataset, batch_size=config['batch_size'], shuffle=False)
 
     model = load_model(config)
@@ -156,8 +185,6 @@ def run_inference(config_path):
 
     # Optionally, print or log the information about saved files
     print(f"Embeddings and distance matrix saved in {output_folder}")
-
-
 
 if __name__ == "__main__":
     run_inference('config_inference.json')

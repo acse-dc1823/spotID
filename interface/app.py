@@ -20,10 +20,10 @@ with open('../leopard_id/embeddings/image_filenames.txt', 'r') as file:
     print(len(image_filenames), "images loaded")
 
 CURRENT_DB = "leopard_matches.json"
-last_anchor_index = 0
+last_processed_index = -1
 
 def load_or_create_db(db_name):
-    global graph, CURRENT_DB, last_anchor_index
+    global graph, CURRENT_DB, last_processed_index
     CURRENT_DB = db_name if db_name.endswith('.json') else db_name + '.json'
     graph.clear()
     
@@ -32,11 +32,11 @@ def load_or_create_db(db_name):
         with open(CURRENT_DB, 'r') as f:
             data = json.load(f)
         graph = nx.node_link_graph(data['graph'])
-        last_anchor_index = data.get('last_anchor_index', 0)
+        last_processed_index = data.get('last_processed_index', -1)
         action = "loaded"
     else:
         # Create new graph
-        last_anchor_index = 0
+        last_processed_index = -1
         action = "created"
     
     # Ensure all image paths are added as nodes
@@ -50,11 +50,10 @@ def load_or_create_db(db_name):
 def save_db():
     data = {
         'graph': nx.node_link_data(graph),
-        'last_anchor_index': last_anchor_index
+        'last_processed_index': last_processed_index
     }
     with open(CURRENT_DB, 'w') as f:
         json.dump(data, f)
-
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -98,37 +97,88 @@ def serve_image(filename):
 
 @app.route('/get_next_anchor', methods=['GET'])
 def get_next_anchor():
-    global last_anchor_index
-    print("Last anchor index:", last_anchor_index)
-    current_index = int(request.args.get('current_index', last_anchor_index))
+    global last_processed_index
+    current_index = int(request.args.get('current_index', last_processed_index))
     next_index = current_index + 1
     
-    # Find the next unmatched anchor
+    # Find the next unprocessed anchor
     while next_index < len(image_filenames):
-        if not list(graph.neighbors(image_filenames[next_index])):
+        if next_index > last_processed_index:
             break
         next_index += 1
     
     # If we've reached the end, start over from the beginning
     if next_index >= len(image_filenames):
         next_index = 0
-        while next_index < current_index:
+        while next_index <= last_processed_index:
             if not list(graph.neighbors(image_filenames[next_index])):
                 break
             next_index += 1
         
-        # If we've cycled through all images and found no unmatched ones, keep the current index
-        if next_index >= current_index:
+        # If we've cycled through all images and found no unprocessed ones, keep the current index
+        if next_index > last_processed_index:
             next_index = current_index
     
-    last_anchor_index = next_index
+    last_processed_index = max(last_processed_index, next_index)
     save_db()
     
     # If we've cycled through all images, organize the final output
-    if next_index == 0:
+    if next_index == 0 and current_index == len(image_filenames) - 1:
         organize_final_output()
     
     return jsonify({'next_index': next_index})
+
+@app.route('/get_anchor_and_similar', methods=['GET'])
+def get_anchor_and_similar():
+    global last_processed_index
+    anchor_index = int(request.args.get('index', last_processed_index))
+    anchor_path = image_filenames[anchor_index]
+    
+    # Ensure the anchor path is in the graph
+    if anchor_path not in graph:
+        graph.add_node(anchor_path)
+    
+    # Get all images already matched with the anchor (directly or indirectly)
+    matched_images = set()
+    for component in nx.connected_components(graph):
+        if anchor_path in component:
+            matched_images = component
+            break
+    
+    # Get distances for all images
+    distances = distance_matrix[anchor_index]
+    
+    # Create a list of (index, distance) tuples, excluding matched images and the anchor itself
+    distance_list = [(i, dist) for i, dist in enumerate(distances) 
+                     if image_filenames[i] not in matched_images and i != anchor_index]
+    
+    # Sort by distance and take top 5
+    sorted_distances = sorted(distance_list, key=lambda x: x[1])[:5]
+    
+    # Extract indices and distances
+    indices, distances = zip(*sorted_distances) if sorted_distances else ([], [])
+    
+    similar_images = ["/images/" + os.path.basename(image_filenames[i]) for i in indices]
+    confidences = [distance_to_confidence(d) for d in distances]
+    
+    last_processed_index = anchor_index
+    save_db()
+    
+    # Get information about the current connected component
+    current_component = list(matched_images)
+    component_size = len(current_component)
+    
+    return jsonify({
+        'anchor': "/images/" + os.path.basename(anchor_path),
+        'anchor_path': anchor_path,
+        'similar': similar_images,
+        'similar_paths': [image_filenames[i] for i in indices],
+        'anchor_index': anchor_index,
+        'similar_indices': list(indices),
+        'confidences': confidences,
+        'component_size': component_size,
+        'component_paths': ["/images/" + os.path.basename(path) for path in current_component]
+    })
 
 def organize_final_output():
     if not GLOBAL_MATCH_DIR:
@@ -170,7 +220,7 @@ def end_session():
     return jsonify({'status': 'success' if status_code == 200 else 'error', 'message': message})
 
 def add_match(anchor, match):
-    global last_anchor_index
+    global last_processed_index
     anchor_path = image_filenames[anchor]
     match_path = image_filenames[match]
     
@@ -181,9 +231,10 @@ def add_match(anchor, match):
     else:
         print(f"Edge already exists between {anchor_path} and {match_path}")
     
-    last_anchor_index = max(last_anchor_index, anchor)
+    last_processed_index = max(last_processed_index, anchor)
     save_db()
     print_graph_state()
+
 
 def print_graph_state():
     print("\nCurrent Graph State:")
@@ -195,58 +246,6 @@ def print_graph_state():
     print(f"Total number of nodes: {graph.number_of_nodes()}")
     print(f"Total number of edges: {graph.number_of_edges()}")
     print(f"Number of connected components: {nx.number_connected_components(graph)}")
-
-@app.route('/get_anchor_and_similar', methods=['GET'])
-def get_anchor_and_similar():
-    global last_anchor_index
-    anchor_index = int(request.args.get('index', last_anchor_index))
-    anchor_path = image_filenames[anchor_index]
-    
-    # Ensure the anchor path is in the graph
-    if anchor_path not in graph:
-        graph.add_node(anchor_path)
-    
-    # Get all images already matched with the anchor (directly or indirectly)
-    matched_images = set()
-    for component in nx.connected_components(graph):
-        if anchor_path in component:
-            matched_images = component
-            break
-    
-    # Get distances for all images
-    distances = distance_matrix[anchor_index]
-    
-    # Create a list of (index, distance) tuples, excluding matched images and the anchor itself
-    distance_list = [(i, dist) for i, dist in enumerate(distances) 
-                     if image_filenames[i] not in matched_images and i != anchor_index]
-    
-    # Sort by distance and take top 5
-    sorted_distances = sorted(distance_list, key=lambda x: x[1])[:5]
-    
-    # Extract indices and distances
-    indices, distances = zip(*sorted_distances) if sorted_distances else ([], [])
-    
-    similar_images = ["/images/" + os.path.basename(image_filenames[i]) for i in indices]
-    confidences = [distance_to_confidence(d) for d in distances]
-    
-    last_anchor_index = anchor_index
-    save_db()
-    
-    # Get information about the current connected component
-    current_component = list(matched_images)
-    component_size = len(current_component)
-    
-    return jsonify({
-        'anchor': "/images/" + os.path.basename(anchor_path),
-        'anchor_path': anchor_path,
-        'similar': similar_images,
-        'similar_paths': [image_filenames[i] for i in indices],
-        'anchor_index': anchor_index,
-        'similar_indices': list(indices),
-        'confidences': confidences,
-        'component_size': component_size,
-        'component_paths': ["/images/" + os.path.basename(path) for path in current_component]
-    })
 
 @app.route('/debug_graph', methods=['GET'])
 def debug_graph():

@@ -19,6 +19,10 @@ with open('../leopard_id/embeddings/image_filenames.txt', 'r') as file:
     image_filenames = [line.strip() for line in file]
     print(len(image_filenames), "images loaded")
 
+with open('../leopard_id/embeddings/binary_image_filenames.txt', 'r') as file:
+    binary_image_filenames = [line.strip() for line in file]
+    print(len(binary_image_filenames), "binary images loaded")
+
 CURRENT_DB = "leopard_matches.json"
 last_processed_index = -1
 
@@ -95,6 +99,13 @@ def serve_image(filename):
         return send_file(full_path)
     return "File not found", 404
 
+@app.route('/binary_images/<path:filename>')
+def serve_binary_image(filename):
+    full_path = next((f for f in binary_image_filenames if os.path.basename(f) == filename), None)
+    if full_path and os.path.exists(full_path):
+        return send_file(full_path)
+    return "File not found", 404
+
 @app.route('/get_next_anchor', methods=['GET'])
 def get_next_anchor():
     global last_processed_index
@@ -133,6 +144,7 @@ def get_anchor_and_similar():
     global last_processed_index
     anchor_index = int(request.args.get('index', last_processed_index))
     anchor_path = image_filenames[anchor_index]
+    binary_anchor_path = binary_image_filenames[anchor_index]
     
     # Ensure the anchor path is in the graph
     if anchor_path not in graph:
@@ -170,8 +182,10 @@ def get_anchor_and_similar():
     
     return jsonify({
         'anchor': "/images/" + os.path.basename(anchor_path),
+        'binary_anchor': "/binary_images/" + os.path.basename(binary_anchor_path),
         'anchor_path': anchor_path,
         'similar': similar_images,
+        'binary_similar': ["/binary_images/" + os.path.basename(image_filenames[i]) for i in indices],
         'similar_paths': [image_filenames[i] for i in indices],
         'anchor_index': anchor_index,
         'similar_indices': list(indices),

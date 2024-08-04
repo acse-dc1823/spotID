@@ -65,15 +65,17 @@
             height: 100%;
             background-color: rgba(0, 0, 0, 0.8);
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 1000;
             cursor: zoom-out;
         }
         .zoomed img {
-            max-width: 90%;
-            max-height: 90%;
+            max-width: 95%;
+            max-height: 45%;
             object-fit: contain;
+            margin: 10px 0;
         }
     </style>
 </head>
@@ -114,7 +116,6 @@
                 setZoomed(!zoomed);
             };
 
-
             return (
                 <div className="relative">
                     <div className="flex space-x-4 mb-4 cursor-zoom-in" onClick={toggleZoom}>
@@ -130,15 +131,9 @@
                         </div>
                     </div>
                     {zoomed && (
-                        <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-80 flex justify-center items-center z-50" onClick={toggleZoom}>
-                            <div className="flex space-x-4 max-w-[90%] max-h-[90%]">
-                                <div className="w-1/2">
-                                    <img src={showEdgeDetected ? binaryAnchorImage : anchorImage} alt="Anchor" className="max-w-full max-h-full object-contain" />
-                                </div>
-                                <div className="w-1/2">
-                                    <img src={showEdgeDetected ? binaryComparisonImage : comparisonImage} alt="Comparison" className="max-w-full max-h-full object-contain" />
-                                </div>
-                            </div>
+                        <div className="zoomed" onClick={toggleZoom}>
+                            <img src={showEdgeDetected ? binaryAnchorImage : anchorImage} alt="Anchor" />
+                            <img src={showEdgeDetected ? binaryComparisonImage : comparisonImage} alt="Comparison" />
                         </div>
                     )}
                 </div>

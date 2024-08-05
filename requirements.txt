@@ -10,4 +10,5 @@ torchsummary==1.5.1
 tensorboard==2.17.0
 matplotlib==3.9.1
 Flask==2.0.1
+waitress==3.0.0
 networkx==2.6.2

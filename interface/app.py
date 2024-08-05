@@ -5,6 +5,8 @@ import shutil
 import csv
 import networkx as nx
 import json
+from waitress import serve
+
 
 app = Flask(__name__)
 
@@ -278,4 +280,4 @@ def debug_graph():
 
 if __name__ == '__main__':
     load_or_create_db(CURRENT_DB)
-    app.run(debug=True, port=5000)
+    serve(app, host='127.0.0.1', port=5000, threads=2)

@@ -65,8 +65,7 @@ class CosFace(nn.Module):
         loss.
         """
         # Normalize the weights for each row, they have to have norm 1 for the formula
-        with torch.no_grad():
-            weight_norm = F.normalize(self.weight, p=2, dim=1)
+        weight_norm = F.normalize(self.weight, p=2, dim=1)
 
         # Compute cosine similarity using normalized feature vectors. W^T * x
         cosine = F.linear(F.normalize(input, p=2, dim=1), weight_norm)

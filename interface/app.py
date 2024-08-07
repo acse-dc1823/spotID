@@ -23,30 +23,6 @@ last_processed_index = -1
 EMBEDDINGS_PATH = ""
 UNCROPPED_IMAGES_PATH = ""
 
-@app.route('/open_existing_embeddings', methods=['POST'])
-def open_existing_embeddings():
-    embeddings_dir_name = request.json['embeddings_dir_name']
-    embeddings_path = os.path.join(BASE_DIR, embeddings_dir_name)
-    if not os.path.exists(embeddings_path):
-        return jsonify({'status': 'error', 'message': f"Embeddings folder '{embeddings_dir_name}' does not exist in the base directory"})
-    try:
-        load_embeddings(embeddings_path)
-        return jsonify({'status': 'success', 'message': "Embeddings loaded successfully"})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': f"Error loading embeddings: {str(e)}"})
-    
-@app.route('/run_model_from_scratch', methods=['POST'])
-def run_model_from_scratch():
-    embeddings_dir_name = request.json['embeddings_dir_name']
-    uncropped_images_dir_name = request.json['uncropped_images_dir_name']
-    
-    embeddings_path = os.path.join(BASE_DIR, embeddings_dir_name)
-    uncropped_images_path = os.path.join(BASE_DIR, uncropped_images_dir_name)
-    
-    if not os.path.exists(uncropped_images_path):
-        return jsonify({'status': 'error', 'message': f"Uncropped images folder '{uncropped_images_dir_name}' does not exist in the base directory"})
-    # TODO
-
 def load_embeddings(embeddings_folder):
     global embeddings, distance_matrix, image_filenames, binary_image_filenames, EMBEDDINGS_PATH
     EMBEDDINGS_PATH = embeddings_folder
@@ -106,13 +82,44 @@ def set_match_dir():
         os.makedirs(GLOBAL_MATCH_DIR)
     return jsonify({'status': 'success', 'message': f"Directory set to {GLOBAL_MATCH_DIR}"})
 
-@app.route('/set_embeddings_path', methods=['POST'])
-def set_embeddings_path():
+@app.route('/open_existing_embeddings', methods=['POST'])
+def open_existing_embeddings():
     embeddings_path = request.json['embeddings_path']
     if not os.path.exists(embeddings_path):
         return jsonify({'status': 'error', 'message': "Embeddings folder does not exist"})
     load_embeddings(embeddings_path)
     return jsonify({'status': 'success', 'message': "Embeddings loaded successfully"})
+
+@app.route('/run_model_from_scratch', methods=['POST'])
+def run_model_from_scratch():
+    output_folder = request.json['output_folder']
+    unprocessed_image_folder = request.json['unprocessed_image_folder']
+    
+    # Load the existing config
+    with open('config_inference.json', 'r') as f:
+        config = json.load(f)
+    
+    # Update the config with new values
+    config['output_folder'] = output_folder
+    config['unprocessed_image_folder'] = unprocessed_image_folder
+    
+    # Save the updated config
+    with open('temp_config_inference.json', 'w') as f:
+        json.dump(config, f)
+    
+    # Run the inference script
+    try:
+        subprocess.run(['python', 'inference_embeddings.py', 'temp_config_inference.json'], check=True)
+    except subprocess.CalledProcessError as e:
+        return jsonify({'status': 'error', 'message': f"Error running inference: {str(e)}"})
+    
+    # Load the newly created embeddings
+    load_embeddings(output_folder)
+    
+    # Clean up temporary config file
+    os.remove('temp_config_inference.json')
+    
+    return jsonify({'status': 'success', 'message': "Model run successfully and embeddings loaded"})
 
 @app.route('/set_uncropped_images_path', methods=['POST'])
 def set_uncropped_images_path():
@@ -127,7 +134,6 @@ def create_or_open_db():
     db_name = request.json['db_name']
     action = load_or_create_db(db_name)
     return jsonify({'status': 'success', 'message': f"Database {CURRENT_DB} {action} and set as current"})
-
 
 def distance_to_confidence(distance, max_distance=50):
     scale = max_distance / 3

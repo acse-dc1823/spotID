@@ -77,9 +77,68 @@
             object-fit: contain;
             margin: 10px 0;
         }
+        #landing-page {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: white;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 2000;
+        }
+        .option {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 400px;
+        }
+        .option button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .option button:hover {
+            background-color: #45a049;
+        }
+        .file-path {
+            margin-top: 5px;
+            font-size: 0.8em;
+            word-break: break-all;
+        }
     </style>
 </head>
 <body>
+    <div id="landing-page">
+        <img src="static/images/logo.webp" alt="SpotID Logo" style="max-width: 300px; margin-bottom: 30px;">
+        <div class="option">
+            <h2>Open Existing Embeddings</h2>
+            <button onclick="selectDirectory('existing-embeddings-path')">Select Embeddings Directory</button>
+            <div id="existing-embeddings-path-display" class="file-path"></div>
+            <button onclick="openExistingEmbeddings()">Open Embeddings</button>
+        </div>
+        <div class="option">
+            <h2>Run Model from Scratch</h2>
+            <h3>Embeddings Output Path:</h3>
+            <button onclick="selectDirectory('embeddings-path')">Select Embeddings Output Directory</button>
+            <div id="embeddings-path-display" class="file-path"></div>
+            <h3>Uncropped Images Path:</h3>
+            <button onclick="selectDirectory('uncropped-images-path')">Select Uncropped Images Directory</button>
+            <div id="uncropped-images-path-display" class="file-path"></div>
+            <button onclick="runModelFromScratch()">Run Model</button>
+        </div>
+    </div>
     <div id="logo-container">
         <img id="logo" src="static/images/logo.webp" alt="SpotID Logo">
     </div>
@@ -87,6 +146,91 @@
         <img id="small-logo" src="static/images/logo.webp" alt="SpotID Logo">
         <div id="root"></div>
     </div>
+    <script>
+        async function selectDirectory(id) {
+            try {
+                const dirHandle = await window.showDirectoryPicker();
+                const dirName = dirHandle.name;
+                document.getElementById(id + '-display').textContent = dirName;
+            } catch (err) {
+                console.error(err);
+                alert('Error selecting directory. Please try again.');
+            }
+        }
+
+        function openExistingEmbeddings() {
+            const embeddingsDirName = document.getElementById('existing-embeddings-path-display').textContent;
+            if (!embeddingsDirName) {
+                alert('Please select the embeddings directory.');
+                return;
+            }
+            fetch('/open_existing_embeddings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ embeddings_dir_name: embeddingsDirName }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    hideLandingPage();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function runModelFromScratch() {
+            const embeddingsDirName = document.getElementById('embeddings-path-display').textContent;
+            const uncroppedImagesDirName = document.getElementById('uncropped-images-path-display').textContent;
+            if (!embeddingsDirName || !uncroppedImagesDirName) {
+                alert('Please select both the embeddings output directory and the uncropped images directory.');
+                return;
+            }
+            fetch('/run_model_from_scratch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    embeddings_dir_name: embeddingsDirName,
+                    uncropped_images_dir_name: uncroppedImagesDirName
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    hideLandingPage();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function hideLandingPage() {
+            document.getElementById('landing-page').style.display = 'none';
+            // You may need to initialize your main app here
+            // For example, you might want to trigger the logo animation:
+            $('#logo-container').css('opacity', '1');
+            setTimeout(function() {
+                $('#logo-container').css('opacity', '0');
+                $('#logo').css({
+                    'max-width': '200px',
+                    'max-height': '100px',
+                    'position': 'absolute',
+                    'top': '10px',
+                    'left': '10px'
+                });
+                setTimeout(function() {
+                    $('#logo-container').hide();
+                    $('#content').css('display', 'flex');
+                }, 1000);
+            }, 2000);
+        }
+    </script>
     <script>
         $(document).ready(function() {
             setTimeout(function() {

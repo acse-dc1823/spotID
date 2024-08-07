@@ -14,19 +14,52 @@ app = Flask(__name__)
 GLOBAL_MATCH_DIR = ""
 FINAL_OUTPUT_DIR = "final_leopards"
 graph = nx.Graph()
-embeddings = np.load('../leopard_id/embeddings/embeddings.npy')
-distance_matrix = np.load('../leopard_id/embeddings/distance_matrix.npy')
+embeddings = None
+distance_matrix = None
 image_filenames = []
-with open('../leopard_id/embeddings/image_filenames.txt', 'r') as file:
-    image_filenames = [line.strip() for line in file]
-    print(len(image_filenames), "images loaded")
-
-with open('../leopard_id/embeddings/binary_image_filenames.txt', 'r') as file:
-    binary_image_filenames = [line.strip() for line in file]
-    print(len(binary_image_filenames), "binary images loaded")
-
+binary_image_filenames = []
 CURRENT_DB = "leopard_matches.json"
 last_processed_index = -1
+EMBEDDINGS_PATH = ""
+UNCROPPED_IMAGES_PATH = ""
+
+@app.route('/open_existing_embeddings', methods=['POST'])
+def open_existing_embeddings():
+    embeddings_dir_name = request.json['embeddings_dir_name']
+    embeddings_path = os.path.join(BASE_DIR, embeddings_dir_name)
+    if not os.path.exists(embeddings_path):
+        return jsonify({'status': 'error', 'message': f"Embeddings folder '{embeddings_dir_name}' does not exist in the base directory"})
+    try:
+        load_embeddings(embeddings_path)
+        return jsonify({'status': 'success', 'message': "Embeddings loaded successfully"})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f"Error loading embeddings: {str(e)}"})
+    
+@app.route('/run_model_from_scratch', methods=['POST'])
+def run_model_from_scratch():
+    embeddings_dir_name = request.json['embeddings_dir_name']
+    uncropped_images_dir_name = request.json['uncropped_images_dir_name']
+    
+    embeddings_path = os.path.join(BASE_DIR, embeddings_dir_name)
+    uncropped_images_path = os.path.join(BASE_DIR, uncropped_images_dir_name)
+    
+    if not os.path.exists(uncropped_images_path):
+        return jsonify({'status': 'error', 'message': f"Uncropped images folder '{uncropped_images_dir_name}' does not exist in the base directory"})
+    # TODO
+
+def load_embeddings(embeddings_folder):
+    global embeddings, distance_matrix, image_filenames, binary_image_filenames, EMBEDDINGS_PATH
+    EMBEDDINGS_PATH = embeddings_folder
+    embeddings = np.load(os.path.join(embeddings_folder, 'embeddings.npy'))
+    distance_matrix = np.load(os.path.join(embeddings_folder, 'distance_matrix.npy'))
+    
+    with open(os.path.join(embeddings_folder, 'image_filenames.txt'), 'r') as file:
+        image_filenames = [line.strip() for line in file]
+    print(len(image_filenames), "images loaded")
+    
+    with open(os.path.join(embeddings_folder, 'binary_image_filenames.txt'), 'r') as file:
+        binary_image_filenames = [line.strip() for line in file]
+    print(len(binary_image_filenames), "binary images loaded")
 
 def load_or_create_db(db_name):
     global graph, CURRENT_DB, last_processed_index
@@ -60,6 +93,7 @@ def save_db():
     }
     with open(CURRENT_DB, 'w') as f:
         json.dump(data, f)
+
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -72,11 +106,28 @@ def set_match_dir():
         os.makedirs(GLOBAL_MATCH_DIR)
     return jsonify({'status': 'success', 'message': f"Directory set to {GLOBAL_MATCH_DIR}"})
 
+@app.route('/set_embeddings_path', methods=['POST'])
+def set_embeddings_path():
+    embeddings_path = request.json['embeddings_path']
+    if not os.path.exists(embeddings_path):
+        return jsonify({'status': 'error', 'message': "Embeddings folder does not exist"})
+    load_embeddings(embeddings_path)
+    return jsonify({'status': 'success', 'message': "Embeddings loaded successfully"})
+
+@app.route('/set_uncropped_images_path', methods=['POST'])
+def set_uncropped_images_path():
+    global UNCROPPED_IMAGES_PATH
+    UNCROPPED_IMAGES_PATH = request.json['uncropped_images_path']
+    if not os.path.exists(UNCROPPED_IMAGES_PATH):
+        return jsonify({'status': 'error', 'message': "Uncropped images folder does not exist"})
+    return jsonify({'status': 'success', 'message': "Uncropped images path set successfully"})
+
 @app.route('/create_or_open_db', methods=['POST'])
 def create_or_open_db():
     db_name = request.json['db_name']
     action = load_or_create_db(db_name)
     return jsonify({'status': 'success', 'message': f"Database {CURRENT_DB} {action} and set as current"})
+
 
 def distance_to_confidence(distance, max_distance=50):
     scale = max_distance / 3

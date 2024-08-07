@@ -55,7 +55,25 @@ def process_image(img_path, full_output_path, crop_output_path,
     # Calculate time taken and log it
     end_time = time.time()
     return end_time - start_time  # Return processing time for this image
+def is_image_processed(filename, output_dir):
+    for root, _, files in os.walk(output_dir):
+        if any(filename in f for f in files):
+            return True
+    return False
 
+def get_unprocessed_images(input_dir, output_dir):
+    unprocessed = []
+    for root, _, files in os.walk(input_dir):
+        for file in files:
+            if file.endswith(".jpg"):
+                input_path = os.path.join(root, file)
+                relative_path = os.path.relpath(root, input_dir)
+                if not is_image_processed(file, os.path.join(output_dir, relative_path)):
+                    print(f"Processing image {os.path.join(output_dir, relative_path, file)}...")
+                    unprocessed.append((input_path, relative_path))
+                else:
+                    print(f"Image {os.path.join(output_dir, relative_path, file)} has already been processed for background removal, skipping...")
+    return unprocessed
 
 def crop_images_folder(base_input_dir,
                        base_crop_output_dir, base_full_output_dir="",
@@ -73,50 +91,48 @@ def crop_images_folder(base_input_dir,
     transform = pw_trans.MegaDetector_v5_Transform(target_size=detection_model.IMAGE_SIZE,
                                                    stride=detection_model.STRIDE)
 
-
     # Start timing for the entire processing
     start_total_time = time.time()
     image_times = []  # Store times for each image to calculate average
-    dir_times = []
-    # Traverse the dataset directory
-    for root, dirs, files in os.walk(base_input_dir):
-        dir_start_time = time.time()  # Time tracking for this directory
+    dir_times = {}
 
-        for file in files:
-            if file.endswith(".jpg"):
-                img_path = os.path.join(root, file)
-                relative_path = os.path.relpath(root, base_input_dir)
-                full_output_path = os.path.join(base_full_output_dir, relative_path)
-                crop_output_path = os.path.join(base_crop_output_dir, relative_path)
+    # Get list of unprocessed images
+    unprocessed_images = get_unprocessed_images(base_input_dir, base_crop_output_dir)
+    
+    logging.info(f"Found {len(unprocessed_images)} unprocessed images.")
 
-                # Ensure output subdirectories exist
-                if store_full_images:
-                    os.makedirs(full_output_path, exist_ok=True)
-                os.makedirs(crop_output_path, exist_ok=True)
+    # Process unprocessed images
+    for img_path, relative_path in unprocessed_images:
+        full_output_path = os.path.join(base_full_output_dir, relative_path)
+        crop_output_path = os.path.join(base_crop_output_dir, relative_path)
 
-                # Process the image and log time
-                image_time = process_image(img_path, full_output_path, crop_output_path,
-                                           transform, detection_model, store_full_images)
-                image_times.append(image_time)
-        # Log directory processing time
-        dir_end_time = time.time()
-        dir_times.append(dir_end_time-dir_start_time)
+        # Ensure output subdirectories exist
+        if store_full_images:
+            os.makedirs(full_output_path, exist_ok=True)
+        os.makedirs(crop_output_path, exist_ok=True)
 
-    # Calculate average time per image and log it
+        # Process the image and log time
+        image_time = process_image(img_path, full_output_path, crop_output_path,
+                                   transform, detection_model, store_full_images)
+        image_times.append(image_time)
+
+        # Update directory times
+        if relative_path not in dir_times:
+            dir_times[relative_path] = 0
+        dir_times[relative_path] += image_time
+
+    # Log statistics
     if image_times:
         average_time_per_image = sum(image_times) / len(image_times)
-        logging.info(f"Average time per image in whole directory of {len(image_times)} images: {average_time_per_image:.2f} seconds")
+        logging.info(f"Average time per image: {average_time_per_image:.2f} seconds")
 
-    if dir_times:
-        average_time_per_dir = sum(dir_times) / len(dir_times)
-        logging.info(f"Average time per flank in whole directory of {len(dir_times)} flanks: {average_time_per_dir:.2f} seconds")
-
+    for dir_path, dir_time in dir_times.items():
+        logging.info(f"Total time for directory {dir_path}: {dir_time:.2f} seconds")
 
     end_total_time = time.time()
     total_processing_time = end_total_time - start_total_time
-    logging.info(f"Total processing time for all images: {total_processing_time:.2f} seconds")
-    print("All images have been processed.")
-
+    logging.info(f"Total processing time: {total_processing_time:.2f} seconds")
+    print(f"Processed {len(unprocessed_images)} new images.")
 
 # base_input_dir = "../data/inference_images"
 # base_full_output_dir = "../data/full_output_test_2"

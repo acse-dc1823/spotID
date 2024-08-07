@@ -36,7 +36,6 @@ import logging
 import time
 import os
 from rembg import remove
-
 from skimage import io
 from skimage.exposure import match_histograms
 import cv2
@@ -55,7 +54,7 @@ def remove_background(img_path, output_path, reference_image):
     target_image = io.imread(img_path)
     if target_image is None:
         logging.error(f"Failed to load image at {img_path}")
-        return
+        return None
     matched_image = match_histograms(target_image, reference_image,
                                      channel_axis=-1)
 
@@ -63,7 +62,7 @@ def remove_background(img_path, output_path, reference_image):
     is_success, buffer = cv2.imencode(".jpg", matched_image)
     if not is_success:
         logging.error(f"Failed to encode image at {img_path}")
-        return
+        return None
 
     # Remove the background
     output_image = remove(buffer.tobytes())
@@ -79,7 +78,6 @@ def remove_background(img_path, output_path, reference_image):
     end_time = time.time()
     return end_time - start_time  # Return processing time for this image
 
-
 def remove_background_processor(base_input_dir, base_output_dir,
                                 reference_path_for_matching=None):
 
@@ -88,51 +86,70 @@ def remove_background_processor(base_input_dir, base_output_dir,
         reference_path_for_matching = "data/crop_output/BGL01_left/0_0_BG-01A-2019-02-05_05-10-44.jpg"
     reference_image = io.imread(reference_path_for_matching)
     if reference_image is None:
-        logging.error(f"Failed to load reference image at {reference_image}, exiting.")
-        exit()
+        logging.error(f"Failed to load reference image at {reference_path_for_matching}, exiting.")
+        return
 
     # Ensure input directory is valid
     if not os.path.isdir(base_input_dir):
         logging.error(f"Invalid input directory: {base_input_dir}")
-        exit()
+        return
     else:
         logging.info(f"Input directory: {base_input_dir}")
 
     # Ensure output directory exists
     os.makedirs(base_output_dir, exist_ok=True)
 
+    # Get list of already processed images
+    processed_images = set()
+    for root, _, files in os.walk(base_output_dir):
+        for file in files:
+            if file.endswith(".jpg"):
+                relative_path = os.path.relpath(root, base_output_dir)
+                processed_images.add(os.path.join(relative_path, file))
+
     # Start timing for the entire processing
     start_total_time = time.time()
     image_times = []  # Store times for each image to calculate average
+    new_images_processed = 0
 
     # Traverse the dataset directory
-    for root, dirs, files in os.walk(base_input_dir):
+    for root, _, files in os.walk(base_input_dir):
         for file in files:
             if file.endswith(".jpg"):
-                img_path = os.path.join(root, file)
                 relative_path = os.path.relpath(root, base_input_dir)
+                img_relative_path = os.path.join(relative_path, file)
+                
+                # Check if the image has already been processed
+                if img_relative_path in processed_images:
+                    print(f"Image {img_relative_path} has already been processed, skipping...")
+                    continue
+                else:
+                    print(f"Processing image {img_relative_path}...")
+
+                new_images_processed += 1
+                
+                img_path = os.path.join(root, file)
                 output_dir = os.path.join(base_output_dir, relative_path)
+                output_path = os.path.join(output_dir, file)
 
                 # Ensure output subdirectories exist
                 os.makedirs(output_dir, exist_ok=True)
 
-                output_path = os.path.join(output_dir, file)
-
                 # Process the image and log time
-                image_time = remove_background(img_path, output_path,
-                                               reference_image)
-                image_times.append(image_time)
+                image_time = remove_background(img_path, output_path, reference_image)
+                if image_time is not None:
+                    image_times.append(image_time)
 
     # Calculate average time per image and log it
     if image_times:
         average_time_per_image = sum(image_times) / len(image_times)
-        logging.info(f"Average time per image for {len(image_times)} images: {average_time_per_image:.2f} seconds")
+        logging.info(f"Average time per new image for background removal: {average_time_per_image:.2f} seconds")
 
     end_total_time = time.time()
     total_processing_time = end_total_time - start_total_time
-    logging.info(f"Total processing time for all images: {total_processing_time:.2f} seconds")
-    logging.info("All images have been processed.")
-
+    logging.info(f"Total processing time for new images (background removal): {total_processing_time:.2f} seconds")
+    logging.info(f"Number of new images processed for background removal: {new_images_processed}")
+    print(f"All new images have been processed for background removal. Total new images: {new_images_processed}")
 
 # base_input_dir = "../data/crop_output_small"
 # base_output_dir = "../data/bg_rem_2"

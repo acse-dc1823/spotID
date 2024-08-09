@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import torch
 import numpy as np
@@ -74,7 +75,9 @@ def load_model(config):
     model = TripletNetwork(backbone_model=config.get("backbone_model"),
                            num_dims=config.get("num_dimensions"),
                            input_channels=config.get("input_channels"))
-    model.load_state_dict(torch.load(config["model_path"], map_location='cpu'))
+    model_path = os.path.abspath(os.path.join(project_root, config["model_path"]))
+
+    model.load_state_dict(torch.load(model_path, map_location='cpu'))
     model.eval()
     return model
 
@@ -102,14 +105,23 @@ def create_transforms(config):
 
 
 def run_inference(config_path):
+    config_path = os.path.abspath(config_path)
+    
     with open(config_path, 'r') as file:
         config = json.load(file)
 
-    base_input_dir = config['unprocessed_image_folder']
-    base_crop_output_dir = config['crop_output_folder']
-    base_bg_removed_output_dir = config['bg_removed_output_folder']
-    base_binary_output_dir = config['base_binary_output_folder']
-    output_folder = config['output_folder']
+    # Convert relative paths to absolute paths based on script location
+    output_folder = os.path.abspath(os.path.join(project_root, config['output_folder']))
+    base_input_dir = os.path.abspath(os.path.join(project_root, config['unprocessed_image_folder']))
+    base_crop_output_dir = os.path.abspath(os.path.join(project_root, config['crop_output_folder']))
+    base_bg_removed_output_dir = os.path.abspath(os.path.join(project_root, config['bg_removed_output_folder']))
+    base_binary_output_dir = os.path.abspath(os.path.join(project_root, config['base_binary_output_folder']))
+
+    # Create output folders if they don't exist
+    os.makedirs(output_folder, exist_ok=True)
+    os.makedirs(base_crop_output_dir, exist_ok=True)
+    os.makedirs(base_bg_removed_output_dir, exist_ok=True)
+    os.makedirs(base_binary_output_dir, exist_ok=True)
 
     if config["preprocess"]:
         crop_images_folder(base_input_dir, base_crop_output_dir, store_full_images=False)
@@ -193,4 +205,8 @@ def run_inference(config_path):
         print("No new images found. Embeddings and distance matrix remain unchanged.")
 
 if __name__ == "__main__":
-    run_inference('config_inference.json')
+    if len(sys.argv) > 1:
+        config_path = sys.argv[1]
+    else:
+        config_path = os.path.join(project_root, 'config_inference.json')
+    run_inference(config_path)

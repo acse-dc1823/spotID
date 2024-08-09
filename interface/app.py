@@ -6,6 +6,7 @@ import csv
 import networkx as nx
 import json
 from waitress import serve
+import subprocess
 
 
 app = Flask(__name__)
@@ -95,21 +96,25 @@ def run_model_from_scratch():
     output_folder = request.json['output_folder']
     unprocessed_image_folder = request.json['unprocessed_image_folder']
     
+    # Get the absolute path to the config file
+    config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'leopard_id', 'config_inference.json'))
+    
     # Load the existing config
-    with open('config_inference.json', 'r') as f:
+    with open(config_path, 'r') as f:
         config = json.load(f)
     
     # Update the config with new values
     config['output_folder'] = output_folder
     config['unprocessed_image_folder'] = unprocessed_image_folder
     
-    # Save the updated config
-    with open('temp_config_inference.json', 'w') as f:
+    # Save the updated config to a temporary file
+    temp_config_path = os.path.join(os.path.dirname(__file__), 'temp_config_inference.json')
+    with open(temp_config_path, 'w') as f:
         json.dump(config, f)
     
     # Run the inference script
     try:
-        subprocess.run(['python', 'inference_embeddings.py', 'temp_config_inference.json'], check=True)
+        subprocess.run(['python', '../leopard_id/inference_embeddings.py', temp_config_path], check=True)
     except subprocess.CalledProcessError as e:
         return jsonify({'status': 'error', 'message': f"Error running inference: {str(e)}"})
     
@@ -117,7 +122,7 @@ def run_model_from_scratch():
     load_embeddings(output_folder)
     
     # Clean up temporary config file
-    os.remove('temp_config_inference.json')
+    os.remove(temp_config_path)
     
     return jsonify({'status': 'success', 'message': "Model run successfully and embeddings loaded"})
 

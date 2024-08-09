@@ -78,12 +78,14 @@ def remove_background(img_path, output_path, reference_image):
     end_time = time.time()
     return end_time - start_time  # Return processing time for this image
 
-def remove_background_processor(base_input_dir, base_output_dir,
-                                reference_path_for_matching=None):
-
+def remove_background_processor(base_input_dir, base_output_dir, reference_path_for_matching=None):
+    # Get the directory of the current script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    
     # Base directories for datasets and outputs
     if reference_path_for_matching is None:
-        reference_path_for_matching = "data/crop_output/BGL01_left/0_0_BG-01A-2019-02-05_05-10-44.jpg"
+        reference_path_for_matching = os.path.join(script_dir, "../", "data", "crop_output", "BGL01_left", "0_0_BG-01A-2019-02-05_05-10-44.jpg")
+    
     reference_image = io.imread(reference_path_for_matching)
     if reference_image is None:
         logging.error(f"Failed to load reference image at {reference_path_for_matching}, exiting.")

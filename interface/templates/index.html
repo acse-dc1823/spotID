@@ -191,8 +191,6 @@
 
         function hideLandingPage() {
             document.getElementById('landing-page').style.display = 'none';
-            // You may need to initialize your main app here
-            // For example, you might want to trigger the logo animation:
             $('#logo-container').css('opacity', '1');
             setTimeout(function() {
                 $('#logo-container').css('opacity', '0');
@@ -206,6 +204,8 @@
                 setTimeout(function() {
                     $('#logo-container').hide();
                     $('#content').css('display', 'flex');
+                    const event = new Event('appReady');
+                    document.dispatchEvent(event);
                 }, 1000);
             }, 2000);
         }
@@ -263,28 +263,43 @@
             const [feedback, setFeedback] = useState('');
             const [anchorPath, setAnchorPath] = useState('');
             const [comparisonPath, setComparisonPath] = useState('');
+            const [isReady, setIsReady] = useState(false);
 
             useEffect(() => {
-                fetchImages(0);
+                const handleAppReady = () => setIsReady(true);
+                document.addEventListener('appReady', handleAppReady);
+                return () => document.removeEventListener('appReady', handleAppReady);
             }, []);
 
+
+            useEffect(() => {
+                if (isReady) {
+                    fetchImages(0);
+                }
+            }, [isReady]);
+
             const fetchImages = async (index) => {
-                const response = await fetch(`/get_anchor_and_similar?index=${index}`);
-                const data = await response.json();
-                setAnchorImage(data.anchor);
-                setBinaryAnchorImage(data.binary_anchor);
-                setSimilarImages(data.similar);
-                setBinarySimilarImages(data.binary_similar);
-                setSimilarPaths(data.similar_paths);
-                setSimilarIndices(data.similar_indices);
-                setConfidences(data.confidences);
-                setComparisonImage(data.similar[0]);
-                setBinaryComparisonImage(data.binary_similar[0]);
-                setConfidence(data.confidences[0]);
-                setCurrentComparisonIndex(0);
-                setAnchorIndex(data.anchor_index);
-                setAnchorPath(data.anchor_path);
-                setComparisonPath(data.similar_paths[0]);
+                try {
+                    const response = await fetch(`/get_anchor_and_similar?index=${index}`);
+                    const data = await response.json();
+                    setAnchorImage(data.anchor);
+                    setBinaryAnchorImage(data.binary_anchor);
+                    setSimilarImages(data.similar);
+                    setBinarySimilarImages(data.binary_similar);
+                    setSimilarPaths(data.similar_paths);
+                    setSimilarIndices(data.similar_indices);
+                    setConfidences(data.confidences);
+                    setComparisonImage(data.similar[0]);
+                    setBinaryComparisonImage(data.binary_similar[0]);
+                    setConfidence(data.confidences[0]);
+                    setCurrentComparisonIndex(0);
+                    setAnchorIndex(data.anchor_index);
+                    setAnchorPath(data.anchor_path);
+                    setComparisonPath(data.similar_paths[0]);
+                } catch (error) {
+                    console.error('Error fetching images:', error);
+                    setFeedback('Error fetching images. Please check your embeddings path and try again.');
+                }
             };
 
             const handleDecision = async (isMatch) => {

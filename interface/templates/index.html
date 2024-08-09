@@ -119,6 +119,18 @@
         .option button:hover {
             background-color: #45a049;
         }
+        #loading-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            z-index: 2001;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -144,9 +156,21 @@
         <img id="small-logo" src="static/images/logo.webp" alt="SpotID Logo">
         <div id="root"></div>
     </div>
+    <div id="loading-message"></div>
     <script>
+        function showLoadingMessage(message) {
+            const loadingMessage = document.getElementById('loading-message');
+            loadingMessage.textContent = message;
+            loadingMessage.style.display = 'block';
+        }
+
+        function hideLoadingMessage() {
+            document.getElementById('loading-message').style.display = 'none';
+        }
+
         function openExistingEmbeddings() {
             const embeddingsPath = document.getElementById('existing-embeddings-path').value;
+            showLoadingMessage('Loading existing embeddings...');
             fetch('/open_existing_embeddings', {
                 method: 'POST',
                 headers: {
@@ -156,18 +180,23 @@
             })
             .then(response => response.json())
             .then(data => {
+                hideLoadingMessage();
                 if (data.status === 'success') {
                     hideLandingPage();
                 } else {
                     alert(data.message);
                 }
             })
-            .catch(error => console.error('Error:', error));
+            .catch(error => {
+                console.error('Error:', error);
+                hideLoadingMessage();
+            });
         }
 
         function runModelFromScratch() {
             const embeddingsPath = document.getElementById('embeddings-path').value;
             const uncroppedImagesPath = document.getElementById('uncropped-images-path').value;
+            showLoadingMessage('Running model from scratch. This may take a while...');
             fetch('/run_model_from_scratch', {
                 method: 'POST',
                 headers: {
@@ -180,13 +209,17 @@
             })
             .then(response => response.json())
             .then(data => {
+                hideLoadingMessage();
                 if (data.status === 'success') {
                     hideLandingPage();
                 } else {
                     alert(data.message);
                 }
             })
-            .catch(error => console.error('Error:', error));
+            .catch(error => {
+                console.error('Error:', error);
+                hideLoadingMessage();
+            });
         }
 
         function hideLandingPage() {

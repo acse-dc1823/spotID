@@ -5,7 +5,7 @@
     "crop_output_folder": "data/test_app_crop_output",
     "bg_removed_output_folder": "data/test_app_bg_rem_output",
     "base_binary_output_folder": "data/test_app_binary_output",
-    "output_folder": "embeddings2",
+    "output_folder": "embeddings",
     "backbone_model": "resnet18",
     "distance_metric": "euclidean",
     "input_channels": 4,

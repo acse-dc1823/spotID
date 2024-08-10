@@ -8,9 +8,11 @@ def cosine_dist(x, y):
     """
     Compute the cosine distance matrix between two sets of vectors.
     """
+    x_cloned = x.clone()
+    y_cloned = y.clone()
     # Normalize x and y along the feature dimension (dim=1)
-    x_norm = torch.nn.functional.normalize(x, p=2, dim=1)
-    y_norm = torch.nn.functional.normalize(y, p=2, dim=1)
+    x_norm = torch.nn.functional.normalize(x_cloned, p=2, dim=1)
+    y_norm = torch.nn.functional.normalize(y_cloned, p=2, dim=1)
 
     # Compute cosine similarity
     cosine_sim = torch.mm(x_norm, y_norm.t())
@@ -32,7 +34,7 @@ class CosFace(nn.Module):
     smaller angles (around 60 degrees) and has a small penalty for small angles
     instead of 0.
     """
-    def __init__(self, in_features, out_features, scale=32.0, margin=0.3, m2=0.5):
+    def __init__(self, in_features, out_features, scale=64.0, margin=0.3, m2=0.4):
         super(CosFace, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
@@ -48,7 +50,7 @@ class CosFace(nn.Module):
         # Calculate the new margin adjustment based on the given function
         cos_squared = cosine.pow(2)
         exp_component = torch.exp(1.3 * cosine - 1)
-        return ((1 - cos_squared) * exp_component + 0.1) / 0.629
+        return 1 - cos_squared # * exp_component + 0.1) / 0.629
 
     def forward(self, input, labels, epoch=None):
         """
@@ -64,11 +66,12 @@ class CosFace(nn.Module):
         modified logits, we can call CrossEntropyLoss safely to calculate the
         loss.
         """
+        x = input.clone()
         # Normalize the weights for each row, they have to have norm 1 for the formula
         weight_norm = F.normalize(self.weight, p=2, dim=1)
 
         # Compute cosine similarity using normalized feature vectors. W^T * x
-        cosine = F.linear(F.normalize(input, p=2, dim=1), weight_norm)
+        cosine = F.linear(F.normalize(x, p=2, dim=1), weight_norm)
 
         # Apply the margin to the correct class
         one_hot = torch.zeros_like(cosine)

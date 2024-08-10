@@ -14,7 +14,8 @@ from model import CosFace, cosine_dist
 from metrics import (
     compute_dynamic_top_k_avg_precision,
     compute_class_distance_ratio,
-    compute_top_k_rank_match_detection
+    compute_top_k_rank_match_detection,
+    compute_average_angular_separation
 )
 
 logging.basicConfig(filename='timings.log', level=logging.INFO, 
@@ -147,6 +148,13 @@ def evaluate_data(model, outputs, targets, device, method="triplet", max_k=5, ve
             logging.info(f"Time taken to calculate class distance ratio: {time_taken_ratio:.2f} s")
             logging.info(f"Time taken to calculate top k match rate: "
                          f"{time_taken_match_rate:.2f} s")
+            if method != "triplet":  # For cosface loss
+                # Compute average angular separation
+                avg_same_class_angle, avg_diff_class_angle, top_10_smallest_angles = compute_average_angular_separation(dist_mat, targets)
+                logging.info(f"Average angular separation (same class): {avg_same_class_angle:.2f} degrees")
+                logging.info(f"Average angular separation (different classes): {avg_diff_class_angle:.2f} degrees")
+                logging.info(f"Top 10 smallest angular separations: {', '.join(map(str, top_10_smallest_angles))} degrees")
+
         
     model.train()
 

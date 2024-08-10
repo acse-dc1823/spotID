@@ -117,7 +117,7 @@ class CustomEfficientNet(nn.Module):
 
 
 class TripletNetwork(nn.Module):
-    def __init__(self, backbone_model="tf_efficientnetv2_b2", num_dims=256, input_channels=3, s=25.0):
+    def __init__(self, backbone_model="tf_efficientnetv2_b2", num_dims=256, input_channels=3, s=64.0):
         super(TripletNetwork, self).__init__()
         self.s = s
         print("num input channels: ", input_channels)

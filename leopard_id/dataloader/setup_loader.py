@@ -97,7 +97,8 @@ class CombinedTransform:
             img, mask = self.rotation(img, mask)
 
             # Apply color jitter only to the image
-            img = self.color_jitter(img)
+            if self.color_jitter is not None:
+                img = self.color_jitter(img)
 
         # Convert to tensor
         img = transforms.ToTensor()(img)
@@ -120,7 +121,7 @@ def setup_data_loader(config, project_root):
 
     This function creates the necessary datasets and data loaders based on the provided configuration.
     It handles the creation of complex transformation pipelines, including augmentations,
-    normalization, and mask processing.
+    normalization, and mask processing, now with support for mask-only mode.
 
     Args:
         config (dict): Configuration dictionary containing various settings.
@@ -129,13 +130,17 @@ def setup_data_loader(config, project_root):
     Returns:
         tuple: A tuple containing the training DataLoader and testing DataLoader.
     """
-    root_dir_train = os.path.join(project_root, config["train_data_dir"])
-    root_dir_test = os.path.join(project_root, config["test_data_dir"])
+    mask_only = config.get("mask_only", False)
+
+    if mask_only:
+        root_dir_train = os.path.join(project_root, config["train_binary_mask_dir"])
+        root_dir_test = os.path.join(project_root, config["test_binary_mask_dir"])
+    else:
+        root_dir_train = os.path.join(project_root, config["train_data_dir"])
+        root_dir_test = os.path.join(project_root, config["test_data_dir"])
 
     if not os.path.isdir(root_dir_train):
-        raise NotADirectoryError(
-            f"Directory {root_dir_train} does not exist."
-        )
+        raise NotADirectoryError(f"Directory {root_dir_train} does not exist.")
     else:
         logging.info(f"Found directory {root_dir_train}")
 
@@ -150,23 +155,17 @@ def setup_data_loader(config, project_root):
         apply_dropout=False,
         rotation_degrees=10,
         apply_augmentations=True,
+        mask_only=False,
     ):
         """
         Creates a combined transformation pipeline for image and mask processing.
 
         This function sets up a complex transformation pipeline that includes:
         - Resizing
-        - Data augmentation (rotation and color jitter)
+        - Data augmentation (rotation and color jitter for RGB images)
         - Normalization
         - Pixel dropout
         - Mask-specific transformations
-
-        The transformations are applied in a specific order to ensure correct processing:
-        1. Resize (pre-transform)
-        2. Augmentations (if enabled)
-        3. Conversion to tensor
-        4. Normalization and dropout (post-transform)
-        5. Mask-specific transformations (binary_transform)
 
         Args:
             resize_width (int): Width to resize images to.
@@ -183,40 +182,30 @@ def setup_data_loader(config, project_root):
         Returns:
             CombinedTransform: A transformation object that applies all necessary transformations.
         """
-        pre_transform = ResizeTransform(
-            width=resize_width, height=resize_height
-        )
+        pre_transform = ResizeTransform(width=resize_width, height=resize_height)
 
         post_transform_list = []
-        if mean is not None and std is not None:
-            post_transform_list.append(
-                transforms.Normalize(mean=mean, std=std)
-            )
-        post_transform_list.append(
-            PixelDropout(
-                dropout_prob=dropout_prob, apply_dropout=apply_dropout
-            )
-        )
+        if mask_only:
+            if mean_binary_mask is not None and std_binary_mask is not None:
+                post_transform_list.append(transforms.Normalize(mean=mean_binary_mask, std=std_binary_mask))
+        else:
+            if mean is not None and std is not None:
+                post_transform_list.append(transforms.Normalize(mean=mean, std=std))
+        
+        post_transform_list.append(PixelDropout(dropout_prob=dropout_prob, apply_dropout=apply_dropout))
         post_transform = transforms.Compose(post_transform_list)
 
-        if mean_binary_mask is not None and std_binary_mask is not None:
+        binary_transform = None
+        if not mask_only and mean_binary_mask is not None and std_binary_mask is not None:
             binary_transforms_list = [
                 transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=mean_binary_mask, std=std_binary_mask
-                ),
-                PixelDropout(
-                    dropout_prob=dropout_prob, apply_dropout=apply_dropout
-                ),
+                transforms.Normalize(mean=mean_binary_mask, std=std_binary_mask),
+                PixelDropout(dropout_prob=dropout_prob, apply_dropout=apply_dropout),
             ]
             binary_transform = transforms.Compose(binary_transforms_list)
-        else:
-            binary_transform = None
 
         rotation = SynchronizedRotation(degrees=rotation_degrees)
-        color_jitter = transforms.ColorJitter(
-            brightness=0.2, contrast=0.2, saturation=0.2
-        )
+        color_jitter = transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2) if not mask_only else None
 
         combined_transform = CombinedTransform(
             pre_transform,
@@ -246,6 +235,7 @@ def setup_data_loader(config, project_root):
         std_binary_mask=config.get("std_normalize_binary_mask"),
         apply_dropout=config.get("apply_dropout_pixels", False),
         apply_augmentations=apply_augmentations,
+        mask_only=mask_only,
     )
 
     test_transform = create_transforms(
@@ -257,20 +247,23 @@ def setup_data_loader(config, project_root):
         std_binary_mask=config.get("std_normalize_binary_mask"),
         apply_dropout=False,
         apply_augmentations=False,  # Never apply augmentations to test data
+        mask_only=mask_only,
     )
 
     train_dataset = LeopardDataset(
         root_dir=root_dir_train,
         transform=train_transform,
-        mask_dir=config["train_binary_mask_dir"],
+        mask_dir=None if mask_only else config["train_binary_mask_dir"],
         skip_singleton_classes=skip_singleton_classes,
+        mask_only=mask_only,
     )
 
     test_dataset = LeopardDataset(
         root_dir=root_dir_test,
         transform=test_transform,
-        mask_dir=config["test_binary_mask_dir"],
+        mask_dir=None if mask_only else config["test_binary_mask_dir"],
         skip_singleton_classes=skip_singleton_classes,
+        mask_only=mask_only,
     )
 
     train_sampler = LeopardBatchSampler(

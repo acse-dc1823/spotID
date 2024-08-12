@@ -23,7 +23,7 @@ class Normalize(nn.Module):
 class CustomResNet(nn.Module):
     def __init__(self, original_model, num_input_channels):
         super(CustomResNet, self).__init__()
-        assert num_input_channels > 3, "CustomResNet should only be used when there are more than 3 input channels."
+        assert (num_input_channels > 3) or (num_input_channels == 1), "CustomResNet should only be used when there are more than 3 input channels."
 
         # Create a new first layer with the adjusted number of input channels
         self.conv1 = nn.Conv2d(
@@ -44,16 +44,19 @@ class CustomResNet(nn.Module):
                 setattr(self, name, module)
 
     def _initialize_weights(self, original_first_layer, num_input_channels):
-        # Extend the original weights if more input channels are used
-        extra_channels = num_input_channels - 3
         with torch.no_grad():
-            # Copy weights for the first 3 channels
-            self.conv1.weight[:, :3, :, :] = original_first_layer.weight.data.clone()
-            # Initialize weights for additional channels by copying the first channel's weights
-            for i in range(extra_channels):
-                self.conv1.weight[:, 3+i, :, :] = original_first_layer.weight.data[:, 0, :, :].clone()
+            if num_input_channels == 1:
+                # For 1-channel input, use the mean of the original weights across the channel dimension
+                self.conv1.weight.data = original_first_layer.weight.data.mean(dim=1, keepdim=True)
+            else:
+                # Copy weights for the first 3 channels
+                self.conv1.weight[:, :3, :, :] = original_first_layer.weight.data.clone()
+                # Initialize weights for additional channels by copying the first channel's weights
+                for i in range(num_input_channels - 3):
+                    self.conv1.weight[:, 3+i, :, :] = original_first_layer.weight.data[:, 0, :, :].clone()
             if original_first_layer.bias is not None:
                 self.conv1.bias.data = original_first_layer.bias.data.clone()
+
 
     def forward(self, x):
         # Use the modified first layer and then proceed with the original layers
@@ -96,14 +99,16 @@ class CustomEfficientNet(nn.Module):
                 setattr(self, name, module)
 
     def _initialize_weights(self, new_layer, original_layer, num_input_channels):
-        extra_channels = num_input_channels - 3
         with torch.no_grad():
-            # Copy weights for the first 3 channels from the original layer
-            new_layer.weight.data[:, :3, :, :] = original_layer.weight.data[:, :3, :, :].clone()
-            # Initialize weights for additional channels by repeating the first channel's weights
-            for i in range(extra_channels):
-                new_layer.weight.data[:, 3+i, :, :] = original_layer.weight.data[:, 0, :, :].clone()
-            # Copy the bias if it exists
+            if num_input_channels == 1:
+                # For 1-channel input, use the mean of the original weights across the channel dimension
+                new_layer.weight.data = original_layer.weight.data.mean(dim=1, keepdim=True)
+            else:
+                # Copy weights for the first 3 channels from the original layer
+                new_layer.weight.data[:, :3, :, :] = original_layer.weight.data[:, :3, :, :].clone()
+                # Initialize weights for additional channels by repeating the first channel's weights
+                for i in range(num_input_channels - 3):
+                    new_layer.weight.data[:, 3+i, :, :] = original_layer.weight.data[:, 0, :, :].clone()
             if original_layer.bias is not None:
                 new_layer.bias.data = original_layer.bias.data.clone()
 

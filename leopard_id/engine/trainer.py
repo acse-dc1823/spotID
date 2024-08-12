@@ -236,8 +236,8 @@ def configure_training(model, config, num_input_channels):
         for param in model.parameters():
             param.requires_grad = False
 
-        # If we have more than 3 input channels, modify the first conv layer (conv_stem)
-        if num_input_channels > 3:
+        # If we have more than 3 input channels, train the first conv layer (conv_stem)
+        if (num_input_channels > 3) or (num_input_channels == 1):
             if config["backbone_model"] == "tf_efficientnetv2_b2":
                 for param in model.final_backbone.conv_stem.parameters():
                     param.requires_grad = True

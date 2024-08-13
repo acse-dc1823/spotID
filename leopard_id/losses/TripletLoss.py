@@ -25,11 +25,10 @@ def euclidean_dist(x, y):
 
 
 class TripletLoss(nn.Module):
-    def __init__(self, margin=0.20, verbose=False):
+    def __init__(self, margin=0.20):
         super(TripletLoss, self).__init__()
         self.margin = margin
         self.ranking_loss = nn.MarginRankingLoss(margin=self.margin)
-        self.verbose = verbose
 
     def forward(self, features, labels, epoch=0):
         """
@@ -42,14 +41,6 @@ class TripletLoss(nn.Module):
         """
         dist_mat = euclidean_dist(features, features)
         batch_size = features.size(0)
-
-
-        # if self.verbose:
-        #     logging.info(f"batch size: {batch_size}")
-
-        
-        # if self.verbose:
-        #     logging.info(f"batch size: {batch_size}")
 
         triplet_loss = 0.0
         counter = 0

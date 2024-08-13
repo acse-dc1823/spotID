@@ -105,7 +105,8 @@ def train_epoch(model, data_loader, optimizer, criterion, device, max_k, epoch, 
     return avg_loss, avg_precision, avg_class_distance_ratio, avg_match_rate
 
 
-def evaluate_data(model, outputs, targets, device, method="triplet", max_k=5, verbose=False):
+def evaluate_data(model, outputs, targets, device, method="triplet", max_k=5,
+                  verbose=False):
     """
     Evaluate the model and return the average precision, class distance
     ratio and top k match ratio using logging for verbose output. Gets called
@@ -317,7 +318,7 @@ def train_model(model, train_loader, test_loader, device,
 
     if method == "triplet":
         logging.info("setting up triplet loss")
-        criterion = TripletLoss(verbose=config["verbose"], margin=config["margin"])
+        criterion = TripletLoss(margin=config["margin"])
     else:
         logging.info("setting up Cross Entropy loss for cosface")
         criterion = CrossEntropyLoss()

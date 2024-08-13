@@ -29,7 +29,7 @@ class LeopardBatchSampler(BatchSampler):
         batch_size (int): The number of items in each batch.
     """
 
-    def __init__(self, dataset, batch_size, max_images_indiv=4, verbose=False):
+    def __init__(self, dataset, batch_size, max_images_indiv=4):
         """
         Initializes the batch sampler with dataset information, batch size.
         """
@@ -37,7 +37,6 @@ class LeopardBatchSampler(BatchSampler):
         self.batch_size = batch_size
         self.leopard_to_indices = self._map_leopards_to_indices()
         self.leopards = list(self.leopard_to_indices.keys())
-        self.verbose = verbose
         self.max_images_indiv = max_images_indiv
 
     def _map_leopards_to_indices(self):
@@ -157,8 +156,6 @@ class LeopardBatchSampler(BatchSampler):
             )
 
             if available_images == 0:
-                if self.verbose:
-                    logging.info("No more images available, exiting loop")
                 break  # Exit loop if all indices have been used
 
     def __len__(self):

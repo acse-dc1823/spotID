@@ -35,27 +35,6 @@ cd leopard_id
 
 This section outlines how to use the model and the interface for users once the instructions above have been followed, so for people that wish to use the model for leopard individual verification.
 
-We open "config_inference.json" with whichever text editor you have available, and edit the needed variables. If the images have not been preprocessed (not cropped), then we need to edit just two variables:
-
-```
-    ...
-    "preprocess": true,
-    "unprocessed_image_folder": "path/to/unprocessed_image_folders",
-    ...
-```
-
-the "preprocess" flag will indicate to the software that the preprocessing pipeline needs to be ran for the images. In the preprocessing pipeline, the image will be cropped (stored in "crop_output_folder"), background removed (stored in "bg_removed_output_folder") and edge detected (stored in "base_binary_output_folder"). If the user wants any of these variables to be modified, please feel free to do so. We can now run the code to create the embeddings with the saved config file:
-
-On the terminal, from leopard_id subdirectory (that we have navigated to above), we type:
-
-```bash
-python3 inference_embeddings.py
-```
-
-Disclaimer: The preprocessing pipeline is quite slow, approximately 10-15s per image. The model itself is very fast, it takes approximately 15s for a test dataset of 500 images. Although, the preprocessing only needs to be done once per dataset.
-
-Now, this code saves the embeddings and the distance between them on a subdirectory. This means that we can start with the inference, checking that the matches made are actually correct or not:
-
 Navigate to the interface folder. From leopard_id, this is:
 
 ```bash
@@ -74,20 +53,29 @@ http://127.0.0.1:5000
 
 Now the interface will open. In it, we have the following functionality:
 
-1. Setting a match directory. Set it with a global path (path from root, i.e. "Users/xy1234/documents/leopards"). In this directory, whenever we end the session, the images we have classified will be arranged into their individual leopards in subdirectories in this directory. There will also be a csv that outlines which image belongs to which leopard here.
+1. Firstly, we will be shown a landing page with two options. 
+    a. If it is your first time running the model, then you will have to select the "run model from scratch" option. In it, you have to provide two paths. Firstly, where do you want the embeddings (the "codifications" of the image of the leopard) to be stored. You need to provide the full path (i.e. "/Users/ab123/Documents/irp-dc1823/leopard_id/embeddings") where you want it to be stored. You also need to provide the path to your directory of raw leopard images. Then, once you click the button, the model will first run all the preprocessing. If in the future you add further images to your raw dataset, you need to select this option again. It will just run the preprocessing on the new images, don't fret. Disclaimer: The preprocessing pipeline is quite slow, approximately 10-15s per image. The model itself is very fast, it takes approximately 15s for a test dataset of 500 images. Although, the preprocessing only needs to be done once per dataset.
 
-2. Setting a database or opening one. This is important. This can be directly in this directory, hence just write the name (i.e. leopard_db). If this is a name never seen by the software, it will create a new db. If it is an old database, it will just open it. The benefit of this is that, we can save our progress checking the leopards, and then open the database again, and it will start the process from the last checked leopard!
+    b. If you have already done the step above in the past and thus the preprocessing has been done and the model passed, then you can go with the other option "Open Existing Embeddings". In this option, you provide the path to the existing embeddings directory like in option a, and directly they will be opened. This is very fast, and should take no time for it to open. 
 
-3. Start comparing! The software will go over each image in the dataset. It will show, in order from most likely to least likely to be a match, the top 5 most similar images, with a confidence value displayed. 
+2. Then, the main page will open. Now, you need to: Set a match directory. Set it with a global path (path from root, i.e. "Users/xy1234/documents/leopards"). In this directory, whenever we end the session, the images we have classified will be arranged into their individual leopards in subdirectories in this directory. There will also be a csv that outlines which image belongs to which leopard here.
 
-    - The user can zoom by clicking on the image, and can also toggle between the original cropped image and the edge detected image (which will isolate the spots). If they confirm a match, then the database will link those two images together. If "no match" is clicked, no link is created and the next image is shown. If the user is not satisfied with the comparison images before the 5th comparison image is shown, "next anchor image" can be clicked.
+3. Setting a database or opening one. This is important. This can be directly in this directory, hence just write the name (i.e. leopard_db). If this is a name never seen by the software, it will create a new db. If it is an old database, it will just open it. The benefit of this is that, we can save our progress checking the leopards, and then open the database again, and it will start the process from the last checked leopard! This will be a graph database, which is optimum for it to be "intelligent" (see 4.b).
 
-    - The software is "intelligent", meaning that, if we link image "A" with image "B" when "A" is the "anchor", then when we get to image "B", image "A" will be skipped over the possible matches, as it would mean extra examination effort wasted. Then, don't be worried when, as you've examined a lot of leopards, fewer and fewer correct matches are shown. This is simply because all the correct matches have already been made previously!
+4. Start comparing! The software will go over each image in the dataset. It will show, in order from most likely to least likely to be a match, the top 5 most similar images, with a confidence value displayed. 
 
-    - When the user needs to stop or when they believe all the correct matches have been made, they can click "end session". This will create a subdirectory structure with all the matched leopards and their corresponding images, and a csv with the filepaths and the leopards they correspond to. Again, if the user needs to continue later on, they just need to write the same database name, and the existing database will be loaded!
+    a. The user can zoom by clicking on the image, and can also toggle between the original cropped image and the edge detected image (which will isolate the spots). If they confirm a match, then the database will link those two images together. If "no match" is clicked, no link is created and the next image is shown. If the user is not satisfied with the comparison images before the 5th comparison image is shown, "next anchor image" can be clicked.
+
+    b. The software is "intelligent", meaning that, if we link image "A" with image "B" when "A" is the "anchor", then when we get to image "B" as an anchor, image "A" will be skipped over the possible matches, as it would mean extra examination effort wasted. Then, don't be worried when, as you've examined a lot of leopards, fewer and fewer correct matches are shown. This is simply because all the correct matches have already been made previously!
+
+    c. When the user needs to stop or when they believe all the correct matches have been made, they can click "end session". This will create a subdirectory structure with all the matched leopards and their corresponding images, and a csv with the filepaths and the leopards they correspond to. Again, if the user needs to continue later on, they just need to write the same database name, and the existing database will be loaded!
 
 
 Finally, if new images are added to the raw data ("unprocessed_image_folder" above), don't fret, the code has been adapted so that it only runs for the new images each time, so it doesn't take forever. So please don't worry, you can run it with that dataset, and it will only process the new images.
+
+### Extra information:
+
+If the user wants more freedom with what to do with their data, feel free to open `config_inference.json`, and modify the things that you need there. The default parameters should be good to run the default pipeline above, this is just in case you want to save the intermediate images in a different path, etc.  In the preprocessing pipeline, the image will be cropped (stored in "crop_output_folder"), background removed (stored in "bg_removed_output_folder") and edge detected (stored in "base_binary_output_folder")
 
 ## Instructions for developers:
 

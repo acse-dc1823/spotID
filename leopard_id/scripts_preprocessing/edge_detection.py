@@ -29,7 +29,7 @@ def process_image(image_path, binary_output_path, merged_output_path=None):
 
     # Save the processed images
     cv2.imwrite(binary_output_path, edges)
-    
+
     return True
 
 def edge_detection(input_dir, binary_output_dir, merged_output_dir=None):

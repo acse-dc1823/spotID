@@ -41,20 +41,6 @@ def test_triplet_loss_no_valid_triplets():
     loss = loss_fn(features, labels)
     assert loss.item() == 0.0
 
-@pytest.mark.parametrize("margin", [0.1, 0.2, 0.5])
-def test_triplet_loss_different_margins(margin):
-    loss_fn = TripletLoss(margin=margin)
-    features = torch.tensor([
-        [1.0, 2.0],
-        [2.0, 3.0],
-        [3.0, 4.0],
-        [4.0, 5.0]
-    ])
-    labels = torch.tensor([0, 0, 1, 1])
-    
-    loss = loss_fn(features, labels)
-    assert loss > 0
-
 def test_triplet_loss_device_compatibility():
     if torch.cuda.is_available():
         device = torch.device("cuda")

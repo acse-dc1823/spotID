@@ -140,9 +140,9 @@ def create_or_open_db():
     action = load_or_create_db(db_name)
     return jsonify({'status': 'success', 'message': f"Database {CURRENT_DB} {action} and set as current"})
 
-def distance_to_confidence(distance, max_distance=50):
-    scale = max_distance / 3
-    score = 100 * np.exp(-distance / scale)
+def distance_to_confidence(distance, max_distance=2):
+    print(distance)
+    score = 100 * np.exp(-2*(max(distance-0.55, 0)))
     return score
 
 @app.route('/validate_match', methods=['POST'])

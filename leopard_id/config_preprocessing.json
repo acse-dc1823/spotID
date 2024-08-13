@@ -1,0 +1,6 @@
+{
+    "unprocessed_image_folder": "../data/preproc_test_unprocessed",
+    "crop_output_folder": "../data/test_preproc_crop_output",
+    "bg_removed_output_folder": "../data/test_preproc_bg_rem_output",
+    "base_binary_output_folder": "../data/test_preproc_binary_output"
+}

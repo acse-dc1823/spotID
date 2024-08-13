@@ -2,7 +2,7 @@
 
 This project attempts to use Deep Learning to create a Leopard Individual Identifier. It encodes each leopard image into N dimensional embeddings, and then these embeddings are compared with one another through a distance metric to decide which images correspong to the same leopard not. Two methods were tried, Triplet Networks, and a modified CosFace. For more details, please read the attached paper. 
 
-## Instructions for users:
+## Instructions for users and developers:
 
 First install the software. Two options:
 
@@ -30,6 +30,10 @@ We then have all the steps to encode our images into embeddings. We navigate to 
 ```bash
 cd leopard_id
 ```
+
+## Instructions for users only
+
+This section outlines how to use the model and the interface for users once the instructions above have been followed, so for people that wish to use the model for leopard individual verification.
 
 We open "config_inference.json" with whichever text editor you have available, and edit the needed variables. If the images have not been preprocessed (not cropped), then we need to edit just two variables:
 
@@ -61,7 +65,7 @@ cd ../interface
 Run the interface:
 
 ```bash
-python app.py
+python3 app.py
 ```
 
 Go to your browser of choice and type:
@@ -84,5 +88,102 @@ Now the interface will open. In it, we have the following functionality:
 
 
 Finally, if new images are added to the raw data ("unprocessed_image_folder" above), don't fret, the code has been adapted so that it only runs for the new images each time, so it doesn't take forever. So please don't worry, you can run it with that dataset, and it will only process the new images.
+
+## Instructions for developers:
+
+If you are a developer wishing to modify/test the training of the model, follow these instructions. First follow the instructions above in "Instructions for users and developers". Then:
+
+### data:
+
+Current dataset and dataloader are formatted so that input data must be structured in subdirectories. This means that the raw image data per leopard must be in the following format:
+
+```mermaid
+graph TD
+    A[Dataset Root] --> B[Leopard_1_left]
+    A --> C[Leopard_1_right]
+    A --> D[Leopard_2_left]
+    A --> E[...]
+    A --> F[Leopard_n_right]
+    
+    B --> G[image1.jpg]
+    B --> H[image2.jpg]
+    B --> I[image3.jpg]
+    B --> J[...]
+
+    C --> K[image4.jpg]
+    C --> L[image5.jpg]
+    C --> M[...]
+
+    D --> N[image6.jpg]
+    D --> O[image7.jpg]
+    D --> P[...]
+
+    F --> Q[image8.jpg]
+    F --> R[image9.jpg]
+    F --> S[...]
+```
+
+### Preprocessing:
+
+As outlined in the paper, one of the keys of this model is the preprocessing. We first extract bounding boxes, then remove the background and finally perform edge detection. To do so, we have individual scripts for each. We have created a script that aggregates them all in one, so you only need to run that one. From leopard_id:
+
+Open the `config_preprocessing.json` file and outline where your unprocessed image directory lies, and also the directories where you want to store the 3 preprocessing folders. For the model, we will need the binary output and the crop output, so the background removed is only stored as an intermediate step and just in case you need it for your exploration. If you don't, feel free to delete it.
+
+Once you have done this, we can run the preprocessing.
+
+```bash
+cd scripts_preprocessing
+```
+
+```bash
+python3 run_all_preprocessing.py
+```
+Be aware that the remove background is a costly procedure, it takes around 10s per image locally. You only need to run this once, and then perform the different training tests with the preprocessed images
+
+If needed, a `create-train-test.py` is provided under script_preprocessing, which will separate the directories in train and test randomly (not the images). This is to make sure that there are no leopards (even different images) seen in training in the test.
+
+### Training.
+
+From leopard_id, open config.json, and modify it accordingly. The parameters are:
+
+```
+{
+    "train_data_dir": relative path to train crop output images. 3 channels,
+    "test_data_dir": relative path to test crop output images. 3 channels,
+    "mask_only": boolean. If true, only uses binary mask directory below. Recommended to keep it false,
+    "train_binary_mask_dir": relative path to train binary output images. 1 channel. Can be null, would only use 3 channels above then.,
+    "test_binary_mask_dir": relative path to test binary output images. 1 channel,
+    "method": "triplet" or "cosface",
+    "number_embedding_dimensions": integer, number of dimensions that vector representing image will have. Higher is more costly and needs more data to train effectively,
+    "resize_width": integer, number of pixels image width,
+    "resize_height": integer, number of pixels image height,
+    "batch_size": integer, batch size used for training data,
+    "learning_rate": float, initial learning rate, can use scheduler below,
+    "epochs": integer, total number of epochs,
+    "device": "cuda" or "cpu". Can leave it as cuda, as if it doesn't find it it will directly go to cpu,
+    "verbose": Whether to print out information. Will store it in logs, so recommended to leave it as true,
+    "backbone_model": "resnet18" or "tf_efficientnetv2_b2". Recommended resnet for triplet, efficientnet for cosface.
+    "margin": float, margin used for triplet and cosface. For modified cosface, it is m1,
+    "max_k": integer, Maximum number of ranks inspected for evaluating data, see metrics directory for a better explanation,
+    "save_path": relative path to save model after all iterations,
+    "num_last_layers_to_train": integer from 1 to 3, number of last layers to train. First 2 are linear layers, last one is convolutional layer. 
+    "mean_normalize": Recommendation to leave it as: [0.485, 0.456, 0.406],
+    "std_normalize": Recommendation to leave it as: [0.229, 0.224, 0.225],
+    "mean_normalize_binary_mask": Recommendation to leave it as: [0.456]. null if train_binary_mask_dir is null,
+    "std_normalize_binary_mask": Recommendation to leave it as: [0.225]. null if test_binary_mask_dir is null,
+    "train_all_layers": boolean. Recommendation to leave it as false. If set to true, it overrides num_last_layers_to_train,
+    "max_images_individual_leopard_sampler": integer, number of images per leopard that will be sampled per batch. See sampler for more information on mechanism,
+    "apply_dropout_pixels": boolean. Whether to drop out pixels in train set. Recommendation to leave it as false,
+    "apply_augmentations": boolean. Whether to apply rotations and colour augmentations to train set. Recommendation to leave it at true,
+    "lr_scheduler": boolean. Whether to apply a lr scheduler.
+}
+```
+
+With this, we can start training. Simply run:
+
+```bash
+python3 train.py
+```
+
 
 

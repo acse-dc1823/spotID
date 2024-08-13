@@ -84,7 +84,7 @@ def remove_background_processor(base_input_dir, base_output_dir, reference_path_
     
     # Base directories for datasets and outputs
     if reference_path_for_matching is None:
-        reference_path_for_matching = os.path.join(script_dir, "../", "data", "crop_output", "BGL01_left", "0_0_BG-01A-2019-02-05_05-10-44.jpg")
+        reference_path_for_matching = os.path.join(script_dir, "../", "data", "histogram_matching", "0_0_BG-01A-2019-02-05_05-10-44.jpg")
     
     reference_image = io.imread(reference_path_for_matching)
     if reference_image is None:

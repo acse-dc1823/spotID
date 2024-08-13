@@ -50,7 +50,7 @@ class CosFace(nn.Module):
         # Calculate the new margin adjustment based on the given function
         cos_squared = cosine.pow(2)
         exp_component = torch.exp(1.3 * cosine - 1)
-        return 1 - cos_squared # * exp_component + 0.1) / 0.629
+        return ((1 - cos_squared) * exp_component + 0.1) / 0.629
 
     def forward(self, input, labels, epoch=None):
         """

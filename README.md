@@ -146,36 +146,36 @@ If needed, a `create-train-test.py` is provided under script_preprocessing, whic
 
 From leopard_id, open config.json, and modify it accordingly. The parameters are:
 
-```
+```json
 {
-    "train_data_dir": relative path to train crop output images. 3 channels,
-    "test_data_dir": relative path to test crop output images. 3 channels,
-    "mask_only": boolean. If true, only uses binary mask directory below. Recommended to keep it false,
-    "train_binary_mask_dir": relative path to train binary output images. 1 channel. Can be null, would only use 3 channels above then.,
-    "test_binary_mask_dir": relative path to test binary output images. 1 channel,
-    "method": "triplet" or "cosface",
-    "number_embedding_dimensions": integer, number of dimensions that vector representing image will have. Higher is more costly and needs more data to train effectively,
-    "resize_width": integer, number of pixels image width,
-    "resize_height": integer, number of pixels image height,
-    "batch_size": integer, batch size used for training data,
-    "learning_rate": float, initial learning rate, can use scheduler below,
-    "epochs": integer, total number of epochs,
-    "device": "cuda" or "cpu". Can leave it as cuda, as if it doesn't find it it will directly go to cpu,
-    "verbose": Whether to print out information. Will store it in logs, so recommended to leave it as true,
-    "backbone_model": "resnet18" or "tf_efficientnetv2_b2". Recommended resnet for triplet, efficientnet for cosface.
-    "margin": float, margin used for triplet and cosface. For modified cosface, it is m1,
-    "max_k": integer, Maximum number of ranks inspected for evaluating data, see metrics directory for a better explanation,
-    "save_path": relative path to save model after all iterations,
-    "num_last_layers_to_train": integer from 1 to 3, number of last layers to train. First 2 are linear layers, last one is convolutional layer. 
-    "mean_normalize": Recommendation to leave it as: [0.485, 0.456, 0.406],
-    "std_normalize": Recommendation to leave it as: [0.229, 0.224, 0.225],
-    "mean_normalize_binary_mask": Recommendation to leave it as: [0.456]. null if train_binary_mask_dir is null,
-    "std_normalize_binary_mask": Recommendation to leave it as: [0.225]. null if test_binary_mask_dir is null,
-    "train_all_layers": boolean. Recommendation to leave it as false. If set to true, it overrides num_last_layers_to_train,
-    "max_images_individual_leopard_sampler": integer, number of images per leopard that will be sampled per batch. See sampler for more information on mechanism,
-    "apply_dropout_pixels": boolean. Whether to drop out pixels in train set. Recommendation to leave it as false,
-    "apply_augmentations": boolean. Whether to apply rotations and colour augmentations to train set. Recommendation to leave it at true,
-    "lr_scheduler": boolean. Whether to apply a lr scheduler.
+    "train_data_dir": "Relative path to train crop output images. 3 channels",
+    "test_data_dir": "Relative path to test crop output images. 3 channels",
+    "mask_only": "Boolean. If true, only uses binary mask directory below. Recommended to keep it false",
+    "train_binary_mask_dir": "Relative path to train binary output images. 1 channel. Can be null, would only use 3 channels above then.",
+    "test_binary_mask_dir": "Relative path to test binary output images. 1 channel",
+    "method": "'triplet' or 'cosface'",
+    "number_embedding_dimensions": "Integer, number of dimensions that vector representing image will have. Higher is more costly and needs more data to train effectively",
+    "resize_width": "Integer, number of pixels image width",
+    "resize_height": "Integer, number of pixels image height",
+    "batch_size": "Integer, batch size used for training data",
+    "learning_rate": "Float, initial learning rate, can use scheduler below",
+    "epochs": "Integer, total number of epochs",
+    "device": "'cuda' or 'cpu'. Can leave it as cuda, as if it doesn't find it it will directly go to cpu",
+    "verbose": "Whether to print out information. Will store it in logs, so recommended to leave it as true",
+    "backbone_model": "'resnet18' or 'tf_efficientnetv2_b2'. Recommended resnet for triplet, efficientnet for cosface",
+    "margin": "Float, margin used for triplet and cosface. For modified cosface, it is m1",
+    "max_k": "Integer, Maximum number of ranks inspected for evaluating data, see metrics directory for a better explanation",
+    "save_path": "Relative path to save model after all iterations",
+    "num_last_layers_to_train": "Integer from 1 to 3, number of last layers to train. First 2 are linear layers, last one is convolutional layer",
+    "mean_normalize": "Recommendation to leave it as: [0.485, 0.456, 0.406]",
+    "std_normalize": "Recommendation to leave it as: [0.229, 0.224, 0.225]",
+    "mean_normalize_binary_mask": "Recommendation to leave it as: [0.456]. null if train_binary_mask_dir is null",
+    "std_normalize_binary_mask": "Recommendation to leave it as: [0.225]. null if test_binary_mask_dir is null",
+    "train_all_layers": "Boolean. Recommendation to leave it as false. If set to true, it overrides num_last_layers_to_train",
+    "max_images_individual_leopard_sampler": "Integer, number of images per leopard that will be sampled per batch. See sampler for more information on mechanism",
+    "apply_dropout_pixels": "Boolean. Whether to drop out pixels in train set. We recommend to leave it as false",
+    "apply_augmentations": "Boolean. Whether to apply rotations and colour augmentations to train set. We recommend to leave it at true",
+    "lr_scheduler": "Boolean. Whether to apply a lr scheduler"
 }
 ```
 

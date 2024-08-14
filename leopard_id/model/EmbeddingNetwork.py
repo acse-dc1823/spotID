@@ -57,7 +57,6 @@ class CustomResNet(nn.Module):
             if original_first_layer.bias is not None:
                 self.conv1.bias.data = original_first_layer.bias.data.clone()
 
-
     def forward(self, x):
         # Use the modified first layer and then proceed with the original layers
         x = self.conv1(x)

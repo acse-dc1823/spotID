@@ -115,6 +115,81 @@ class CombinedTransform:
         return img, mask
 
 
+def create_transforms(
+    resize_width,
+    resize_height,
+    mean=None,
+    std=None,
+    mean_binary_mask=None,
+    std_binary_mask=None,
+    dropout_prob=0.05,
+    apply_dropout=False,
+    rotation_degrees=10,
+    apply_augmentations=True,
+    mask_only=False,
+):
+    """
+    Creates a combined transformation pipeline for image and mask processing.
+
+    This function sets up a complex transformation pipeline that includes:
+    - Resizing
+    - Data augmentation (rotation and color jitter for RGB images)
+    - Normalization
+    - Pixel dropout
+    - Mask-specific transformations
+
+    Args:
+        resize_width (int): Width to resize images to.
+        resize_height (int): Height to resize images to.
+        mean (tuple): Mean for normalization.
+        std (tuple): Standard deviation for normalization.
+        mean_binary_mask (float): Mean for binary mask normalization.
+        std_binary_mask (float): Standard deviation for binary mask normalization.
+        dropout_prob (float): Probability of dropout.
+        apply_dropout (bool): Whether to apply dropout.
+        rotation_degrees (int): Maximum degrees of rotation for augmentation.
+        apply_augmentations (bool): Whether to apply data augmentation.
+
+    Returns:
+        CombinedTransform: A transformation object that applies all necessary transformations.
+    """
+    pre_transform = ResizeTransform(width=resize_width, height=resize_height)
+
+    post_transform_list = []
+    if mask_only:
+        if mean_binary_mask is not None and std_binary_mask is not None:
+            post_transform_list.append(transforms.Normalize(mean=mean_binary_mask, std=std_binary_mask))
+    else:
+        if mean is not None and std is not None:
+            post_transform_list.append(transforms.Normalize(mean=mean, std=std))
+    
+    post_transform_list.append(PixelDropout(dropout_prob=dropout_prob, apply_dropout=apply_dropout))
+    post_transform = transforms.Compose(post_transform_list)
+
+    binary_transform = None
+    if not mask_only and mean_binary_mask is not None and std_binary_mask is not None:
+        binary_transforms_list = [
+            transforms.ToTensor(),
+            transforms.Normalize(mean=mean_binary_mask, std=std_binary_mask),
+            PixelDropout(dropout_prob=dropout_prob, apply_dropout=apply_dropout),
+        ]
+        binary_transform = transforms.Compose(binary_transforms_list)
+
+    rotation = SynchronizedRotation(degrees=rotation_degrees)
+    color_jitter = transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2) if not mask_only else None
+
+    combined_transform = CombinedTransform(
+        pre_transform,
+        post_transform,
+        binary_transform,
+        rotation,
+        color_jitter,
+        apply_augmentations,
+    )
+
+    return combined_transform
+
+
 def setup_data_loader(config, project_root):
     """
     Sets up data loaders for training and testing.
@@ -143,80 +218,6 @@ def setup_data_loader(config, project_root):
         raise NotADirectoryError(f"Directory {root_dir_train} does not exist.")
     else:
         logging.info(f"Found directory {root_dir_train}")
-
-    def create_transforms(
-        resize_width,
-        resize_height,
-        mean=None,
-        std=None,
-        mean_binary_mask=None,
-        std_binary_mask=None,
-        dropout_prob=0.05,
-        apply_dropout=False,
-        rotation_degrees=10,
-        apply_augmentations=True,
-        mask_only=False,
-    ):
-        """
-        Creates a combined transformation pipeline for image and mask processing.
-
-        This function sets up a complex transformation pipeline that includes:
-        - Resizing
-        - Data augmentation (rotation and color jitter for RGB images)
-        - Normalization
-        - Pixel dropout
-        - Mask-specific transformations
-
-        Args:
-            resize_width (int): Width to resize images to.
-            resize_height (int): Height to resize images to.
-            mean (tuple): Mean for normalization.
-            std (tuple): Standard deviation for normalization.
-            mean_binary_mask (float): Mean for binary mask normalization.
-            std_binary_mask (float): Standard deviation for binary mask normalization.
-            dropout_prob (float): Probability of dropout.
-            apply_dropout (bool): Whether to apply dropout.
-            rotation_degrees (int): Maximum degrees of rotation for augmentation.
-            apply_augmentations (bool): Whether to apply data augmentation.
-
-        Returns:
-            CombinedTransform: A transformation object that applies all necessary transformations.
-        """
-        pre_transform = ResizeTransform(width=resize_width, height=resize_height)
-
-        post_transform_list = []
-        if mask_only:
-            if mean_binary_mask is not None and std_binary_mask is not None:
-                post_transform_list.append(transforms.Normalize(mean=mean_binary_mask, std=std_binary_mask))
-        else:
-            if mean is not None and std is not None:
-                post_transform_list.append(transforms.Normalize(mean=mean, std=std))
-        
-        post_transform_list.append(PixelDropout(dropout_prob=dropout_prob, apply_dropout=apply_dropout))
-        post_transform = transforms.Compose(post_transform_list)
-
-        binary_transform = None
-        if not mask_only and mean_binary_mask is not None and std_binary_mask is not None:
-            binary_transforms_list = [
-                transforms.ToTensor(),
-                transforms.Normalize(mean=mean_binary_mask, std=std_binary_mask),
-                PixelDropout(dropout_prob=dropout_prob, apply_dropout=apply_dropout),
-            ]
-            binary_transform = transforms.Compose(binary_transforms_list)
-
-        rotation = SynchronizedRotation(degrees=rotation_degrees)
-        color_jitter = transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2) if not mask_only else None
-
-        combined_transform = CombinedTransform(
-            pre_transform,
-            post_transform,
-            binary_transform,
-            rotation,
-            color_jitter,
-            apply_augmentations,
-        )
-
-        return combined_transform
 
     if config["method"] == "cosface":
         skip_singleton_classes = True

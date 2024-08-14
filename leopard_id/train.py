@@ -45,9 +45,8 @@ def main(config_file="config.json"):
         device=device,
         config=config,
         num_input_channels=num_input_channels,
+        project_root=project_root,
     )
-    save_path = os.path.join(project_root, config["save_path"])
-    torch.save(resnet_model.state_dict(), save_path)
     main_executor_visualization(resnet_model)
 
 

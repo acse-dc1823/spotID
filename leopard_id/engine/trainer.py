@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.optim as optim
 import torch.nn as nn
@@ -304,10 +305,11 @@ def configure_training(model, config, num_input_channels):
 
 
 def train_model(model, train_loader, test_loader, device,
-                config, num_input_channels):
+                config, num_input_channels, project_root):
     """
     Train and evaluate the model, focusing only on the last added
-    embedding layer.
+    embedding layer. Save the model every epoch if the average precision
+    is higher than the previous epoch, starting from the 15th epoch.
     """
 
     method = config["method"]
@@ -354,11 +356,15 @@ def train_model(model, train_loader, test_loader, device,
         logging.info("Setting up Triplet loss")
         classifier = None
 
+    best_precision = 0
+    best_model_state = None
+
     for epoch in range(config["epochs"]):
         start_time = time.time()
 
         train_loss, train_precision, train_class_distance_ratio, train_match_rate = train_epoch(
-            model, train_loader, optimizer, criterion, device, max_k, epoch, method=method, classifier=classifier
+            model, train_loader, optimizer, criterion, device, max_k, epoch, method=method,
+            classifier=classifier
         )
 
         writer.add_scalar("Loss/Train", train_loss, epoch)
@@ -384,6 +390,23 @@ def train_model(model, train_loader, test_loader, device,
             writer.add_scalar(
             "top {} match rate/Test".format(max_k), test_match_rate[-1], epoch
             )
+
+            # Save model if precision is higher than previous best, starting from 15th epoch
+            if (epoch >= 14 and test_precision > best_precision) or (
+                epoch == config["epochs"] - 1 and epoch < 14
+            ):
+                best_precision = test_precision
+                best_model_state = model.state_dict()
+                save_path = os.path.join(project_root, config['save_path'])
+                torch.save(best_model_state, save_path)
+                logging.info(f"Model saved at epoch {epoch+1} with precision {best_precision:.4f}")
+        else:
+            # Save model at the end of training if no test set is provided
+            if epoch == config["epochs"] - 1:
+                best_model_state = model.state_dict()
+                save_path = os.path.join(project_root, config['save_path'])
+                torch.save(best_model_state, save_path)
+                logging.info(f"Model saved at epoch {epoch+1}")
 
         elapsed_time = time.time() - start_time
 
@@ -421,7 +444,6 @@ def train_model(model, train_loader, test_loader, device,
         ),
     }
 
-    # Update final metrics at the end of training
     writer.add_hparams(hparam_dict={}, metric_dict=final_metrics)
 
     writer.close()

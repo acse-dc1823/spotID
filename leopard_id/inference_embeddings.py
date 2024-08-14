@@ -8,7 +8,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms.functional import to_tensor
 
-from model import TripletNetwork, cosine_dist
+from model import EmbeddingNetwork, cosine_dist
 from losses import euclidean_dist
 from scripts_preprocessing import crop_images_folder, remove_background_processor, edge_detection
 
@@ -72,7 +72,7 @@ class InferenceDataset(Dataset):
         return combined, img_name, mask_name
 
 def load_model(config):
-    model = TripletNetwork(backbone_model=config.get("backbone_model"),
+    model = EmbeddingNetwork(backbone_model=config.get("backbone_model"),
                            num_dims=config.get("num_dimensions"),
                            input_channels=config.get("input_channels"))
     model_path = os.path.abspath(os.path.join(project_root, config["model_path"]))

@@ -1,7 +1,7 @@
 import pytest
 import torch
 import timm
-from leopard_id.model import CustomResNet, CustomEfficientNet, TripletNetwork, Normalize
+from leopard_id.model import CustomResNet, CustomEfficientNet, EmbeddingNetwork, Normalize
 
 @pytest.fixture
 def sample_input():
@@ -30,7 +30,7 @@ def test_custom_efficientnet():
     assert custom_model.conv_stem.in_channels == 5
 
 def test_triplet_network_resnet():
-    model = TripletNetwork(backbone_model="resnet18", num_dims=256, 
+    model = EmbeddingNetwork(backbone_model="resnet18", num_dims=256, 
                            input_channels=5)
     
     # Test forward pass
@@ -42,7 +42,7 @@ def test_triplet_network_resnet():
                           torch.tensor([model.s]))
 
 def test_triplet_network_efficientnet():
-    model = TripletNetwork(backbone_model="tf_efficientnetv2_b2", num_dims=256,
+    model = EmbeddingNetwork(backbone_model="tf_efficientnetv2_b2", num_dims=256,
                            input_channels=5)
     
     # Test forward pass
@@ -88,8 +88,8 @@ def test_custom_efficientnet_weight_initialization(sample_input):
                           original_model.conv_stem.weight[:, 0, :, :])
 
 def test_triplet_network_output_scaling():
-    model = TripletNetwork(backbone_model="resnet18", num_dims=256,
-                           input_channels=3, s=10.0)
+    model = EmbeddingNetwork(backbone_model="resnet18", num_dims=256,
+                             input_channels=3, s=10.0)
     x = torch.randn(1, 3, 512, 256)
     output = model(x)
     

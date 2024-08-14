@@ -9,8 +9,7 @@ from torch.utils.tensorboard import SummaryWriter
 import time
 import logging
 
-from losses import TripletLoss, euclidean_dist
-from model import CosFace, cosine_dist
+from losses import TripletLoss, euclidean_dist, CosFace, cosine_dist
 from metrics import (
     compute_dynamic_top_k_avg_precision,
     compute_class_distance_ratio,

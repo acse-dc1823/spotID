@@ -5,7 +5,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 
 from dataloader import LeopardDataset, LeopardBatchSampler
-from model import TripletNetwork
+from model import EmbeddingNetwork
 
 import os
 
@@ -63,7 +63,7 @@ def main_executor_visualization(model=None):
     # TODO: Check if this works.
     if model is None:
         path_model = os.path.join(project_root, "weights", "leopard-id.pth")
-        model = TripletNetwork()
+        model = EmbeddingNetwork()
         model.load_state_dict(torch.load(path_model))
     model.eval()
     model.to(device)

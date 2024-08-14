@@ -2,7 +2,7 @@ import pytest
 import torch
 import torch.nn.functional as F
 from torch.autograd import gradcheck
-from leopard_id.model import CosFace
+from leopard_id.losses import CosFace
 
 @pytest.fixture
 def cosface_setup():

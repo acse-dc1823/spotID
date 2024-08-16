@@ -14,3 +14,4 @@ plotly==5.23.0
 Flask==2.0.1
 waitress==3.0.0
 networkx==2.6.2
+scikit-image==0.23.2

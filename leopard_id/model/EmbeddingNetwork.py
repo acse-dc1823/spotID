@@ -6,8 +6,11 @@ import logging
 
 from copy import deepcopy
 
-logging.basicConfig(filename='logs.log', level=logging.INFO, 
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    filename="logs.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
 
 
 class Normalize(nn.Module):
@@ -23,7 +26,9 @@ class Normalize(nn.Module):
 class CustomResNet(nn.Module):
     def __init__(self, original_model, num_input_channels):
         super(CustomResNet, self).__init__()
-        assert (num_input_channels > 3) or (num_input_channels == 1), "CustomResNet should only be used when there are more than 3 input channels."
+        assert (num_input_channels > 3) or (
+            num_input_channels == 1
+        ), "CustomResNet should only be used when there are more than 3 input channels."
 
         # Create a new first layer with the adjusted number of input channels
         self.conv1 = nn.Conv2d(
@@ -32,7 +37,7 @@ class CustomResNet(nn.Module):
             kernel_size=original_model.conv1.kernel_size,
             stride=original_model.conv1.stride,
             padding=original_model.conv1.padding,
-            bias=(original_model.conv1.bias is not None)
+            bias=(original_model.conv1.bias is not None),
         )
 
         # Initialize the new first layer's weights based on the original first layer
@@ -40,7 +45,7 @@ class CustomResNet(nn.Module):
 
         # Assign all other components of the original model directly to this modified model
         for name, module in original_model.named_children():
-            if name != 'conv1':  # Skip replacing the first conv layer
+            if name != "conv1":  # Skip replacing the first conv layer
                 setattr(self, name, module)
 
     def _initialize_weights(self, original_first_layer, num_input_channels):
@@ -53,7 +58,9 @@ class CustomResNet(nn.Module):
                 self.conv1.weight[:, :3, :, :] = original_first_layer.weight.data.clone()
                 # Initialize weights for additional channels by copying the first channel's weights
                 for i in range(num_input_channels - 3):
-                    self.conv1.weight[:, 3+i, :, :] = original_first_layer.weight.data[:, 0, :, :].clone()
+                    self.conv1.weight[:, 3 + i, :, :] = original_first_layer.weight.data[
+                        :, 0, :, :
+                    ].clone()
             if original_first_layer.bias is not None:
                 self.conv1.bias.data = original_first_layer.bias.data.clone()
 
@@ -86,7 +93,7 @@ class CustomEfficientNet(nn.Module):
             kernel_size=kernel_size,
             stride=stride,
             padding=padding,
-            bias=bias
+            bias=bias,
         )
 
         # Initialize the new conv_stem weights
@@ -94,7 +101,7 @@ class CustomEfficientNet(nn.Module):
 
         # Transfer all other modules from the original model to this new model
         for name, module in original_model.named_children():
-            if name != 'conv_stem':
+            if name != "conv_stem":
                 setattr(self, name, module)
 
     def _initialize_weights(self, new_layer, original_layer, num_input_channels):
@@ -107,7 +114,9 @@ class CustomEfficientNet(nn.Module):
                 new_layer.weight.data[:, :3, :, :] = original_layer.weight.data[:, :3, :, :].clone()
                 # Initialize weights for additional channels by repeating the first channel's weights
                 for i in range(num_input_channels - 3):
-                    new_layer.weight.data[:, 3+i, :, :] = original_layer.weight.data[:, 0, :, :].clone()
+                    new_layer.weight.data[:, 3 + i, :, :] = original_layer.weight.data[
+                        :, 0, :, :
+                    ].clone()
             if original_layer.bias is not None:
                 new_layer.bias.data = original_layer.bias.data.clone()
 
@@ -115,34 +124,46 @@ class CustomEfficientNet(nn.Module):
         # Manually handle the forward pass for each layer
         x = self.conv_stem(x)
         for name, module in self.named_children():
-            if name != 'conv_stem':  # Skip conv_stem since it's already applied
+            if name != "conv_stem":  # Skip conv_stem since it's already applied
                 x = module(x)
         return x
 
 
 class EmbeddingNetwork(nn.Module):
-    def __init__(self, backbone_model="tf_efficientnetv2_b2", num_dims=256, input_channels=3, s=64.0):
+    def __init__(
+        self,
+        backbone_model="tf_efficientnetv2_b2",
+        num_dims=256,
+        input_channels=3,
+        s=64.0,
+    ):
         super(EmbeddingNetwork, self).__init__()
         self.s = s
         print("num input channels: ", input_channels)
         if input_channels == 3:
             # Load the pre-trained model directly if there are 3 input channels
-            self.final_backbone = timm.create_model(backbone_model, pretrained=True, features_only=False)
+            self.final_backbone = timm.create_model(
+                backbone_model, pretrained=True, features_only=False
+            )
         else:
             # Use a custom modification if there are not 3 input channels
             original_model = timm.create_model(backbone_model, pretrained=True, features_only=False)
             if backbone_model == "tf_efficientnetv2_b2":
                 logging.info("creating custom efficientnet")
-                self.final_backbone = CustomEfficientNet(original_model, num_input_channels=input_channels)
+                self.final_backbone = CustomEfficientNet(
+                    original_model, num_input_channels=input_channels
+                )
                 final_in_features = self.final_backbone.classifier.out_features
             elif backbone_model == "resnet18":
                 logging.info("creating custom resnet")
-                self.final_backbone = CustomResNet(original_model, num_input_channels=input_channels)
+                self.final_backbone = CustomResNet(
+                    original_model, num_input_channels=input_channels
+                )
                 final_in_features = self.final_backbone.fc.out_features
             else:
                 print("Backbone model should be either resnet18 or tf_efficientnetv2_b2")
                 raise ValueError
-        
+
         if backbone_model == "tf_efficientnetv2_b2":
             final_in_features = self.final_backbone.classifier.out_features
         else:

@@ -26,14 +26,15 @@ def cosine_dist(x, y):
 
 class CosFace(nn.Module):
     """
-    Linear layer with normalized weights. Sets up logits to compute the 
+    Linear layer with normalized weights. Sets up logits to compute the
     CosFace loss as in the paper below.
     https://arxiv.org/pdf/1801.09414. Modification to cosface inspiration
     from: https://discovery.ucl.ac.uk/id/eprint/10108878/1/WanpingZhang-TNNLS-final.pdf
-    but we create our own modification function, which brings the peak penalty to 
+    but we create our own modification function, which brings the peak penalty to
     smaller angles (around 60 degrees) and has a small penalty for small angles
     instead of 0.
     """
+
     def __init__(self, in_features, out_features, scale=64.0, margin=0.3, m2=0.4):
         super(CosFace, self).__init__()
         self.in_features = in_features
@@ -45,7 +46,7 @@ class CosFace(nn.Module):
         # No biases as per paper. requires_grad=True
         self.weight = nn.Parameter(torch.Tensor(out_features, in_features))
         nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
-    
+
     def new_margin(self, cosine):
         # Calculate the new margin adjustment based on the given function
         cos_squared = cosine.pow(2)
@@ -80,13 +81,13 @@ class CosFace(nn.Module):
         cosine_correct = cosine * one_hot
         # h_theta_yi = self.margin * (1 - cosine_correct.pow(2))
         h_theta_yi = self.margin * self.new_margin(cosine_correct)
-        
+
         # Calculate g(theta_j) and apply it to the incorrect classes
         g_theta_j = self.m2 * cosine.pow(2) * (1 - one_hot)
-        
+
         # Adjust the cosine similarity
         modified_cosine = cosine - h_theta_yi + g_theta_j
-        
+
         # Scale the logits
         logits = modified_cosine * self.scale
 

@@ -51,7 +51,7 @@ class TripletLoss(nn.Module):
 
             if len(pos_indices) == 0 or len(neg_indices) == 0:
                 continue  # No valid triplets
-            
+
             # Iterate over all positive pairs for the anchor
             for pos_idx in pos_indices:
                 pos_dist = dist_mat[i, pos_idx]
@@ -59,7 +59,10 @@ class TripletLoss(nn.Module):
                 # Otherwise, learning stagnates.
                 if epoch > 3:
                     # Semi-hard negative mining: negatives harder than the current positive but within margin
-                    semi_hard_negatives = neg_indices[(dist_mat[i, neg_indices] > pos_dist) & (dist_mat[i, neg_indices] < pos_dist + self.margin)]
+                    semi_hard_negatives = neg_indices[
+                        (dist_mat[i, neg_indices] > pos_dist)
+                        & (dist_mat[i, neg_indices] < pos_dist + self.margin)
+                    ]
                     if len(semi_hard_negatives) == 0:
                         continue  # Skip if no semi-hard negatives are found
 
@@ -70,7 +73,9 @@ class TripletLoss(nn.Module):
                     weights = weights / torch.sum(weights)
 
                     # Weighted random choice of negative indices
-                    neg_idx = np.random.choice(semi_hard_negatives.cpu().detach().numpy(), p=weights.cpu().detach().numpy())
+                    neg_idx = np.random.choice(
+                        semi_hard_negatives.cpu().detach().numpy(), p=weights.cpu().detach().numpy()
+                    )
 
                 else:
                     # Random choice from all valid negatives (completely random selection)

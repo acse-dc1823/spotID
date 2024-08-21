@@ -44,9 +44,7 @@ def compute_dynamic_top_k_avg_precision(dist_matrix, labels, max_k, device):
             dists[i] = float("inf")
 
             # Find the top dynamic k smallest distances.
-            _, top_k_indices = torch.topk(
-                dists, dynamic_k, largest=False, sorted=True
-            )
+            _, top_k_indices = torch.topk(dists, dynamic_k, largest=False, sorted=True)
 
             # Get the labels of the top k closest samples
             top_k_labels = labels[top_k_indices]
@@ -70,9 +68,7 @@ def compute_dynamic_top_k_avg_precision(dist_matrix, labels, max_k, device):
     if valid_counts > 0:
         mean_avg_precision = avg_precisions.sum() / valid_counts
     else:
-        mean_avg_precision = torch.tensor(
-            0.0
-        )  # In case all classes have only one sample
+        mean_avg_precision = torch.tensor(0.0)  # In case all classes have only one sample
 
     return mean_avg_precision
 
@@ -115,7 +111,7 @@ def compute_class_distance_ratio(dist_matrix, labels, device):
     if ratios:
         mean_ratio = torch.tensor(ratios, device=device).mean()
     else:
-        mean_ratio = torch.tensor(float('nan'), device=device)
+        mean_ratio = torch.tensor(float("nan"), device=device)
 
     return mean_ratio
 
@@ -139,7 +135,9 @@ def compute_top_k_rank_match_detection(dist_matrix, labels, max_k, device):
 
     # For storing individual accuracies per k to visualize the distribution
     all_accuracies = torch.zeros((num_samples, max_k), device=device)
-    mask = torch.zeros(num_samples, dtype=torch.bool, device=device)  # Mask to track processed samples
+    mask = torch.zeros(
+        num_samples, dtype=torch.bool, device=device
+    )  # Mask to track processed samples
 
     # Count each label in the dataset excluding the sample itself
     class_counts = torch.bincount(labels) - 1
@@ -163,7 +161,7 @@ def compute_top_k_rank_match_detection(dist_matrix, labels, max_k, device):
 
             # Record results for each k
             for k in range(max_k):
-                all_accuracies[i, k] = matches[:, :k+1].any(dim=1).float()
+                all_accuracies[i, k] = matches[:, : k + 1].any(dim=1).float()
 
     # Only consider rows in `all_accuracies` where `mask` is True
     accuracies = all_accuracies[mask].mean(dim=0)
@@ -175,32 +173,32 @@ def compute_average_angular_separation(dist_mat, targets):
     """
     Compute average angular separation for same class and different class pairs,
     and store the top 10 smallest angular separations.
-    
+
     Args:
     dist_mat (torch.Tensor): Cosine distance matrix
     targets (torch.Tensor): Class labels for each sample
-    
+
     Returns:
     tuple: (avg_same_class_angle, avg_diff_class_angle, top_10_smallest_angles)
     """
     # Convert cosine distance to angle (in degrees)
     angle_mat = torch.acos(1 - dist_mat) * (180 / math.pi)
-    
+
     n = targets.size(0)
     mask_same = targets.unsqueeze(1) == targets.unsqueeze(0)
     mask_diff = ~mask_same
-    
+
     # Remove self-comparisons
     mask_same.fill_diagonal_(False)
-    
+
     # Compute average angles
     avg_same_class_angle = angle_mat[mask_same].mean().item()
     avg_diff_class_angle = angle_mat[mask_diff].mean().item()
-    
+
     # Find top 10 smallest angular separations
     triu_indices = torch.triu_indices(n, n, offset=1)
     upper_triangle = angle_mat[triu_indices[0], triu_indices[1]]
     top_10_smallest = heapq.nsmallest(10, upper_triangle.tolist())
     top_10_smallest = [round(angle, 2) for angle in top_10_smallest]
-    
+
     return avg_same_class_angle, avg_diff_class_angle, top_10_smallest

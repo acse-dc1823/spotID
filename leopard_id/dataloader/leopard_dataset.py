@@ -7,11 +7,15 @@ import random
 
 
 class LeopardDataset(Dataset):
-    def __init__(self, root_dir, mask_dir=None, transform=None, skip_singleton_classes=False, mask_only=False):
+    def __init__(
+        self, root_dir, mask_dir=None, transform=None, skip_singleton_classes=False, mask_only=False
+    ):
         """
         Args:
-            root_dir (string): Directory with all the RGB leopard images or mask images if mask_only is True.
-            mask_dir (string, optional): Directory with all the mask images. Not used if mask_only is True.
+            root_dir (string): Directory with all the RGB leopard images or mask images if
+                               mask_only is True.
+            mask_dir (string, optional): Directory with all the mask images. Not used if
+                                         mask_only is True.
             transform (callable, optional): Optional transform to be applied on a sample.
             skip_singleton_classes (bool): Whether to skip classes with only one image.
             mask_only (bool): If True, only use the mask channel (1 channel input).
@@ -26,14 +30,18 @@ class LeopardDataset(Dataset):
         self.skip_singleton_classes = skip_singleton_classes
 
         if mask_only and mask_dir:
-            raise ValueError("When mask_only is True, use root_dir for mask images and do not provide mask_dir.")
+            raise ValueError(
+                "When mask_only is True, use root_dir for mask images and do not provide mask_dir."
+            )
 
         idx = 0
         for leopard_id in os.listdir(root_dir):
             leopard_folder = os.path.join(root_dir, leopard_id)
             if os.path.isdir(leopard_folder):
                 img_files = os.listdir(leopard_folder)
-                if not self.skip_singleton_classes or (self.skip_singleton_classes and len(img_files) > 1):
+                if not self.skip_singleton_classes or (
+                    self.skip_singleton_classes and len(img_files) > 1
+                ):
                     if leopard_id not in self.label_to_index:
                         self.label_to_index[leopard_id] = idx
                         idx += 1
@@ -60,7 +68,7 @@ class LeopardDataset(Dataset):
     def __getitem__(self, idx):
         if self.mask_only:
             mask_path = self.images[idx]
-            mask = Image.open(mask_path).convert('L')  # Load mask as single channel
+            mask = Image.open(mask_path).convert("L")  # Load mask as single channel
             if self.transform:
                 mask, _ = self.transform(mask, None)
             else:
@@ -68,8 +76,8 @@ class LeopardDataset(Dataset):
             combined = mask
         elif self.mask_dir:
             img_path, mask_path = self.images[idx]
-            image = Image.open(img_path).convert('RGB')
-            mask = Image.open(mask_path).convert('L')  # Load mask as single channel
+            image = Image.open(img_path).convert("RGB")
+            mask = Image.open(mask_path).convert("L")  # Load mask as single channel
 
             if self.transform:
                 image, mask = self.transform(image, mask)
@@ -81,8 +89,8 @@ class LeopardDataset(Dataset):
             combined = torch.cat((image, mask), 0)
         else:
             img_path = self.images[idx]
-            image = Image.open(img_path).convert('RGB')
-            
+            image = Image.open(img_path).convert("RGB")
+
             if self.transform:
                 image, _ = self.transform(image, None)
             else:

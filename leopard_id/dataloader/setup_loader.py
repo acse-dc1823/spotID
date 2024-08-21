@@ -25,7 +25,7 @@ class PixelDropout(torch.nn.Module):
             dropout_mask = torch.rand_like(img[0, :, :]) < self.dropout_prob
             dropout_mask = dropout_mask.unsqueeze(0)  # Add a channel dimension to mask
             dropout_mask = dropout_mask.repeat(img.shape[0], 1, 1)  # Repeat mask for all channels
-            
+
             # Apply the mask using a copy of the image tensor
             img = img.clone()
             img[dropout_mask] = 0
@@ -45,11 +45,7 @@ class SynchronizedRotation:
     def __call__(self, img, mask):
         angle = random.uniform(-self.degrees, self.degrees)
         rotated_img = transforms.functional.rotate(img, angle)
-        rotated_mask = (
-            transforms.functional.rotate(mask, angle)
-            if mask is not None
-            else None
-        )
+        rotated_mask = transforms.functional.rotate(mask, angle) if mask is not None else None
         return rotated_img, rotated_mask
 
 
@@ -158,11 +154,13 @@ def create_transforms(
     post_transform_list = []
     if mask_only:
         if mean_binary_mask is not None and std_binary_mask is not None:
-            post_transform_list.append(transforms.Normalize(mean=mean_binary_mask, std=std_binary_mask))
+            post_transform_list.append(
+                transforms.Normalize(mean=mean_binary_mask, std=std_binary_mask)
+            )
     else:
         if mean is not None and std is not None:
             post_transform_list.append(transforms.Normalize(mean=mean, std=std))
-    
+
     post_transform_list.append(PixelDropout(dropout_prob=dropout_prob, apply_dropout=apply_dropout))
     post_transform = transforms.Compose(post_transform_list)
 
@@ -176,7 +174,11 @@ def create_transforms(
         binary_transform = transforms.Compose(binary_transforms_list)
 
     rotation = SynchronizedRotation(degrees=rotation_degrees)
-    color_jitter = transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2) if not mask_only else None
+    color_jitter = (
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2)
+        if not mask_only
+        else None
+    )
 
     combined_transform = CombinedTransform(
         pre_transform,
@@ -270,9 +272,9 @@ def setup_data_loader(config, project_root):
     train_sampler = LeopardBatchSampler(
         train_dataset,
         batch_size=config["batch_size"],
-        max_images_indiv=config["max_images_individual_leopard_sampler"]
+        max_images_indiv=config["max_images_individual_leopard_sampler"],
     )
 
-    return DataLoader(
-        train_dataset, batch_sampler=train_sampler, num_workers=4
-    ), DataLoader(test_dataset, batch_size=min(len(test_dataset), 64))
+    return DataLoader(train_dataset, batch_sampler=train_sampler, num_workers=4), DataLoader(
+        test_dataset, batch_size=min(len(test_dataset), 64)
+    )

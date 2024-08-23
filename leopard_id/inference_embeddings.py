@@ -8,8 +8,8 @@ from torchvision import transforms
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms.functional import to_tensor
 
-from model import EmbeddingNetwork, cosine_dist
-from losses import euclidean_dist
+from model import EmbeddingNetwork
+from losses import euclidean_dist, cosine_dist
 from scripts_preprocessing import crop_images_folder, remove_background_processor, edge_detection
 
 project_root = os.path.dirname(os.path.abspath(__file__))

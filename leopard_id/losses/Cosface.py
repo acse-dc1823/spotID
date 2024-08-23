@@ -47,11 +47,11 @@ class CosFace(nn.Module):
         self.weight = nn.Parameter(torch.Tensor(out_features, in_features))
         nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
 
-    def new_margin(self, cosine):
+    def new_margin(self, cosine, one_hot):
         # Calculate the new margin adjustment based on the given function
         cos_squared = cosine.pow(2)
         exp_component = torch.exp(1.3 * cosine - 1)
-        return ((1 - cos_squared) * exp_component + 0.1) / 0.629
+        return one_hot * ((1 - cos_squared) * exp_component + 0.1) / 0.629
 
     def forward(self, input, labels, epoch=None):
         """
@@ -80,7 +80,7 @@ class CosFace(nn.Module):
         # Calculate h(theta_y_i) and apply it to the correct class
         cosine_correct = cosine * one_hot
         # h_theta_yi = self.margin * (1 - cosine_correct.pow(2))
-        h_theta_yi = self.margin * self.new_margin(cosine_correct)
+        h_theta_yi = self.margin * self.new_margin(cosine_correct, one_hot)
 
         # Calculate g(theta_j) and apply it to the incorrect classes
         g_theta_j = self.m2 * cosine.pow(2) * (1 - one_hot)

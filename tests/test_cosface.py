@@ -139,12 +139,44 @@ def test_forward_backward_consistency(cosface_setup):
 
 def test_new_margin_function(cosface_setup):
     cosface, _, _, _, device = cosface_setup
-    cosine_values = torch.linspace(-1, 1, 100).to(device)
-    margin_values = cosface.new_margin(cosine_values)
     
-    # Check that margin is always positive
-    assert torch.all(margin_values > 0)
+    # Create a batch of samples (let's say 100) with 10 classes
+    batch_size, num_classes = 100, 10
     
-    # Check that margin is highest around 60 degrees (cos(60) ≈ 0.5)
-    max_margin_index = torch.argmax(margin_values)
-    assert 0.4 < cosine_values[max_margin_index] < 0.6
+    # Generate random cosine similarities
+    cosine = torch.rand(batch_size, num_classes).to(device)
+    
+    # Ensure the "correct" class (one-hot) has the highest cosine similarity
+    _, max_indices = cosine.max(dim=1)
+    one_hot = torch.zeros_like(cosine)
+    one_hot.scatter_(1, max_indices.unsqueeze(1), 1)
+    
+    # Apply the new_margin function
+    margin_values = cosface.new_margin(cosine, one_hot)
+    
+    # Test 1: Check that margin is non-negative
+    assert torch.all(margin_values >= 0), "Margin values should be non-negative"
+    
+    # Test 2: Check that margin is highest for the "correct" class (one-hot)
+    assert torch.all(margin_values.argmax(dim=1) == one_hot.argmax(dim=1)), "Highest margin should correspond to one-hot encoding"
+    
+    # Test 3: Check that margin is zero for non-selected classes
+    assert torch.allclose(margin_values[~one_hot.bool()], torch.tensor(0.0).to(device)), "Margin should be zero for non-selected classes"
+    
+    # Test 5: Verify the specific shape of the margin function
+    # Sample a range of cosine values for a single class
+    sample_cosine = torch.linspace(0, 1, 1000).unsqueeze(1).to(device)
+    sample_one_hot = torch.ones_like(sample_cosine)
+    sample_margin = cosface.new_margin(sample_cosine, sample_one_hot).squeeze()
+    
+    # Find the peak of the margin
+    peak_index = sample_margin.argmax()
+    peak_cosine = sample_cosine[peak_index]
+    
+    # Check if the peak is around cos(60°) ≈ 0.5
+    assert 0.4 < peak_cosine < 0.6, f"Peak margin should occur around cos(60°), but occurred at {peak_cosine.item()}"
+    
+    # Check if margin decreases for very high cosine values (small angles)
+    assert sample_margin[-1] < sample_margin[peak_index], "Margin should decrease for very high cosine values"
+    
+    print("All tests passed successfully!")

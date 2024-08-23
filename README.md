@@ -172,7 +172,7 @@ Some minimum usable datasets are provided under `leopard_id/data`, already cropp
 
 As outlined in the paper, one of the keys of this model is the preprocessing. We first extract bounding boxes, then remove the background and finally perform edge detection. To do so, we have individual scripts for each. We have created a script that aggregates them all in one, so you only need to run that one. From leopard_id:
 
-Open the `config_preprocessing.json` file and outline where your unprocessed image directory lies, and also the directories where you want to store the 3 preprocessing folders. For the model, we will need the binary output and the crop output, so the background removed is only stored as an intermediate step and just in case you need it for your exploration. If you don't, feel free to delete it.
+Open the `config_inference.json` file and outline where your unprocessed image directory lies, and also the directories where you want to store the 3 preprocessing folders. For the model, we will need the binary output and the crop output, so the background removed is only stored as an intermediate step and just in case you need it for your exploration. If you don't, feel free to delete it.
 
 Once you have done this, we can run the preprocessing.
 
@@ -229,6 +229,10 @@ With this, we can start training. Simply run:
 ```bash
 python3 train.py
 ```
+
+### Pytests
+
+Testing is provided under `tests`. They are integrated under the Github workflows.
 
 
 

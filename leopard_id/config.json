@@ -1,9 +1,9 @@
 {
-    "train_data_dir": "data/bg_rem_test",
-    "test_data_dir": "data/bg_rem_test",
+    "train_data_dir": "data/minimum_train_data_cropped",
+    "test_data_dir": "data/minimum_train_data_cropped",
     "mask_only": false,
-    "train_binary_mask_dir": "data/binary_output_test_subset",
-    "test_binary_mask_dir": "data/binary_output_test_subset",
+    "train_binary_mask_dir": "data/minimum_train_data_binary",
+    "test_binary_mask_dir": "data/minimum_train_data_binary",
     "method": "cosface",
     "number_embedding_dimensions": 256,
     "resize_width": 512,

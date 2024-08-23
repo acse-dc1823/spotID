@@ -3,7 +3,7 @@
     "preprocess": true,
     "unprocessed_image_folder": "data/minimum_train_data_cropped",
     "crop_output_folder": "data/minimum_train_data_cropped",
-    "bg_removed_output_folder": "data/test_binary_output",
+    "bg_removed_output_folder": "data/bg_rem_test",
     "base_binary_output_folder": "data/minimum_train_data_binary",
     "output_folder": "embeddings3",
     "backbone_model": "tf_efficientnetv2_b2",

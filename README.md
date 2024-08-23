@@ -1,10 +1,11 @@
 # SpotID: A Leopard Individual Identifier
 
-This project attempts to use Deep Learning to create a Leopard Individual Identifier. It encodes each leopard image into N dimensional embeddings, and then these embeddings are compared with one another through a distance metric to decide which images correspong to the same leopard not. Two methods were tried, Triplet Networks, and a modified CosFace. For more details, please read the attached paper. 
+This project attempts to use Deep Learning to create a Leopard Individual Identifier. It encodes each leopard image into N dimensional embeddings, and then these embeddings are compared with one another through a distance metric to decide which images correspond to the same leopard. Two methods were tried, Triplet Networks, and a modified CosFace. For more details, please read the attached paper. 
 
 ## Instructions for users and developers:
 
-First install the software. Two options:
+### Step 1: Install the Software
+Two options for this.
 
 1. Open terminal on computer, type on terminal:
 ```bash
@@ -13,27 +14,51 @@ git clone https://github.com/ese-msc-2023/irp-dc1823.git
 
 2. Go to Github page for the project, click on the green <>Code button, press "Download ZIP"
 
-Then, navigate to the software from your terminal from wherever you are in your directory:
+### Step 2: Navigate to the Project Directory
 
+Open a terminal and navigate to the project directory:
 ```bash
 cd path/to/irp-dc1823
 ```
 
-Then, install all the required software packages for the project, typing the following on the terminal:
+Replace path/to with the actual path where you cloned or extracted the project.
 
+
+### Step 3: Create and Activate a Virtual Environment
+Create a virtual environment:
+
+```bash
+python -m venv leopard_env
+```
+
+Activate the virtual environment:
+
+On Windows:
+```bash
+leopard_env\Scripts\activate
+```
+
+On macOS and Linux:
+```bash
+source leopard_env/bin/activate
+```
+
+### Step 4: Install Required Packages
+With the virtual environment activated, install all the required software packages for the project:
 ```bash
 pip install -r requirements.txt
 ```
 
-We then have all the steps to encode our images into embeddings. We navigate to "leopard_id" from irp-dc1823
-
+### Step 5: Navigate to the leopard_id Directory
+Change to the leopard_id directory within the project:
 ```bash
 cd leopard_id
 ```
+You are now ready to use the software for encoding images into embeddings.
 
 ## Instructions for users only
 
-This section outlines how to use the model and the interface for users once the instructions above have been followed, so for people that wish to use the model for leopard individual verification.
+This section outlines how to use the model and the interface for users once the instructions above have been followed. Thus, for people that wish to use the model for leopard individual verification.
 
 Navigate to the interface folder. From leopard_id, this is:
 
@@ -55,9 +80,9 @@ Now the interface will open. In it, we have the following functionality:
 
 1. Firstly, we will be shown a landing page with two options. 
 
-    a. If it is your first time running the model, then you will have to select the "run model from scratch" option. In it, you have to provide two paths. Firstly, where do you want the embeddings (the "codifications" of the image of the leopard) to be stored. You need to provide the full path (i.e. "/Users/ab123/Documents/irp-dc1823/leopard_id/embeddings") where you want it to be stored. You also need to provide the path to your directory of raw leopard images. Then, once you click the button, the model will first run all the preprocessing. If in the future you add further images to your raw dataset, you need to select this option again. It will just run the preprocessing on the new images, not on the whole dataset again. Disclaimer: The preprocessing pipeline is quite slow, approximately 10-15s per image. The model itself is very fast, it takes approximately 15s for a test dataset of 500 images. Although, the preprocessing only needs to be done once per dataset.
+    a. If it is your first time running the model, then you will have to select the "run model from scratch" option. In it, you have to provide two paths. Firstly, where do you want the embeddings (the "codifications" of the image of the leopard) to be stored. You need to provide the full path (i.e. "/Users/ab123/Documents/irp-dc1823/leopard_id/embeddings") where you want it to be stored. You also need to provide the path to your directory of raw leopard images. Then, once you click the button, the model will first run all the preprocessing, and then the model designed in this project. If in the future you add further images to your raw dataset, you need to select this option again. It will just run the preprocessing on the new images, not on the whole dataset again. Disclaimer: The preprocessing pipeline is quite slow, approximately 10-15s per image. The model itself is very fast, it takes approximately 15s for a test dataset of 500 images. Although, the preprocessing only needs to be done once per dataset.
 
-    b. If you have already done the step above in the past and thus the preprocessing has been done and the model passed, then you can go with the other option "Open Existing Embeddings". In this option, you provide the path to the existing embeddings directory like in option a, and directly they will be opened. This is very fast, and should take no time for it to open. Use this when you are half way done examining your images.
+    b. If you have already done the step above in the past and thus the preprocessing has been done and the model passed, then you can go with the other option "Open Existing Embeddings". In this option, you provide the path to the existing embeddings directory like in option a, and they will be opened. This is a very fast process. Use this when you are half way done examining your images.
 
 2. Then, the main page will open. Now, you need to: Set a match directory. Set it with a global path (path from root, i.e. "/Users/ab123/documents/leopards"). In this directory, whenever we end the session, the images we have classified will be arranged into their individual leopards that you have matched in subdirectories in this directory. There will also be a csv that outlines which image belongs to which leopard here. See below for final structure.
 
@@ -103,7 +128,9 @@ Finally, if new images are added to the raw data ("unprocessed_image_folder" abo
 
 ### Extra information:
 
-If the user wants more freedom with what to do with their data, feel free to open `config_inference.json`, and modify the things that you need there. The default parameters should be good to run the default pipeline above, this is just in case you want to save the intermediate images in a different path, etc.  In the preprocessing pipeline, the image will be cropped (stored in "crop_output_folder"), background removed (stored in "bg_removed_output_folder") and edge detected (stored in "base_binary_output_folder")
+If the user wants more freedom with what to do with their data, feel free to open `config_inference.json`, and modify the things that you need there. The default parameters should be good to run the default pipeline above, this is just in case you want to save the intermediate images in a different path, etc.  In the preprocessing pipeline, the image will be cropped (stored in "crop_output_folder"), background removed (stored in "bg_removed_output_folder") and edge detected (stored in "base_binary_output_folder"). 
+
+For computer savvy users: `inference_embeddings.py` is the python file that gets ran in the background when we click on "run model from scratch". Hence, again, if the user wants more freedom than what is offered through the interface, please feel free to do so here. For example, if the user has already done the preprocessing elsewhere and has the crop directory and the edge detected directory, the user can set "preprocessing = false", and provide the path to crop and binary. The current default config provides paths to the minimum datasets provided with the code.
 
 ## Instructions for developers:
 
@@ -138,6 +165,8 @@ graph TD
     F --> R[image9.jpg]
     F --> S[...]
 ```
+
+Some minimum usable datasets are provided under `leopard_id/data`, already cropped and binary extracted for ease of use.
 
 ### Preprocessing:
 
@@ -187,7 +216,7 @@ From leopard_id, open config.json, and modify it accordingly. The parameters are
     "std_normalize": "Recommendation to leave it as: [0.229, 0.224, 0.225]",
     "mean_normalize_binary_mask": "Recommendation to leave it as: [0.456]. null if train_binary_mask_dir is null",
     "std_normalize_binary_mask": "Recommendation to leave it as: [0.225]. null if test_binary_mask_dir is null",
-    "train_all_layers": "Boolean. Recommendation to leave it as false. If set to true, it overrides num_last_layers_to_train",
+    "train_all_layers": "Boolean. Recommendation to leave it as true. If set to true, it overrides num_last_layers_to_train",
     "max_images_individual_leopard_sampler": "Integer, number of images per leopard that will be sampled per batch. See sampler for more information on mechanism",
     "apply_dropout_pixels": "Boolean. Whether to drop out pixels in train set. We recommend to leave it as false",
     "apply_augmentations": "Boolean. Whether to apply rotations and colour augmentations to train set. We recommend to leave it at true",

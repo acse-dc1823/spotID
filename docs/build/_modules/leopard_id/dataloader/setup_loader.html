@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>leopard_id.dataloader.setup_loader &mdash; SpotID: Leopard Individual Identification 30/08/2024 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=3c203f6c"></script>
+        <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            SpotID: Leopard Individual Identification
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">leopard_id</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">SpotID: Leopard Individual Identification</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">leopard_id.dataloader.setup_loader</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for leopard_id.dataloader.setup_loader</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
+<span class="kn">from</span> <span class="nn">torchvision</span> <span class="kn">import</span> <span class="n">transforms</span>
+<span class="kn">from</span> <span class="nn">dataloader</span> <span class="kn">import</span> <span class="n">LeopardDataset</span><span class="p">,</span> <span class="n">LeopardBatchSampler</span><span class="p">,</span> <span class="n">ResizeTransform</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">random</span>
+
+
+<div class="viewcode-block" id="PixelDropout">
+<a class="viewcode-back" href="../../../leopard_id.dataloader.html#leopard_id.dataloader.setup_loader.PixelDropout">[docs]</a>
+<span class="k">class</span> <span class="nc">PixelDropout</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Applies dropout to pixels in the image.</span>
+
+<span class="sd">    This transformation randomly sets pixels to zero with probability `dropout_prob`,</span>
+<span class="sd">    but only if `apply_dropout` is True.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dropout_prob</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">apply_dropout</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout_prob</span> <span class="o">=</span> <span class="n">dropout_prob</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">apply_dropout</span> <span class="o">=</span> <span class="n">apply_dropout</span>
+
+<div class="viewcode-block" id="PixelDropout.forward">
+<a class="viewcode-back" href="../../../leopard_id.dataloader.html#leopard_id.dataloader.setup_loader.PixelDropout.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_dropout</span><span class="p">:</span>
+            <span class="n">dropout_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand_like</span><span class="p">(</span><span class="n">img</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:])</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout_prob</span>
+            <span class="n">dropout_mask</span> <span class="o">=</span> <span class="n">dropout_mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># Add a channel dimension to mask</span>
+            <span class="n">dropout_mask</span> <span class="o">=</span> <span class="n">dropout_mask</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># Repeat mask for all channels</span>
+
+            <span class="c1"># Apply the mask using a copy of the image tensor</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="n">img</span><span class="p">[</span><span class="n">dropout_mask</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="n">img</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="SynchronizedPercentageRandomCrop">
+<a class="viewcode-back" href="../../../leopard_id.dataloader.html#leopard_id.dataloader.setup_loader.SynchronizedPercentageRandomCrop">[docs]</a>
+<span class="k">class</span> <span class="nc">SynchronizedPercentageRandomCrop</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Applies the same random percentage crop to both an image and its mask.</span>
+
+<span class="sd">    This transformer ensures that the image and mask remain aligned after cropping.</span>
+<span class="sd">    The crop size is determined by a percentage of the original image size per</span>
+<span class="sd">    side. The method then crops up to this percentage randomly from each side of the image.</span>
+<span class="sd">    Given the variable nature of leopard camera trap images, this can help the model generalize</span>
+<span class="sd">    better.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        max_percent (float): The maximum percentage of the image that can be</span>
+<span class="sd">            cropped from each side. Should be a value between 0 and 0.5.</span>
+
+<span class="sd">    Methods:</span>
+<span class="sd">        __call__(img, mask=None): Applies the random crop to the image and mask.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        img (PIL.Image): The input image to be cropped.</span>
+<span class="sd">        mask (PIL.Image, optional): The corresponding mask to be cropped.</span>
+<span class="sd">            If None, only the image will be cropped.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: A tuple containing:</span>
+<span class="sd">            - cropped_img (PIL.Image): The cropped input image.</span>
+<span class="sd">            - cropped_mask (PIL.Image or None): The cropped mask, if a mask was provided.</span>
+<span class="sd">                Otherwise, None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_percent</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">max_percent</span> <span class="o">&lt;=</span> <span class="mf">0.5</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;max_percent must be between 0 and 0.5&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_percent</span> <span class="o">=</span> <span class="n">max_percent</span>
+
+<div class="viewcode-block" id="SynchronizedPercentageRandomCrop.__call__">
+<a class="viewcode-back" href="../../../leopard_id.dataloader.html#leopard_id.dataloader.setup_loader.SynchronizedPercentageRandomCrop.__call__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">size</span>
+
+        <span class="c1"># Calculate the maximum pixels to crop</span>
+        <span class="n">max_crop_pixels_w</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">width</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_percent</span><span class="p">)</span>
+        <span class="n">max_crop_pixels_h</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">height</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_percent</span><span class="p">)</span>
+
+        <span class="c1"># Randomly choose how many pixels to crop</span>
+        <span class="n">crop_pixels_left</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_crop_pixels_w</span><span class="p">)</span>
+        <span class="n">crop_pixels_right</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_crop_pixels_w</span><span class="p">)</span>
+        <span class="n">crop_pixels_top</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_crop_pixels_h</span><span class="p">)</span>
+        <span class="n">crop_pixels_bottom</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_crop_pixels_h</span><span class="p">)</span>
+
+        <span class="c1"># Perform the crop</span>
+        <span class="n">cropped_img</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">crop</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">crop_pixels_left</span><span class="p">,</span>
+                <span class="n">crop_pixels_top</span><span class="p">,</span>
+                <span class="n">width</span> <span class="o">-</span> <span class="n">crop_pixels_right</span><span class="p">,</span>
+                <span class="n">height</span> <span class="o">-</span> <span class="n">crop_pixels_bottom</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">cropped_mask</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">mask</span><span class="o">.</span><span class="n">crop</span><span class="p">(</span>
+                <span class="p">(</span>
+                    <span class="n">crop_pixels_left</span><span class="p">,</span>
+                    <span class="n">crop_pixels_top</span><span class="p">,</span>
+                    <span class="n">width</span> <span class="o">-</span> <span class="n">crop_pixels_right</span><span class="p">,</span>
+                    <span class="n">height</span> <span class="o">-</span> <span class="n">crop_pixels_bottom</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">cropped_img</span><span class="p">,</span> <span class="n">cropped_mask</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="SynchronizedRotation">
+<a class="viewcode-back" href="../../../leopard_id.dataloader.html#leopard_id.dataloader.setup_loader.SynchronizedRotation">[docs]</a>
+<span class="k">class</span> <span class="nc">SynchronizedRotation</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Applies the same random rotation to both an image and its mask.</span>
+
+<span class="sd">    This transformer ensures that the image and mask remain aligned after rotation.</span>
+<span class="sd">    The rotation angle is randomly chosen within the range [-degrees, degrees].</span>
+<span class="sd">    This can help improve model generalization for leopard camera trap images, which</span>
+<span class="sd">    are vary variable in orientation.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        degrees (float): The maximum rotation angle in degrees. The actual rotation</span>
+<span class="sd">            will be randomly chosen between -degrees and +degrees.</span>
+
+<span class="sd">    Methods:</span>
+<span class="sd">        __call__(img, mask=None): Applies the random rotation to the image and mask.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        img (PIL.Image or torch.Tensor): The input image to be rotated.</span>
+<span class="sd">        mask (PIL.Image or torch.Tensor, optional): The corresponding mask to be rotated.</span>
+<span class="sd">            If None, only the image will be rotated.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: A tuple containing:</span>
+<span class="sd">            - rotated_img (PIL.Image or torch.Tensor): The rotated input image.</span>
+<span class="sd">            - rotated_mask (PIL.Image, torch.Tensor, or None): The rotated mask,</span>
+<span class="sd">              if a mask was provided. Otherwise, None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">degrees</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">degrees</span> <span class="o">=</span> <span class="n">degrees</span>
+
+<div class="viewcode-block" id="SynchronizedRotation.__call__">
+<a class="viewcode-back" href="../../../leopard_id.dataloader.html#leopard_id.dataloader.setup_loader.SynchronizedRotation.__call__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="n">angle</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">degrees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">degrees</span><span class="p">)</span>
+        <span class="n">rotated_img</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">angle</span><span class="p">)</span>
+        <span class="n">rotated_mask</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">rotate</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">angle</span><span class="p">)</span> <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">rotated_img</span><span class="p">,</span> <span class="n">rotated_mask</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="CombinedTransform">
+<a class="viewcode-back" href="../../../leopard_id.dataloader.html#leopard_id.dataloader.setup_loader.CombinedTransform">[docs]</a>
+<span class="k">class</span> <span class="nc">CombinedTransform</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Applies a series of transformations to both an image and its mask.</span>
+
+<span class="sd">    This class encapsulates the entire transformation pipeline, including:</span>
+<span class="sd">    1. Augmentations (rotation, random percentage crop, and color jitter for RGB images)</span>
+<span class="sd">    2. Resizing</span>
+<span class="sd">    3. Conversion to tensor</span>
+<span class="sd">    4. Post-transformations (e.g., normalization and dropout)</span>
+<span class="sd">    5. Mask-specific transformations</span>
+
+<span class="sd">    The order of operations is crucial to ensure that:</span>
+<span class="sd">    - Augmentations are applied to the PIL image before resizing and conversion to tensor</span>
+<span class="sd">    - Resizing is applied after augmentations but before conversion to tensor</span>
+<span class="sd">    - Normalization is applied after conversion to tensor but before dropout</span>
+<span class="sd">    - Mask transformations are kept separate from image transformations</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">resize_transform</span><span class="p">,</span>
+        <span class="n">post_transform</span><span class="p">,</span>
+        <span class="n">binary_transform</span><span class="p">,</span>
+        <span class="n">rotation</span><span class="p">,</span>
+        <span class="n">color_jitter</span><span class="p">,</span>
+        <span class="n">random_crop</span><span class="p">,</span>
+        <span class="n">apply_augmentations</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resize_transform</span> <span class="o">=</span> <span class="n">resize_transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">post_transform</span> <span class="o">=</span> <span class="n">post_transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">binary_transform</span> <span class="o">=</span> <span class="n">binary_transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rotation</span> <span class="o">=</span> <span class="n">rotation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">color_jitter</span> <span class="o">=</span> <span class="n">color_jitter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_crop</span> <span class="o">=</span> <span class="n">random_crop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">apply_augmentations</span> <span class="o">=</span> <span class="n">apply_augmentations</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_augmentations</span><span class="p">:</span>
+            <span class="c1"># Apply rotation</span>
+            <span class="n">img</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rotation</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+
+            <span class="c1"># Apply random percentage crop</span>
+            <span class="n">img</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_crop</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+
+            <span class="c1"># Apply color jitter only to the image</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">color_jitter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">color_jitter</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+
+        <span class="c1"># Apply resize transform</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resize_transform</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resize_transform</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+
+        <span class="c1"># Convert to tensor</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">()(</span><span class="n">img</span><span class="p">)</span>
+
+        <span class="c1"># Apply post-transforms (normalization and dropout)</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_transform</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+
+        <span class="c1"># Apply binary transforms if available</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">binary_transform</span> <span class="ow">and</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binary_transform</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">()(</span><span class="n">mask</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">img</span><span class="p">,</span> <span class="n">mask</span></div>
+
+
+
+<div class="viewcode-block" id="create_transforms">
+<a class="viewcode-back" href="../../../leopard_id.dataloader.html#leopard_id.dataloader.setup_loader.create_transforms">[docs]</a>
+<span class="k">def</span> <span class="nf">create_transforms</span><span class="p">(</span>
+    <span class="n">resize_width</span><span class="p">,</span>
+    <span class="n">resize_height</span><span class="p">,</span>
+    <span class="n">mean</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">std</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">mean_binary_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">std_binary_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">dropout_prob</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+    <span class="n">apply_dropout</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">rotation_degrees</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">apply_augmentations</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">mask_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">max_crop_percent</span><span class="o">=</span><span class="mf">0.07</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a combined transformation pipeline for image and mask processing.</span>
+
+<span class="sd">    This function sets up a complex transformation pipeline that includes:</span>
+<span class="sd">    - Data augmentation (rotation, random percentage crop, and color jitter for RGB images)</span>
+<span class="sd">    - Resizing</span>
+<span class="sd">    - Normalization</span>
+<span class="sd">    - Pixel dropout</span>
+<span class="sd">    - Mask-specific transformations</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        resize_width (int): Width to resize images to.</span>
+<span class="sd">        resize_height (int): Height to resize images to.</span>
+<span class="sd">        mean (tuple): Mean for normalization.</span>
+<span class="sd">        std (tuple): Standard deviation for normalization.</span>
+<span class="sd">        mean_binary_mask (float): Mean for binary mask normalization.</span>
+<span class="sd">        std_binary_mask (float): Standard deviation for binary mask normalization.</span>
+<span class="sd">        dropout_prob (float): Probability of dropout.</span>
+<span class="sd">        apply_dropout (bool): Whether to apply dropout.</span>
+<span class="sd">        rotation_degrees (int): Maximum degrees of rotation for augmentation.</span>
+<span class="sd">        apply_augmentations (bool): Whether to apply data augmentation.</span>
+<span class="sd">        mask_only (bool): Whether to process masks only.</span>
+<span class="sd">        max_crop_percent (float): Maximum percentage of image to crop (0.1 = 10%).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        CombinedTransform: A transformation object that applies all necessary transformations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">resize_transform</span> <span class="o">=</span> <span class="n">ResizeTransform</span><span class="p">(</span><span class="n">width</span><span class="o">=</span><span class="n">resize_width</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">resize_height</span><span class="p">)</span>
+
+    <span class="n">post_transform_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">mask_only</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">mean_binary_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">std_binary_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">post_transform_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">mean_binary_mask</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">std_binary_mask</span><span class="p">)</span>
+            <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">mean</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">std</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">post_transform_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">mean</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">std</span><span class="p">))</span>
+
+    <span class="n">post_transform_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">PixelDropout</span><span class="p">(</span><span class="n">dropout_prob</span><span class="o">=</span><span class="n">dropout_prob</span><span class="p">,</span> <span class="n">apply_dropout</span><span class="o">=</span><span class="n">apply_dropout</span><span class="p">))</span>
+    <span class="n">post_transform</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">(</span><span class="n">post_transform_list</span><span class="p">)</span>
+
+    <span class="n">binary_transform</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">mask_only</span> <span class="ow">and</span> <span class="n">mean_binary_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">std_binary_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">binary_transforms_list</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(),</span>
+            <span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">mean_binary_mask</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">std_binary_mask</span><span class="p">),</span>
+            <span class="n">PixelDropout</span><span class="p">(</span><span class="n">dropout_prob</span><span class="o">=</span><span class="n">dropout_prob</span><span class="p">,</span> <span class="n">apply_dropout</span><span class="o">=</span><span class="n">apply_dropout</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="n">binary_transform</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">(</span><span class="n">binary_transforms_list</span><span class="p">)</span>
+
+    <span class="n">rotation</span> <span class="o">=</span> <span class="n">SynchronizedRotation</span><span class="p">(</span><span class="n">degrees</span><span class="o">=</span><span class="n">rotation_degrees</span><span class="p">)</span>
+    <span class="n">color_jitter</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">ColorJitter</span><span class="p">(</span><span class="n">brightness</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">contrast</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">saturation</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">mask_only</span>
+        <span class="k">else</span> <span class="kc">None</span>
+    <span class="p">)</span>
+    <span class="n">random_crop</span> <span class="o">=</span> <span class="n">SynchronizedPercentageRandomCrop</span><span class="p">(</span><span class="n">max_percent</span><span class="o">=</span><span class="n">max_crop_percent</span><span class="p">)</span>
+
+    <span class="n">combined_transform</span> <span class="o">=</span> <span class="n">CombinedTransform</span><span class="p">(</span>
+        <span class="n">resize_transform</span><span class="p">,</span>
+        <span class="n">post_transform</span><span class="p">,</span>
+        <span class="n">binary_transform</span><span class="p">,</span>
+        <span class="n">rotation</span><span class="p">,</span>
+        <span class="n">color_jitter</span><span class="p">,</span>
+        <span class="n">random_crop</span><span class="p">,</span>
+        <span class="n">apply_augmentations</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">combined_transform</span></div>
+
+
+
+<div class="viewcode-block" id="setup_data_loader">
+<a class="viewcode-back" href="../../../leopard_id.dataloader.html#leopard_id.dataloader.setup_loader.setup_data_loader">[docs]</a>
+<span class="k">def</span> <span class="nf">setup_data_loader</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">project_root</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sets up data loaders for training and testing. Orchestrator that calls other functions</span>
+<span class="sd">    in this file.</span>
+
+<span class="sd">    This function creates the necessary datasets and data loaders based on the provided</span>
+<span class="sd">    configuration. It handles the creation of complex transformation pipelines, including</span>
+<span class="sd">    augmentations, normalization, and mask processing, with support for mask-only mode.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        config (dict): Configuration dictionary containing various settings.</span>
+<span class="sd">        project_root (str): Root directory of the project.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: A tuple containing the training DataLoader and testing DataLoader.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mask_only</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;mask_only&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">mask_only</span><span class="p">:</span>
+        <span class="n">root_dir_train</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_root</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;train_binary_mask_dir&quot;</span><span class="p">])</span>
+        <span class="n">root_dir_test</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_root</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;test_binary_mask_dir&quot;</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">root_dir_train</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_root</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;train_data_dir&quot;</span><span class="p">])</span>
+        <span class="n">root_dir_test</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_root</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;test_data_dir&quot;</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">root_dir_train</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotADirectoryError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Directory </span><span class="si">{</span><span class="n">root_dir_train</span><span class="si">}</span><span class="s2"> does not exist.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found directory </span><span class="si">{</span><span class="n">root_dir_train</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;method&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;cosface&quot;</span><span class="p">:</span>
+        <span class="n">skip_singleton_classes</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">skip_singleton_classes</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="c1"># Use the new config flag for augmentations</span>
+    <span class="n">apply_augmentations</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;apply_augmentations&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">train_transform</span> <span class="o">=</span> <span class="n">create_transforms</span><span class="p">(</span>
+        <span class="n">resize_width</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;resize_width&quot;</span><span class="p">],</span>
+        <span class="n">resize_height</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;resize_height&quot;</span><span class="p">],</span>
+        <span class="n">mean</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;mean_normalize&quot;</span><span class="p">),</span>
+        <span class="n">std</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;std_normalize&quot;</span><span class="p">),</span>
+        <span class="n">mean_binary_mask</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;mean_normalize_binary_mask&quot;</span><span class="p">),</span>
+        <span class="n">std_binary_mask</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;std_normalize_binary_mask&quot;</span><span class="p">),</span>
+        <span class="n">apply_dropout</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;apply_dropout_pixels&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+        <span class="n">apply_augmentations</span><span class="o">=</span><span class="n">apply_augmentations</span><span class="p">,</span>
+        <span class="n">mask_only</span><span class="o">=</span><span class="n">mask_only</span><span class="p">,</span>
+        <span class="n">max_crop_percent</span><span class="o">=</span><span class="mf">0.07</span><span class="p">,</span>  <span class="c1"># This will crop up to 10% from each side</span>
+    <span class="p">)</span>
+
+    <span class="n">test_transform</span> <span class="o">=</span> <span class="n">create_transforms</span><span class="p">(</span>
+        <span class="n">resize_width</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;resize_width&quot;</span><span class="p">],</span>
+        <span class="n">resize_height</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;resize_height&quot;</span><span class="p">],</span>
+        <span class="n">mean</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;mean_normalize&quot;</span><span class="p">),</span>
+        <span class="n">std</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;std_normalize&quot;</span><span class="p">),</span>
+        <span class="n">mean_binary_mask</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;mean_normalize_binary_mask&quot;</span><span class="p">),</span>
+        <span class="n">std_binary_mask</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;std_normalize_binary_mask&quot;</span><span class="p">),</span>
+        <span class="n">apply_dropout</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">apply_augmentations</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># Never apply augmentations to test data</span>
+        <span class="n">mask_only</span><span class="o">=</span><span class="n">mask_only</span><span class="p">,</span>
+        <span class="n">max_crop_percent</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">train_dataset</span> <span class="o">=</span> <span class="n">LeopardDataset</span><span class="p">(</span>
+        <span class="n">root_dir</span><span class="o">=</span><span class="n">root_dir_train</span><span class="p">,</span>
+        <span class="n">transform</span><span class="o">=</span><span class="n">train_transform</span><span class="p">,</span>
+        <span class="n">mask_dir</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">mask_only</span> <span class="k">else</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;train_binary_mask_dir&quot;</span><span class="p">],</span>
+        <span class="n">skip_singleton_classes</span><span class="o">=</span><span class="n">skip_singleton_classes</span><span class="p">,</span>
+        <span class="n">mask_only</span><span class="o">=</span><span class="n">mask_only</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">test_dataset</span> <span class="o">=</span> <span class="n">LeopardDataset</span><span class="p">(</span>
+        <span class="n">root_dir</span><span class="o">=</span><span class="n">root_dir_test</span><span class="p">,</span>
+        <span class="n">transform</span><span class="o">=</span><span class="n">test_transform</span><span class="p">,</span>
+        <span class="n">mask_dir</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">mask_only</span> <span class="k">else</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;test_binary_mask_dir&quot;</span><span class="p">],</span>
+        <span class="n">skip_singleton_classes</span><span class="o">=</span><span class="n">skip_singleton_classes</span><span class="p">,</span>
+        <span class="n">mask_only</span><span class="o">=</span><span class="n">mask_only</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">train_sampler</span> <span class="o">=</span> <span class="n">LeopardBatchSampler</span><span class="p">(</span>
+        <span class="n">train_dataset</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;batch_size&quot;</span><span class="p">],</span>
+        <span class="n">max_images_indiv</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;max_images_individual_leopard_sampler&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">batch_sampler</span><span class="o">=</span><span class="n">train_sampler</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">),</span> <span class="n">DataLoader</span><span class="p">(</span>
+        <span class="n">test_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">test_dataset</span><span class="p">),</span> <span class="mi">64</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, David Colomer Matachana.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

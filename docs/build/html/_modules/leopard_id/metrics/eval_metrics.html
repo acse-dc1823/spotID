@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>leopard_id.metrics.eval_metrics &mdash; SpotID: Leopard Individual Identification 30/08/2024 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=3c203f6c"></script>
+        <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            SpotID: Leopard Individual Identification
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">leopard_id</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">SpotID: Leopard Individual Identification</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">leopard_id.metrics.eval_metrics</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for leopard_id.metrics.eval_metrics</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">heapq</span>
+
+
+<div class="viewcode-block" id="compute_dynamic_top_k_avg_precision">
+<a class="viewcode-back" href="../../../leopard_id.metrics.html#leopard_id.metrics.eval_metrics.compute_dynamic_top_k_avg_precision">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_dynamic_top_k_avg_precision</span><span class="p">(</span><span class="n">dist_matrix</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">max_k</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the top-k average precision for each sample, with dynamic</span>
+<span class="sd">    adjustment based on class size,and return the mean of these</span>
+<span class="sd">    values excluding cases where dynamic k is zero. Dynamic k is introduced</span>
+<span class="sd">    because some classes just have a few exemplars per image, fewer than</span>
+<span class="sd">    max_k. In these cases, the typical top k average precision would be</span>
+<span class="sd">    capped at a maximum of num_exemplars_in_class / k, lower than 1.</span>
+<span class="sd">    Calculated each batch. Obviously, the larger the dataset, the lower</span>
+<span class="sd">    the precision, as the chance of finding the correct match is lower.</span>
+<span class="sd">    Metric is much stricter than top k match rate. </span>
+<span class="sd">    It gives higher precision to those having matches</span>
+<span class="sd">    closer to the anchor, as they&#39;ll count for all the k comparisons.</span>
+
+<span class="sd">    :param dist_matrix: A 2D PyTorch tensor where dist_matrix[i, j]</span>
+<span class="sd">        is the distance from sample i to sample j.</span>
+<span class="sd">    :param labels: A 1D PyTorch tensor with class labels for each sample.</span>
+<span class="sd">    :param max_k: The maximum k for calculating average precision.</span>
+<span class="sd">    :return: The mean average precision across all valid samples.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dist_matrix</span> <span class="o">=</span> <span class="n">dist_matrix</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">num_samples</span> <span class="o">=</span> <span class="n">dist_matrix</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">avg_precisions</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">num_samples</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">valid_counts</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># Calculate the count of each class minus one (for self-comparison)</span>
+    <span class="n">class_counts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_samples</span><span class="p">):</span>
+        <span class="c1"># Get current sample&#39;s class</span>
+        <span class="n">current_class</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="c1"># Determine dynamic k based on class size and max_k</span>
+        <span class="n">dynamic_k</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">class_counts</span><span class="p">[</span><span class="n">current_class</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">max_k</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">dynamic_k</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Set distance to itself to infinity to ignore it</span>
+            <span class="n">dists</span> <span class="o">=</span> <span class="n">dist_matrix</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="n">dists</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Find the top dynamic k smallest distances.</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">top_k_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">dists</span><span class="p">,</span> <span class="n">dynamic_k</span><span class="p">,</span> <span class="n">largest</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">sorted</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="c1"># Get the labels of the top k closest samples</span>
+            <span class="n">top_k_labels</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="n">top_k_indices</span><span class="p">]</span>
+
+            <span class="c1"># True positives at each k position</span>
+            <span class="n">true_positives</span> <span class="o">=</span> <span class="p">(</span><span class="n">top_k_labels</span> <span class="o">==</span> <span class="n">current_class</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+
+            <span class="c1"># Cum sum of true positives to calculate precision at each cut-off</span>
+            <span class="n">cum_true_positives</span> <span class="o">=</span> <span class="n">true_positives</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="c1"># Ranks (1-based) for each of the top k</span>
+            <span class="n">ranks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dynamic_k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+            <span class="c1"># Precision at each k</span>
+            <span class="n">precision_at_k</span> <span class="o">=</span> <span class="n">cum_true_positives</span> <span class="o">/</span> <span class="n">ranks</span>
+
+            <span class="c1"># Average of precisions at each k</span>
+            <span class="n">avg_precisions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">precision_at_k</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="n">valid_counts</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="c1"># Compute the mean of valid average precisions</span>
+    <span class="k">if</span> <span class="n">valid_counts</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">mean_avg_precision</span> <span class="o">=</span> <span class="n">avg_precisions</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">valid_counts</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mean_avg_precision</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>  <span class="c1"># In case all classes have only one sample</span>
+
+    <span class="k">return</span> <span class="n">mean_avg_precision</span></div>
+
+
+
+<div class="viewcode-block" id="compute_class_distance_ratio">
+<a class="viewcode-back" href="../../../leopard_id.metrics.html#leopard_id.metrics.eval_metrics.compute_class_distance_ratio">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_class_distance_ratio</span><span class="p">(</span><span class="n">dist_matrix</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the ratio of the average intra-class distance to the average</span>
+<span class="sd">    inter-class distance. A lower value indicates that the model is learning</span>
+<span class="sd">    correctly to tell the difference between different classes. </span>
+
+<span class="sd">    :param dist_matrix: A 2D PyTorch tensor where dist_matrix[i, j]</span>
+<span class="sd">        is the distance from sample i to sample j.</span>
+<span class="sd">    :param labels: A 1D PyTorch tensor with class labels for each sample.</span>
+<span class="sd">    :return: The mean ratio of intra-class to inter-class distances.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dist_matrix</span> <span class="o">=</span> <span class="n">dist_matrix</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">num_samples</span> <span class="o">=</span> <span class="n">dist_matrix</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">ratios</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_samples</span><span class="p">):</span>
+        <span class="c1"># Intra-class distances (masking other classes)</span>
+        <span class="n">intra_mask</span> <span class="o">=</span> <span class="n">labels</span> <span class="o">==</span> <span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">intra_mask</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># Exclude self distance</span>
+        <span class="n">intra_distances</span> <span class="o">=</span> <span class="n">dist_matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">intra_mask</span><span class="p">]</span>
+
+        <span class="c1"># Inter-class distances (masking the same class)</span>
+        <span class="n">inter_mask</span> <span class="o">=</span> <span class="n">labels</span> <span class="o">!=</span> <span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">inter_distances</span> <span class="o">=</span> <span class="n">dist_matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">inter_mask</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">intra_distances</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">inter_distances</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">mean_intra_distance</span> <span class="o">=</span> <span class="n">intra_distances</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+            <span class="n">mean_inter_distance</span> <span class="o">=</span> <span class="n">inter_distances</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+            <span class="c1"># Ratio of intra-class to inter-class distances</span>
+            <span class="n">ratio</span> <span class="o">=</span> <span class="n">mean_intra_distance</span> <span class="o">/</span> <span class="n">mean_inter_distance</span>
+            <span class="n">ratios</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ratio</span><span class="p">)</span>
+
+    <span class="c1"># Compute the mean of all ratios if any valid ratios were calculated</span>
+    <span class="k">if</span> <span class="n">ratios</span><span class="p">:</span>
+        <span class="n">mean_ratio</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">ratios</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mean_ratio</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">mean_ratio</span></div>
+
+
+
+<div class="viewcode-block" id="compute_top_k_rank_match_detection">
+<a class="viewcode-back" href="../../../leopard_id.metrics.html#leopard_id.metrics.eval_metrics.compute_top_k_rank_match_detection">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_top_k_rank_match_detection</span><span class="p">(</span><span class="n">dist_matrix</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">max_k</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the Top-k Rank match detection: Calculates the ratio of images</span>
+<span class="sd">    that contain a match in the top-k most similar ranks. Return</span>
+<span class="sd">    the accuracy for each k from 1 to max_k. Used for figure 8 in paper.</span>
+
+<span class="sd">    :param dist_matrix: A 2D PyTorch tensor where dist_matrix[i, j]</span>
+<span class="sd">        is the distance from sample i to sample j.</span>
+<span class="sd">    :param labels: A 1D PyTorch tensor with class labels for each sample.</span>
+<span class="sd">    :param max_k: The maximum k for calculating rank accuracy.</span>
+<span class="sd">    :param device: The device (CPU or GPU) to perform computations.</span>
+<span class="sd">    :return: mean match rates for each k in ascending order.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dist_matrix</span> <span class="o">=</span> <span class="n">dist_matrix</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">num_samples</span> <span class="o">=</span> <span class="n">dist_matrix</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># For storing individual accuracies per k to visualize the distribution</span>
+    <span class="n">all_accuracies</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_samples</span><span class="p">,</span> <span class="n">max_k</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+        <span class="n">num_samples</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+    <span class="p">)</span>  <span class="c1"># Mask to track processed samples</span>
+
+    <span class="c1"># Count each label in the dataset excluding the sample itself</span>
+    <span class="n">class_counts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_samples</span><span class="p">):</span>
+        <span class="c1"># Only compute if there are other sampler with the same label</span>
+        <span class="k">if</span> <span class="n">class_counts</span><span class="p">[</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">mask</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">dists</span> <span class="o">=</span> <span class="n">dist_matrix</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="c1"># Ignore self in distance matrix</span>
+            <span class="n">dists</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Get indices of the elements sorted by closest distance</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">dists</span><span class="p">)</span>
+
+            <span class="c1"># Get the labels of the sorted elements</span>
+            <span class="n">sorted_labels</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
+
+            <span class="c1"># Check for matches in top k elements</span>
+            <span class="n">matches</span> <span class="o">=</span> <span class="p">(</span><span class="n">sorted_labels</span><span class="p">[:</span><span class="n">max_k</span><span class="p">]</span> <span class="o">==</span> <span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="c1"># Record results for each k</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_k</span><span class="p">):</span>
+                <span class="n">all_accuracies</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">matches</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+
+    <span class="c1"># Only consider rows in `all_accuracies` where `mask` is True</span>
+    <span class="n">accuracies</span> <span class="o">=</span> <span class="n">all_accuracies</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">accuracies</span></div>
+
+
+
+<div class="viewcode-block" id="compute_average_angular_separation">
+<a class="viewcode-back" href="../../../leopard_id.metrics.html#leopard_id.metrics.eval_metrics.compute_average_angular_separation">[docs]</a>
+<span class="k">def</span> <span class="nf">compute_average_angular_separation</span><span class="p">(</span><span class="n">dist_mat</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute average angular separation for same class and different class pairs,</span>
+<span class="sd">    and store the top 10 smallest angular separations. Use the cosine distance</span>
+<span class="sd">    matrix for this, taking the arccos (expensive operation, hence why this is</span>
+<span class="sd">    only computed for test set) for this. It then masks the correct and different</span>
+<span class="sd">    class pairs and computes the average angular separation for each.</span>
+
+<span class="sd">    Useful for understanding how the embedding space behaves in high dimensional space.</span>
+<span class="sd">    In a good embedding space, the same class pairs should have significantly smaller</span>
+<span class="sd">    angular separations than different class pairs. Different class pairs should be</span>
+<span class="sd">    close to orthogonal.</span>
+
+
+<span class="sd">    Args:</span>
+<span class="sd">    dist_mat (torch.Tensor): Cosine distance matrix</span>
+<span class="sd">    targets (torch.Tensor): Class labels for each sample</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    tuple: (avg_same_class_angle, avg_diff_class_angle, top_10_smallest_angles)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Convert cosine distance to angle (in degrees)</span>
+    <span class="n">angle_mat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">acos</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">dist_mat</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">180</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">mask_same</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="n">targets</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">mask_diff</span> <span class="o">=</span> <span class="o">~</span><span class="n">mask_same</span>
+
+    <span class="c1"># Remove self-comparisons</span>
+    <span class="n">mask_same</span><span class="o">.</span><span class="n">fill_diagonal_</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># Compute average angles</span>
+    <span class="n">avg_same_class_angle</span> <span class="o">=</span> <span class="n">angle_mat</span><span class="p">[</span><span class="n">mask_same</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+    <span class="n">avg_diff_class_angle</span> <span class="o">=</span> <span class="n">angle_mat</span><span class="p">[</span><span class="n">mask_diff</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+    <span class="c1"># Find top 10 smallest angular separations</span>
+    <span class="n">triu_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">upper_triangle</span> <span class="o">=</span> <span class="n">angle_mat</span><span class="p">[</span><span class="n">triu_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">triu_indices</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+    <span class="n">top_10_smallest</span> <span class="o">=</span> <span class="n">heapq</span><span class="o">.</span><span class="n">nsmallest</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">upper_triangle</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">top_10_smallest</span> <span class="o">=</span> <span class="p">[</span><span class="nb">round</span><span class="p">(</span><span class="n">angle</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">angle</span> <span class="ow">in</span> <span class="n">top_10_smallest</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">avg_same_class_angle</span><span class="p">,</span> <span class="n">avg_diff_class_angle</span><span class="p">,</span> <span class="n">top_10_smallest</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, David Colomer Matachana.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

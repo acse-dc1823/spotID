@@ -14,6 +14,13 @@ logging.basicConfig(
 def euclidean_dist(x, y):
     """
     Compute the Euclidean distance matrix between two sets of vectors.
+
+    Args:
+        x (torch.Tensor): First set of vectors with shape (n, d)
+        y (torch.Tensor): Second set of vectors with shape (m, d)
+
+    Returns:
+        torch.Tensor: Euclidean distance matrix with shape (n, m)
     """
     n = x.size(0)
     m = y.size(0)
@@ -25,19 +32,46 @@ def euclidean_dist(x, y):
 
 
 class TripletLoss(nn.Module):
+    """
+    Implements the Triplet Loss function with semi-hard negative mining.
+
+    This loss encourages the distance between an anchor and a positive sample
+    to be smaller than the distance between the anchor and a negative sample
+    by at least a margin.
+
+    Attributes:
+        margin (float): The margin in the triplet loss formula
+        ranking_loss (nn.MarginRankingLoss): The base ranking loss function
+    """
     def __init__(self, margin=0.20):
+        """
+        Initialize the TripletLoss module.
+
+        Args:
+            margin (float, optional): The margin in the triplet loss formula. Defaults to 0.20.
+        """
         super(TripletLoss, self).__init__()
         self.margin = margin
         self.ranking_loss = nn.MarginRankingLoss(margin=self.margin)
 
     def forward(self, features, labels, epoch=0):
         """
+        Compute the triplet loss for a batch of features.
+
+        This method implements semi-hard negative mining (choosing negative exemplars which are
+        further away from the anchor than the positive, but closer than the positive plus the
+        margin) after a few epochs to improve the quality of triplets and stabilize training.
+
         Args:
-            features: feature matrix with shape (batch_size, features_dim)
-            labels: ground truth numerical labels with shape (batch_size)
-            from dataset.label_to_index
-            epoch: epoch we currently are at. Used for semi-hard negative
-            mining.
+            features (torch.Tensor): Feature matrix with shape (batch_size, features_dim)
+            labels (torch.Tensor): Ground truth labels with shape (batch_size)
+            epoch (int, optional): Current training epoch. Used for semi-hard negative mining. Defaults to 0.
+
+        Returns:
+            torch.Tensor: The computed triplet loss for the batch
+
+        Note:
+            If no valid triplets are found, the loss will be set to 0 and a log message will be generated.
         """
         dist_mat = euclidean_dist(features, features)
         batch_size = features.size(0)
@@ -101,11 +135,3 @@ class TripletLoss(nn.Module):
 
         return triplet_loss
 
-
-# if __name__ == "__main__":
-#     # torch.manual_seed(42)  # Set the random seed for reproducibility
-#     features = torch.rand(10, 512)  # 10 samples, 512-dimensional features
-#     labels = torch.tensor([1, 1, 2, 3, 2, 2, 3, 1, 3, 2])  # Sample labels
-#     triplet_loss_func = TripletLoss()
-#     loss = triplet_loss_func(features, labels)
-#     print("Triplet Loss:", loss.item())

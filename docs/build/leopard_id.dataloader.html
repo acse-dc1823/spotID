@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>leopard_id.dataloader package &mdash; SpotID: Leopard Individual Identification 30/08/2024 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=3c203f6c"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="leopard_id.engine package" href="leopard_id.engine.html" />
+    <link rel="prev" title="leopard_id package" href="leopard_id.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SpotID: Leopard Individual Identification
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">leopard_id</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="leopard_id.html">leopard_id package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="leopard_id.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">leopard_id.dataloader package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="leopard_id.engine.html">leopard_id.engine package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="leopard_id.losses.html">leopard_id.losses package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="leopard_id.metrics.html">leopard_id.metrics package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="leopard_id.model.html">leopard_id.model package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="leopard_id.scripts_preprocessing.html">leopard_id.scripts_preprocessing package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="leopard_id.visualization.html">leopard_id.visualization package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="leopard_id.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="leopard_id.html#module-leopard_id.inference_embeddings">leopard_id.inference_embeddings module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="leopard_id.html#module-leopard_id.train">leopard_id.train module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="leopard_id.html#module-leopard_id">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SpotID: Leopard Individual Identification</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">leopard_id</a></li>
+          <li class="breadcrumb-item"><a href="leopard_id.html">leopard_id package</a></li>
+      <li class="breadcrumb-item active">leopard_id.dataloader package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/leopard_id.dataloader.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="leopard-id-dataloader-package">
+<h1>leopard_id.dataloader package<a class="headerlink" href="#leopard-id-dataloader-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-leopard_id.dataloader.leopard_dataset">
+<span id="leopard-id-dataloader-leopard-dataset-module"></span><h2>leopard_id.dataloader.leopard_dataset module<a class="headerlink" href="#module-leopard_id.dataloader.leopard_dataset" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="leopard_id.dataloader.leopard_dataset.LeopardDataset">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">leopard_id.dataloader.leopard_dataset.</span></span><span class="sig-name descname"><span class="pre">LeopardDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transform</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skip_singleton_classes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/leopard_id/dataloader/leopard_dataset.html#LeopardDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#leopard_id.dataloader.leopard_dataset.LeopardDataset" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></p>
+</dd></dl>
+
+</section>
+<section id="module-leopard_id.dataloader.leopard_sampler">
+<span id="leopard-id-dataloader-leopard-sampler-module"></span><h2>leopard_id.dataloader.leopard_sampler module<a class="headerlink" href="#module-leopard_id.dataloader.leopard_sampler" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="leopard_id.dataloader.leopard_sampler.LeopardBatchSampler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">leopard_id.dataloader.leopard_sampler.</span></span><span class="sig-name descname"><span class="pre">LeopardBatchSampler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_images_indiv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/leopard_id/dataloader/leopard_sampler.html#LeopardBatchSampler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#leopard_id.dataloader.leopard_sampler.LeopardBatchSampler" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BatchSampler</span></code></p>
+<p>Custom batch sampler for leopards that ensures each batch contains images
+from multiple leopards. Each leopard will contribute up to a maximum of
+4 images per batch, depending on availability.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="leopard_id.dataloader.leopard_sampler.LeopardBatchSampler.dataset">
+<span class="sig-name descname"><span class="pre">dataset</span></span><a class="headerlink" href="#leopard_id.dataloader.leopard_sampler.LeopardBatchSampler.dataset" title="Link to this definition"></a></dt>
+<dd><p>The dataset from which to sample, expected to have</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dataset</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">a</span> <span class="pre">'leopards'</span> <span class="pre">attribute</span> <span class="pre">listing</span> <span class="pre">identifiers.</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="leopard_id.dataloader.leopard_sampler.LeopardBatchSampler.batch_size">
+<span class="sig-name descname"><span class="pre">batch_size</span></span><a class="headerlink" href="#leopard_id.dataloader.leopard_sampler.LeopardBatchSampler.batch_size" title="Link to this definition"></a></dt>
+<dd><p>The number of items in each batch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-leopard_id.dataloader.setup_loader">
+<span id="leopard-id-dataloader-setup-loader-module"></span><h2>leopard_id.dataloader.setup_loader module<a class="headerlink" href="#module-leopard_id.dataloader.setup_loader" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="leopard_id.dataloader.setup_loader.CombinedTransform">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">leopard_id.dataloader.setup_loader.</span></span><span class="sig-name descname"><span class="pre">CombinedTransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resize_transform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_transform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binary_transform</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_jitter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_crop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apply_augmentations</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/leopard_id/dataloader/setup_loader.html#CombinedTransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#leopard_id.dataloader.setup_loader.CombinedTransform" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Applies a series of transformations to both an image and its mask.</p>
+<p>This class encapsulates the entire transformation pipeline, including:
+1. Augmentations (rotation, random percentage crop, and color jitter for RGB images)
+2. Resizing
+3. Conversion to tensor
+4. Post-transformations (e.g., normalization and dropout)
+5. Mask-specific transformations</p>
+<p>The order of operations is crucial to ensure that:
+- Augmentations are applied to the PIL image before resizing and conversion to tensor
+- Resizing is applied after augmentations but before conversion to tensor
+- Normalization is applied after conversion to tensor but before dropout
+- Mask transformations are kept separate from image transformations</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="leopard_id.dataloader.setup_loader.PixelDropout">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">leopard_id.dataloader.setup_loader.</span></span><span class="sig-name descname"><span class="pre">PixelDropout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dropout_prob</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apply_dropout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/leopard_id/dataloader/setup_loader.html#PixelDropout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#leopard_id.dataloader.setup_loader.PixelDropout" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></p>
+<p>Applies dropout to pixels in the image.</p>
+<p>This transformation randomly sets pixels to zero with probability <cite>dropout_prob</cite>,
+but only if <cite>apply_dropout</cite> is True.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="leopard_id.dataloader.setup_loader.PixelDropout.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/leopard_id/dataloader/setup_loader.html#PixelDropout.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#leopard_id.dataloader.setup_loader.PixelDropout.forward" title="Link to this definition"></a></dt>
+<dd><p>Define the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="leopard_id.dataloader.setup_loader.SynchronizedPercentageRandomCrop">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">leopard_id.dataloader.setup_loader.</span></span><span class="sig-name descname"><span class="pre">SynchronizedPercentageRandomCrop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_percent</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/leopard_id/dataloader/setup_loader.html#SynchronizedPercentageRandomCrop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#leopard_id.dataloader.setup_loader.SynchronizedPercentageRandomCrop" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Applies the same random percentage crop to both an image and its mask.</p>
+<p>This transformer ensures that the image and mask remain aligned after cropping.
+The crop size is determined by a percentage of the original image size per
+side. The method then crops up to this percentage randomly from each side of the image.
+Given the variable nature of leopard camera trap images, this can help the model generalize
+better.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="leopard_id.dataloader.setup_loader.SynchronizedPercentageRandomCrop.max_percent">
+<span class="sig-name descname"><span class="pre">max_percent</span></span><a class="headerlink" href="#leopard_id.dataloader.setup_loader.SynchronizedPercentageRandomCrop.max_percent" title="Link to this definition"></a></dt>
+<dd><p>The maximum percentage of the image that can be
+cropped from each side. Should be a value between 0 and 0.5.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="leopard_id.dataloader.setup_loader.SynchronizedPercentageRandomCrop.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/leopard_id/dataloader/setup_loader.html#SynchronizedPercentageRandomCrop.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#leopard_id.dataloader.setup_loader.SynchronizedPercentageRandomCrop.__call__" title="Link to this definition"></a></dt>
+<dd><p>Applies the random crop to the image and mask.</p>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>img</strong> (<em>PIL.Image</em>) – The input image to be cropped.</p></li>
+<li><p><strong>mask</strong> (<em>PIL.Image</em><em>, </em><em>optional</em>) – The corresponding mask to be cropped.
+If None, only the image will be cropped.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple containing:</dt><dd><ul class="simple">
+<li><p>cropped_img (PIL.Image): The cropped input image.</p></li>
+<li><dl class="simple">
+<dt>cropped_mask (PIL.Image or None): The cropped mask, if a mask was provided.</dt><dd><p>Otherwise, None.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="leopard_id.dataloader.setup_loader.SynchronizedRotation">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">leopard_id.dataloader.setup_loader.</span></span><span class="sig-name descname"><span class="pre">SynchronizedRotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">degrees</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/leopard_id/dataloader/setup_loader.html#SynchronizedRotation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#leopard_id.dataloader.setup_loader.SynchronizedRotation" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Applies the same random rotation to both an image and its mask.</p>
+<p>This transformer ensures that the image and mask remain aligned after rotation.
+The rotation angle is randomly chosen within the range [-degrees, degrees].
+This can help improve model generalization for leopard camera trap images, which
+are vary variable in orientation.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="leopard_id.dataloader.setup_loader.SynchronizedRotation.degrees">
+<span class="sig-name descname"><span class="pre">degrees</span></span><a class="headerlink" href="#leopard_id.dataloader.setup_loader.SynchronizedRotation.degrees" title="Link to this definition"></a></dt>
+<dd><p>The maximum rotation angle in degrees. The actual rotation
+will be randomly chosen between -degrees and +degrees.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="leopard_id.dataloader.setup_loader.SynchronizedRotation.__call__">
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/leopard_id/dataloader/setup_loader.html#SynchronizedRotation.__call__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#leopard_id.dataloader.setup_loader.SynchronizedRotation.__call__" title="Link to this definition"></a></dt>
+<dd><p>Applies the random rotation to the image and mask.</p>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>img</strong> (<em>PIL.Image</em><em> or </em><em>torch.Tensor</em>) – The input image to be rotated.</p></li>
+<li><p><strong>mask</strong> (<em>PIL.Image</em><em> or </em><em>torch.Tensor</em><em>, </em><em>optional</em>) – The corresponding mask to be rotated.
+If None, only the image will be rotated.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple containing:</dt><dd><ul class="simple">
+<li><p>rotated_img (PIL.Image or torch.Tensor): The rotated input image.</p></li>
+<li><p>rotated_mask (PIL.Image, torch.Tensor, or None): The rotated mask,
+if a mask was provided. Otherwise, None.</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="leopard_id.dataloader.setup_loader.create_transforms">
+<span class="sig-prename descclassname"><span class="pre">leopard_id.dataloader.setup_loader.</span></span><span class="sig-name descname"><span class="pre">create_transforms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resize_width</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resize_height</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean_binary_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std_binary_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dropout_prob</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apply_dropout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rotation_degrees</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apply_augmentations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_crop_percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.07</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/leopard_id/dataloader/setup_loader.html#create_transforms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#leopard_id.dataloader.setup_loader.create_transforms" title="Link to this definition"></a></dt>
+<dd><p>Creates a combined transformation pipeline for image and mask processing.</p>
+<p>This function sets up a complex transformation pipeline that includes:
+- Data augmentation (rotation, random percentage crop, and color jitter for RGB images)
+- Resizing
+- Normalization
+- Pixel dropout
+- Mask-specific transformations</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>resize_width</strong> (<em>int</em>) – Width to resize images to.</p></li>
+<li><p><strong>resize_height</strong> (<em>int</em>) – Height to resize images to.</p></li>
+<li><p><strong>mean</strong> (<em>tuple</em>) – Mean for normalization.</p></li>
+<li><p><strong>std</strong> (<em>tuple</em>) – Standard deviation for normalization.</p></li>
+<li><p><strong>mean_binary_mask</strong> (<em>float</em>) – Mean for binary mask normalization.</p></li>
+<li><p><strong>std_binary_mask</strong> (<em>float</em>) – Standard deviation for binary mask normalization.</p></li>
+<li><p><strong>dropout_prob</strong> (<em>float</em>) – Probability of dropout.</p></li>
+<li><p><strong>apply_dropout</strong> (<em>bool</em>) – Whether to apply dropout.</p></li>
+<li><p><strong>rotation_degrees</strong> (<em>int</em>) – Maximum degrees of rotation for augmentation.</p></li>
+<li><p><strong>apply_augmentations</strong> (<em>bool</em>) – Whether to apply data augmentation.</p></li>
+<li><p><strong>mask_only</strong> (<em>bool</em>) – Whether to process masks only.</p></li>
+<li><p><strong>max_crop_percent</strong> (<em>float</em>) – Maximum percentage of image to crop (0.1 = 10%).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A transformation object that applies all necessary transformations.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#leopard_id.dataloader.setup_loader.CombinedTransform" title="leopard_id.dataloader.setup_loader.CombinedTransform">CombinedTransform</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="leopard_id.dataloader.setup_loader.setup_data_loader">
+<span class="sig-prename descclassname"><span class="pre">leopard_id.dataloader.setup_loader.</span></span><span class="sig-name descname"><span class="pre">setup_data_loader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project_root</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/leopard_id/dataloader/setup_loader.html#setup_data_loader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#leopard_id.dataloader.setup_loader.setup_data_loader" title="Link to this definition"></a></dt>
+<dd><p>Sets up data loaders for training and testing. Orchestrator that calls other functions
+in this file.</p>
+<p>This function creates the necessary datasets and data loaders based on the provided
+configuration. It handles the creation of complex transformation pipelines, including
+augmentations, normalization, and mask processing, with support for mask-only mode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config</strong> (<em>dict</em>) – Configuration dictionary containing various settings.</p></li>
+<li><p><strong>project_root</strong> (<em>str</em>) – Root directory of the project.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple containing the training DataLoader and testing DataLoader.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-leopard_id.dataloader.transforms">
+<span id="leopard-id-dataloader-transforms-module"></span><h2>leopard_id.dataloader.transforms module<a class="headerlink" href="#module-leopard_id.dataloader.transforms" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="leopard_id.dataloader.transforms.ResizeTransform">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">leopard_id.dataloader.transforms.</span></span><span class="sig-name descname"><span class="pre">ResizeTransform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">width</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/leopard_id/dataloader/transforms.html#ResizeTransform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#leopard_id.dataloader.transforms.ResizeTransform" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+</section>
+<section id="module-leopard_id.dataloader">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-leopard_id.dataloader" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="leopard_id.html" class="btn btn-neutral float-left" title="leopard_id package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="leopard_id.engine.html" class="btn btn-neutral float-right" title="leopard_id.engine package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, David Colomer Matachana.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

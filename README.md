@@ -6,6 +6,8 @@ This project attempts to use Deep Learning to create a Leopard Individual Identi
 
 ## Instructions for users and developers:
 
+A detailed tutorial for users is provided here: https://youtu.be/YwfC2FA2kZw?si=TOp8Y36oe0Q_ulov
+
 ### Step 1: Install the Software
 Two options for this.
 
@@ -51,11 +53,6 @@ With the virtual environment activated, install all the required software packag
 pip install -r requirements.txt
 ```
 
-### Step 5: Navigate to the leopard_id Directory
-Change to the leopard_id directory within the project:
-```bash
-cd leopard_id
-```
 You are now ready to use the software for encoding images into embeddings.
 
 ## Instructions for users only
@@ -136,7 +133,7 @@ For computer savvy users: `inference_embeddings.py` is the python file that gets
 
 ## Instructions for developers:
 
-If you are a developer wishing to modify/test the training of the model, follow these instructions. First follow the instructions above in "Instructions for users and developers". Then:
+If you are a developer wishing to modify/test the training of the model, follow these instructions. First follow the instructions above in "Instructions for users and developers". Please note that precompiled documentation is available at `docs/build/index.html`. Then:
 
 ### data:
 
@@ -192,7 +189,7 @@ The provided data was already cropped, hence the crop pipeline will probably tak
 Once you have done this, we can run the preprocessing.
 
 ```bash
-cd scripts_preprocessing
+cd leopard_id/scripts_preprocessing
 ```
 
 ```bash
@@ -240,7 +237,13 @@ From leopard_id, open config.json, and modify it accordingly. The parameters are
 ```
 The current config.json contains all the optimum parameters that were found for the Nature Conservation Foundation's training leopard data. A minimum usable dataset is provided with the preprocessing already performed, hence one can directly try the training loops without preprocessing.
 
-With this, we can start training. Simply run:
+With this, we can start training from `leopard_id`. Hence, if you are still in `scripts_preprocessing`, navigate one folder up:
+
+```bash
+cd ../
+```
+
+Then, simply run:
 
 ```bash
 python3 train.py
@@ -254,7 +257,13 @@ tensorboard --logdir runs
 
 ### Pytests
 
-Testing is provided under `tests`. They are integrated under the Github workflows.
+Testing is provided under `tests`. They are integrated under the Github workflows and run automatically when there is a commit. If they need to be ran locally, then:
+
+```bash
+export PYTHONPATH=path/to/irp-dc1823:$PYTHONPATH
+pytest tests/
+```
+
 
 
 

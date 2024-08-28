@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>leopard_id.scripts_preprocessing.background_removal &mdash; SpotID: Leopard Individual Identification 30/08/2024 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=3c203f6c"></script>
+        <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            SpotID: Leopard Individual Identification
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">leopard_id</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">SpotID: Leopard Individual Identification</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">leopard_id.scripts_preprocessing.background_removal</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for leopard_id.scripts_preprocessing.background_removal</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Image Processing Script for Contour Detection and Edge Highlighting</span>
+
+<span class="sd">This script processes a subset of images from a specified directory, applies contour detection and</span>
+<span class="sd">edge highlighting, and saves the processed images into designated output directories. The script</span>
+<span class="sd">performs the following tasks:</span>
+
+<span class="sd">1. Sets up logging to record processing details and errors.</span>
+<span class="sd">2. Ensures that the output directories for binary edge-detected images and merged</span>
+<span class="sd">   contour-highlighted images exist.</span>
+<span class="sd">3. Defines a function `process_image` that:</span>
+<span class="sd">   - Loads an image from the specified path.</span>
+<span class="sd">   - Converts the image to grayscale and applies Gaussian blur to reduce noise.</span>
+<span class="sd">   - Uses Canny edge detection to highlight the edges in the image.</span>
+<span class="sd">   - Finds contours in the edge-detected image and draws them on the original image.</span>
+<span class="sd">   - Saves the edge-detected binary image and the merged image with highlighted contours to the</span>
+<span class="sd">     respective output paths.</span>
+<span class="sd">4. Traverses the input dataset directory to process each image file:</span>
+<span class="sd">   - For each image, determines the output subdirectories and ensures their existence.</span>
+<span class="sd">   - Logs the start time, processes the image using the `process_image` function, and records the</span>
+<span class="sd">     elapsed time for each image.</span>
+<span class="sd">5. Logs the average and total processing times for all images.</span>
+
+<span class="sd">Directories:</span>
+<span class="sd">- Input Directory: ../data/background_removed</span>
+<span class="sd">- Binary Output Directory: ../data/binary_output</span>
+<span class="sd">- Merged Output Directory: ../data/merged_output</span>
+
+<span class="sd">Requirements:</span>
+<span class="sd">- OpenCV (cv2)</span>
+<span class="sd">- os and time modules for file handling and performance measurement</span>
+<span class="sd">- Logging module for recording processing details</span>
+
+<span class="sd">Usage:</span>
+<span class="sd">- Run the script to process all .jpg images in the input directory.</span>
+<span class="sd">- The processed images will be saved in the respective output directories with binary edge</span>
+<span class="sd">  detection and merged contour highlights.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">rembg</span> <span class="kn">import</span> <span class="n">remove</span>
+<span class="kn">from</span> <span class="nn">skimage</span> <span class="kn">import</span> <span class="n">io</span>
+<span class="kn">from</span> <span class="nn">skimage.exposure</span> <span class="kn">import</span> <span class="n">match_histograms</span>
+<span class="kn">import</span> <span class="nn">cv2</span>
+
+<span class="c1"># Setup logging</span>
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
+    <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;../data/processing_log.log&quot;</span><span class="p">,</span>
+    <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span>
+    <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(asctime)s</span><span class="s2">:</span><span class="si">%(levelname)s</span><span class="s2">:</span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="c1"># Function to remove background from a single image</span>
+<div class="viewcode-block" id="remove_background">
+<a class="viewcode-back" href="../../../leopard_id.scripts_preprocessing.html#leopard_id.scripts_preprocessing.background_removal.remove_background">[docs]</a>
+<span class="k">def</span> <span class="nf">remove_background</span><span class="p">(</span><span class="n">img_path</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span> <span class="n">reference_image</span><span class="p">):</span>
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>  <span class="c1"># Start time for processing this image</span>
+
+    <span class="c1"># Read the image</span>
+    <span class="n">target_image</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">img_path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">target_image</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to load image at </span><span class="si">{</span><span class="n">img_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">matched_image</span> <span class="o">=</span> <span class="n">match_histograms</span><span class="p">(</span><span class="n">target_image</span><span class="p">,</span> <span class="n">reference_image</span><span class="p">,</span> <span class="n">channel_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">matched_image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">matched_image</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_RGB2BGR</span><span class="p">)</span>
+    <span class="n">is_success</span><span class="p">,</span> <span class="n">buffer</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imencode</span><span class="p">(</span><span class="s2">&quot;.jpg&quot;</span><span class="p">,</span> <span class="n">matched_image</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_success</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to encode image at </span><span class="si">{</span><span class="n">img_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="c1"># Remove the background</span>
+    <span class="n">output_image</span> <span class="o">=</span> <span class="n">remove</span><span class="p">(</span><span class="n">buffer</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
+
+    <span class="c1"># Ensure the output directory exists</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">output_path</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Save the result</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">out</span><span class="p">:</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">output_image</span><span class="p">)</span>
+
+    <span class="c1"># Calculate time taken and log it</span>
+    <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span>  <span class="c1"># Return processing time for this image</span></div>
+
+
+
+<div class="viewcode-block" id="remove_background_processor">
+<a class="viewcode-back" href="../../../leopard_id.scripts_preprocessing.html#leopard_id.scripts_preprocessing.background_removal.remove_background_processor">[docs]</a>
+<span class="k">def</span> <span class="nf">remove_background_processor</span><span class="p">(</span><span class="n">base_input_dir</span><span class="p">,</span> <span class="n">base_output_dir</span><span class="p">,</span> <span class="n">reference_path_for_matching</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="c1"># Get the directory of the current script</span>
+    <span class="n">script_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+
+    <span class="c1"># Base directories for datasets and outputs</span>
+    <span class="k">if</span> <span class="n">reference_path_for_matching</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">reference_path_for_matching</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">script_dir</span><span class="p">,</span> <span class="s2">&quot;../&quot;</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="s2">&quot;histogram_matching&quot;</span><span class="p">,</span> <span class="s2">&quot;0_0_BG-01A-2019-02-05_05-10-44.jpg&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">reference_image</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="n">reference_path_for_matching</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">reference_image</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to load reference image at </span><span class="si">{</span><span class="n">reference_path_for_matching</span><span class="si">}</span><span class="s2">, exiting.&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
+
+    <span class="c1"># Ensure input directory is valid</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">base_input_dir</span><span class="p">):</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid input directory: </span><span class="si">{</span><span class="n">base_input_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Input directory: </span><span class="si">{</span><span class="n">base_input_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Ensure output directory exists</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">base_output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Get list of already processed images</span>
+    <span class="n">processed_images</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">base_output_dir</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.jpg&quot;</span><span class="p">):</span>
+                <span class="n">relative_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">base_output_dir</span><span class="p">)</span>
+                <span class="n">processed_images</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">relative_path</span><span class="p">,</span> <span class="n">file</span><span class="p">))</span>
+
+    <span class="c1"># Start timing for the entire processing</span>
+    <span class="n">start_total_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">image_times</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># Store times for each image to calculate average</span>
+    <span class="n">new_images_processed</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># Traverse the dataset directory</span>
+    <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">base_input_dir</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.jpg&quot;</span><span class="p">):</span>
+                <span class="n">relative_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">base_input_dir</span><span class="p">)</span>
+                <span class="n">img_relative_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">relative_path</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+
+                <span class="c1"># Check if the image has already been processed</span>
+                <span class="k">if</span> <span class="n">img_relative_path</span> <span class="ow">in</span> <span class="n">processed_images</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Image </span><span class="si">{</span><span class="n">img_relative_path</span><span class="si">}</span><span class="s2"> has already been processed, skipping...&quot;</span><span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Processing image </span><span class="si">{</span><span class="n">img_relative_path</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+
+                <span class="n">new_images_processed</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                <span class="n">img_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+                <span class="n">output_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base_output_dir</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">)</span>
+                <span class="n">output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+
+                <span class="c1"># Ensure output subdirectories exist</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+                <span class="c1"># Process the image and log time</span>
+                <span class="n">image_time</span> <span class="o">=</span> <span class="n">remove_background</span><span class="p">(</span><span class="n">img_path</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span> <span class="n">reference_image</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">image_time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">image_times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image_time</span><span class="p">)</span>
+
+    <span class="c1"># Calculate average time per image and log it</span>
+    <span class="k">if</span> <span class="n">image_times</span><span class="p">:</span>
+        <span class="n">average_time_per_image</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">image_times</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">image_times</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Average time per new image for background removal: </span><span class="si">{</span><span class="n">average_time_per_image</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> seconds&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">end_total_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">total_processing_time</span> <span class="o">=</span> <span class="n">end_total_time</span> <span class="o">-</span> <span class="n">start_total_time</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Total processing time for new images (background removal): </span><span class="si">{</span><span class="n">total_processing_time</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> seconds&quot;</span>
+    <span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Number of new images processed for background removal: </span><span class="si">{</span><span class="n">new_images_processed</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;All new images have been processed for background removal. Total new images: </span><span class="si">{</span><span class="n">new_images_processed</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="c1"># base_input_dir = &quot;../data/crop_output_small&quot;</span>
+<span class="c1"># base_output_dir = &quot;../data/bg_rem_2&quot;</span>
+<span class="c1"># remove_background_processor(base_input_dir, base_output_dir)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, David Colomer Matachana.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

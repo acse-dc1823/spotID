@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>leopard_id.model.EmbeddingNetwork &mdash; SpotID: Leopard Individual Identification 30/08/2024 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=3c203f6c"></script>
+        <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            SpotID: Leopard Individual Identification
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">leopard_id</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">SpotID: Leopard Individual Identification</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">leopard_id.model.EmbeddingNetwork</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for leopard_id.model.EmbeddingNetwork</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">import</span> <span class="nn">timm</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
+    <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;logs.log&quot;</span><span class="p">,</span>
+    <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span>
+    <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(asctime)s</span><span class="s2"> - </span><span class="si">%(levelname)s</span><span class="s2"> - </span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="Normalize">
+<a class="viewcode-back" href="../../../leopard_id.model.html#leopard_id.model.EmbeddingNetwork.Normalize">[docs]</a>
+<span class="k">class</span> <span class="nc">Normalize</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Normalize</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="o">=</span> <span class="n">p</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">=</span> <span class="n">dim</span>
+
+<div class="viewcode-block" id="Normalize.forward">
+<a class="viewcode-back" href="../../../leopard_id.model.html#leopard_id.model.EmbeddingNetwork.Normalize.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="CustomResNet">
+<a class="viewcode-back" href="../../../leopard_id.model.html#leopard_id.model.EmbeddingNetwork.CustomResNet">[docs]</a>
+<span class="k">class</span> <span class="nc">CustomResNet</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A custom ResNet model that supports a variable number of input channels.</span>
+
+<span class="sd">    This class modifies a pre-trained ResNet model to work with input tensors</span>
+<span class="sd">    that have more than 3 channels or exactly 1 channel.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        conv1 (nn.Conv2d): The modified first convolutional layer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original_model</span><span class="p">,</span> <span class="n">num_input_channels</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the CustomResNet module.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            original_model (nn.Module): The original pre-trained ResNet model.</span>
+<span class="sd">            num_input_channels (int): The number of input channels for the new model.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            AssertionError: If num_input_channels is not &gt; 3 or == 1.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CustomResNet</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">num_input_channels</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+            <span class="n">num_input_channels</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="p">),</span> <span class="s2">&quot;CustomResNet should only be used when there are more than 3 input channels.&quot;</span>
+
+        <span class="c1"># Create a new first layer with the adjusted number of input channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span>
+            <span class="n">in_channels</span><span class="o">=</span><span class="n">num_input_channels</span><span class="p">,</span>
+            <span class="n">out_channels</span><span class="o">=</span><span class="n">original_model</span><span class="o">.</span><span class="n">conv1</span><span class="o">.</span><span class="n">out_channels</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="n">original_model</span><span class="o">.</span><span class="n">conv1</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="n">original_model</span><span class="o">.</span><span class="n">conv1</span><span class="o">.</span><span class="n">stride</span><span class="p">,</span>
+            <span class="n">padding</span><span class="o">=</span><span class="n">original_model</span><span class="o">.</span><span class="n">conv1</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span>
+            <span class="n">bias</span><span class="o">=</span><span class="p">(</span><span class="n">original_model</span><span class="o">.</span><span class="n">conv1</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Initialize the new first layer&#39;s weights based on the original first layer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_weights</span><span class="p">(</span><span class="n">original_model</span><span class="o">.</span><span class="n">conv1</span><span class="p">,</span> <span class="n">num_input_channels</span><span class="p">)</span>
+
+        <span class="c1"># Assign all other components of the original model directly to this modified model</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">original_model</span><span class="o">.</span><span class="n">named_children</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="s2">&quot;conv1&quot;</span><span class="p">:</span>  <span class="c1"># Skip replacing the first conv layer</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">module</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original_first_layer</span><span class="p">,</span> <span class="n">num_input_channels</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the weights of the modified first convolutional layer.</span>
+
+<span class="sd">        This method copies weights from the original layer and initializes</span>
+<span class="sd">        additional channels when necessary.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            original_first_layer (nn.Conv2d): The first convolutional layer of the original model.</span>
+<span class="sd">            num_input_channels (int): The number of input channels for the new model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">num_input_channels</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># For 1-channel input, use the mean of the original weights across the channel dimension</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">original_first_layer</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Copy weights for the first 3 channels</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="o">.</span><span class="n">weight</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">original_first_layer</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+                <span class="c1"># Initialize weights for additional channels by copying the first channel&#39;s weights</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_input_channels</span> <span class="o">-</span> <span class="mi">3</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="o">.</span><span class="n">weight</span><span class="p">[:,</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">original_first_layer</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="p">[</span>
+                        <span class="p">:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:</span>
+                    <span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">original_first_layer</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">original_first_layer</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+
+<div class="viewcode-block" id="CustomResNet.forward">
+<a class="viewcode-back" href="../../../leopard_id.model.html#leopard_id.model.EmbeddingNetwork.CustomResNet.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Defines the forward pass of the CustomResNet.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (torch.Tensor): Input tensor.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor: Output tensor after forward pass through the network.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Use the modified first layer and then proceed with the original layers</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="c1"># Continue with the rest of the original model&#39;s forward pass</span>
+        <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">())[</span><span class="mi">1</span><span class="p">:]:</span>  <span class="c1"># Skip the first layer which is already applied</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">module</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="CustomEfficientNet">
+<a class="viewcode-back" href="../../../leopard_id.model.html#leopard_id.model.EmbeddingNetwork.CustomEfficientNet">[docs]</a>
+<span class="k">class</span> <span class="nc">CustomEfficientNet</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A custom EfficientNet model that supports a variable number of input channels.</span>
+
+<span class="sd">    This class modifies a pre-trained EfficientNet model to work with input tensors</span>
+<span class="sd">    that have a different number of channels than the original model.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        conv_stem (nn.Conv2d): The modified first convolutional layer (stem).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original_model</span><span class="p">,</span> <span class="n">num_input_channels</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the CustomEfficientNet module.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            original_model (nn.Module): The original pre-trained EfficientNet model.</span>
+<span class="sd">            num_input_channels (int): The number of input channels for the new model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CustomEfficientNet</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="c1"># Deep copy the original model to modify</span>
+        <span class="n">original_model</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">original_model</span><span class="p">)</span>
+
+        <span class="c1"># Modify the first layer to handle different input channels</span>
+        <span class="n">out_channels</span> <span class="o">=</span> <span class="n">original_model</span><span class="o">.</span><span class="n">conv_stem</span><span class="o">.</span><span class="n">out_channels</span>
+        <span class="n">kernel_size</span> <span class="o">=</span> <span class="n">original_model</span><span class="o">.</span><span class="n">conv_stem</span><span class="o">.</span><span class="n">kernel_size</span>
+        <span class="n">stride</span> <span class="o">=</span> <span class="n">original_model</span><span class="o">.</span><span class="n">conv_stem</span><span class="o">.</span><span class="n">stride</span>
+        <span class="n">padding</span> <span class="o">=</span> <span class="n">original_model</span><span class="o">.</span><span class="n">conv_stem</span><span class="o">.</span><span class="n">padding</span>
+        <span class="n">bias</span> <span class="o">=</span> <span class="n">original_model</span><span class="o">.</span><span class="n">conv_stem</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+        <span class="c1"># Create a new conv_stem with updated in_channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_stem</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span>
+            <span class="n">in_channels</span><span class="o">=</span><span class="n">num_input_channels</span><span class="p">,</span>
+            <span class="n">out_channels</span><span class="o">=</span><span class="n">out_channels</span><span class="p">,</span>
+            <span class="n">kernel_size</span><span class="o">=</span><span class="n">kernel_size</span><span class="p">,</span>
+            <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
+            <span class="n">padding</span><span class="o">=</span><span class="n">padding</span><span class="p">,</span>
+            <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Initialize the new conv_stem weights</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_weights</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv_stem</span><span class="p">,</span> <span class="n">original_model</span><span class="o">.</span><span class="n">conv_stem</span><span class="p">,</span> <span class="n">num_input_channels</span><span class="p">)</span>
+
+        <span class="c1"># Transfer all other modules from the original model to this new model</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">original_model</span><span class="o">.</span><span class="n">named_children</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="s2">&quot;conv_stem&quot;</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">module</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_layer</span><span class="p">,</span> <span class="n">original_layer</span><span class="p">,</span> <span class="n">num_input_channels</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the weights of the modified first convolutional layer (stem).</span>
+
+<span class="sd">        This method copies weights from the original layer and initializes</span>
+<span class="sd">        additional channels when necessary.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            new_layer (nn.Conv2d): The new convolutional stem layer.</span>
+<span class="sd">            original_layer (nn.Conv2d): The original convolutional stem layer.</span>
+<span class="sd">            num_input_channels (int): The number of input channels for the new model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">num_input_channels</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># For 1-channel input, use the mean of the original weights across the channel dimension</span>
+                <span class="n">new_layer</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">original_layer</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Copy weights for the first 3 channels from the original layer</span>
+                <span class="n">new_layer</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">original_layer</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+                <span class="c1"># Initialize weights for additional channels by repeating the first channel&#39;s weights</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_input_channels</span> <span class="o">-</span> <span class="mi">3</span><span class="p">):</span>
+                    <span class="n">new_layer</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="p">[:,</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">original_layer</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="p">[</span>
+                        <span class="p">:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:</span>
+                    <span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">original_layer</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">new_layer</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">original_layer</span><span class="o">.</span><span class="n">bias</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+
+<div class="viewcode-block" id="CustomEfficientNet.forward">
+<a class="viewcode-back" href="../../../leopard_id.model.html#leopard_id.model.EmbeddingNetwork.CustomEfficientNet.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Defines the forward pass of the CustomEfficientNet.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (torch.Tensor): Input tensor.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor: Output tensor after forward pass through the network.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Manually handle the forward pass for each layer</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_stem</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">named_children</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="s2">&quot;conv_stem&quot;</span><span class="p">:</span>  <span class="c1"># Skip conv_stem since it&#39;s already applied</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">module</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="EmbeddingNetwork">
+<a class="viewcode-back" href="../../../leopard_id.model.html#leopard_id.model.EmbeddingNetwork.EmbeddingNetwork">[docs]</a>
+<span class="k">class</span> <span class="nc">EmbeddingNetwork</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    An embedding network that uses a backbone model to generate embeddings.</span>
+
+<span class="sd">    This network can use different backbone models (EfficientNet v2 b2 and v2 b3,</span>
+<span class="sd">    ResNet18) and supports a variable number of input channels. It produces normalized</span>
+<span class="sd">    and scaled embeddings.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        s (float): Scaling factor for the embeddings.</span>
+<span class="sd">        final_backbone (nn.Module): The backbone network used for feature extraction.</span>
+<span class="sd">        embedding_layer (nn.Linear): Linear layer that produces the final embeddings.</span>
+<span class="sd">        normalization (Normalize): Normalization layer for the embeddings.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">backbone_model</span><span class="o">=</span><span class="s2">&quot;tf_efficientnetv2_b2&quot;</span><span class="p">,</span> <span class="n">num_dims</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">input_channels</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">64.0</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the EmbeddingNetwork.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            backbone_model (str, optional): Name of the backbone model to use. Defaults to</span>
+<span class="sd">            &quot;tf_efficientnetv2_b2&quot;.</span>
+<span class="sd">            num_dims (int, optional): Dimensionality of the output embeddings. Defaults to 256.</span>
+<span class="sd">            input_channels (int, optional): Number of input channels. Defaults to 3.</span>
+<span class="sd">            s (float, optional): Scaling factor for the embeddings. Defaults to 64.0.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If an unsupported backbone model is specified.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">EmbeddingNetwork</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">s</span> <span class="o">=</span> <span class="n">s</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;num input channels: &quot;</span><span class="p">,</span> <span class="n">input_channels</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">input_channels</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="c1"># Load the pre-trained model directly if there are 3 input channels</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">final_backbone</span> <span class="o">=</span> <span class="n">timm</span><span class="o">.</span><span class="n">create_model</span><span class="p">(</span>
+                <span class="n">backbone_model</span><span class="p">,</span> <span class="n">pretrained</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">features_only</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Use a custom modification if there are not 3 input channels</span>
+            <span class="n">original_model</span> <span class="o">=</span> <span class="n">timm</span><span class="o">.</span><span class="n">create_model</span><span class="p">(</span><span class="n">backbone_model</span><span class="p">,</span> <span class="n">pretrained</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">features_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">backbone_model</span> <span class="o">==</span> <span class="s2">&quot;tf_efficientnetv2_b2&quot;</span> <span class="ow">or</span> <span class="n">backbone_model</span> <span class="o">==</span> <span class="s2">&quot;tf_efficientnetv2_b3&quot;</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;creating custom efficientnet&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">final_backbone</span> <span class="o">=</span> <span class="n">CustomEfficientNet</span><span class="p">(</span>
+                    <span class="n">original_model</span><span class="p">,</span> <span class="n">num_input_channels</span><span class="o">=</span><span class="n">input_channels</span>
+                <span class="p">)</span>
+                <span class="n">final_in_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_backbone</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">out_features</span>
+            <span class="k">elif</span> <span class="n">backbone_model</span> <span class="o">==</span> <span class="s2">&quot;resnet18&quot;</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;creating custom resnet&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">final_backbone</span> <span class="o">=</span> <span class="n">CustomResNet</span><span class="p">(</span>
+                    <span class="n">original_model</span><span class="p">,</span> <span class="n">num_input_channels</span><span class="o">=</span><span class="n">input_channels</span>
+                <span class="p">)</span>
+                <span class="n">final_in_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_backbone</span><span class="o">.</span><span class="n">fc</span><span class="o">.</span><span class="n">out_features</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Backbone model should be either resnet18 or tf_efficientnetv2_b2&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span>
+
+        <span class="k">if</span> <span class="n">backbone_model</span> <span class="o">==</span> <span class="s2">&quot;tf_efficientnetv2_b2&quot;</span> <span class="ow">or</span> <span class="n">backbone_model</span> <span class="o">==</span> <span class="s2">&quot;tf_efficientnetv2_b3&quot;</span><span class="p">:</span>
+            <span class="n">final_in_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_backbone</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">out_features</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">final_in_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_backbone</span><span class="o">.</span><span class="n">fc</span><span class="o">.</span><span class="n">out_features</span>
+
+        <span class="c1"># Define a new embedding layer</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">embedding_layer</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">final_in_features</span><span class="p">,</span> <span class="n">num_dims</span><span class="p">)</span>
+
+        <span class="c1"># Add normalization layer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalization</span> <span class="o">=</span> <span class="n">Normalize</span><span class="p">()</span>
+
+<div class="viewcode-block" id="EmbeddingNetwork.forward">
+<a class="viewcode-back" href="../../../leopard_id.model.html#leopard_id.model.EmbeddingNetwork.EmbeddingNetwork.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Defines the forward pass of the EmbeddingNetwork.</span>
+
+<span class="sd">        This method passes the input through the backbone network, embedding layer,</span>
+<span class="sd">        normalization, and applies scaling.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (torch.Tensor): Input tensor.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            torch.Tensor: Scaled, normalized embedding tensor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Forward pass through the backbone model</span>
+        <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_backbone</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># Pass the output of the backbone&#39;s final layer to the embedding layer</span>
+        <span class="n">embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding_layer</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+
+        <span class="c1"># Normalize the embeddings</span>
+        <span class="n">embeddings_normalized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalization</span><span class="p">(</span><span class="n">embeddings</span><span class="p">)</span>
+        <span class="c1"># Apply scaling</span>
+        <span class="n">embeddings_scaled</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s</span> <span class="o">*</span> <span class="n">embeddings_normalized</span>
+
+        <span class="k">return</span> <span class="n">embeddings_scaled</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, David Colomer Matachana.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

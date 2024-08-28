@@ -178,13 +178,13 @@ As outlined in the paper, one of the keys of this model is the preprocessing. Th
 
 Open the `config_inference.json` file and outline where your unprocessed image directory lies, and also the directories where you want to store the 3 preprocessing folders. For the model, we will need the binary output (edge detection) and the crop output, so the background removed is only stored as an intermediate step and just in case you need it for your exploration. If you don't, feel free to delete it.
 
-For example, using the minimum usable dataset already provided with this repo:
+For example, using the minimum usable dataset already provided with this repo, change the config inference provided (used in the inference for the users above) to:
 
 ```bash
-    "unprocessed_image_folder": "data/minimum_train_data_cropped",
-    "crop_output_folder": "data/crop_test",
-    "bg_removed_output_folder": "data/bg_rem_test",
-    "base_binary_output_folder": "data/test_binary_output",
+    "unprocessed_image_folder": "../data/minimum_train_data_cropped",
+    "crop_output_folder": "../data/crop_test",
+    "bg_removed_output_folder": "../data/bg_rem_test",
+    "base_binary_output_folder": "../data/test_binary_output",
 ```
 
 The provided data was already cropped, hence the crop pipeline will probably take the whole image. An edge detected output is already provided, hence the name here is changed to demonstrate the deployment of the binary output. If not, 

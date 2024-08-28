@@ -8,6 +8,8 @@ This project attempts to use Deep Learning to create a Leopard Individual Identi
 
 A detailed tutorial for users is provided here: https://youtu.be/YwfC2FA2kZw?si=TOp8Y36oe0Q_ulov
 
+[![Tutorial for users](https://img.youtube.com/vi/YwfC2FA2kZw/0.jpg)](https://youtu.be/YwfC2FA2kZw)
+
 ### Step 1: Install the Software
 Two options for this.
 

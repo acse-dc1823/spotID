@@ -131,7 +131,7 @@ def evaluate_data(model, outputs, targets, device, method="triplet", max_k=5, ve
         start_time = time.time()
         if method == "triplet":
             dist_mat = euclidean_dist(outputs, outputs)
-        else:  # For now, only else is cosface loss. Might have to change later
+        else:  # For now, cosface loss
             dist_mat = cosine_dist(outputs, outputs)
         time_taken_dist = time.time() - start_time
 
@@ -218,10 +218,6 @@ def evaluate_epoch_test(model, data_loader, device, max_k, method="triplet", ver
             model, all_outputs, all_targets, device, method=method, max_k=max_k, verbose=verbose
         )
 
-        logging.info("Cosine distance matrix for testing data, top 10 exemplars: ")
-        logging.info(dist_mat[:10, :10])
-        logging.info(all_targets[:10])
-
     logging.info(f"Time taken to access test data {data_time:.2f} s")
 
     return total_precision, class_distance_ratio, total_match_rate
@@ -239,12 +235,12 @@ def configure_training(model, config, num_input_channels):
     # Initialize the list for trainable parameters
     trainable_params = []
 
-    if config.get("train_all_layers", False):
+    if config.get('train_all_layers', False):
         # Set all parameters to trainable
         for param in model.parameters():
             param.requires_grad = True
         # Collect all parameters for the optimizer
-        trainable_params.extend({"params": param} for param in model.parameters())
+        trainable_params.extend({'params': param} for param in model.parameters())
         logging.info("All layers are set to be trainable.")
     else:
         # Freeze all pretrained layers initially
@@ -253,46 +249,44 @@ def configure_training(model, config, num_input_channels):
 
         # If we have more than 3 input channels, train the first conv layer (conv_stem)
         if (num_input_channels > 3) or (num_input_channels == 1):
-            if config["backbone_model"] == "tf_efficientnetv2_b2":
+            if config["backbone_model"] == "tf_efficientnetv2_b2" or config["backbone_model"] == "tf_efficientnetv2_b3":
                 for param in model.final_backbone.conv_stem.parameters():
                     param.requires_grad = True
-                trainable_params.append({"params": model.final_backbone.conv_stem.parameters()})
+                trainable_params.append({'params': model.final_backbone.conv_stem.parameters()})
+                logging.info("Unfrozen parameters of conv_stem layer to accept input of more than 3 channels.")
             if config["backbone_model"] == "resnet18":
                 for param in model.final_backbone.conv1.parameters():
                     param.requires_grad = True
-                trainable_params.append({"params": model.final_backbone.conv1.parameters()})
-            logging.info(
-                "Unfrozen parameters of conv_stem layer to accept input of more than 3 channels."
-            )
+                trainable_params.append({'params': model.final_backbone.conv1.parameters()})
 
         # Unfreeze specific layers based on configuration
-        num_layers_to_train = config.get("num_last_layers_to_train", 0)
+        num_layers_to_train = config.get('num_last_layers_to_train', 0)
 
         if num_layers_to_train >= 1:
             # Unfreeze and add the embedding layer parameters
             for param in model.embedding_layer.parameters():
                 param.requires_grad = True
-            trainable_params.append({"params": model.embedding_layer.parameters()})
+            trainable_params.append({'params': model.embedding_layer.parameters()})
             logging.info("Unfrozen parameters of embedding layer.")
 
         if num_layers_to_train >= 2:
             # Unfreeze and add the classifier parameters
-            if config["backbone_model"] == "tf_efficientnetv2_b2":
+            if config["backbone_model"] == "tf_efficientnetv2_b2" or config["backbone_model"] == "tf_efficientnetv2_b3":
                 for param in model.final_backbone.classifier.parameters():
                     param.requires_grad = True
-                trainable_params.append({"params": model.final_backbone.classifier.parameters()})
+                trainable_params.append({'params': model.final_backbone.classifier.parameters()})
             if config["backbone_model"] == "resnet18":
                 for param in model.final_backbone.fc.parameters():
                     param.requires_grad = True
-                trainable_params.append({"params": model.final_backbone.fc.parameters()})
+                trainable_params.append({'params': model.final_backbone.fc.parameters()})
             logging.info("Unfrozen parameters of classifier layer.")
 
         if num_layers_to_train >= 3:
             # Unfreeze and add the conv_head parameters
-            if config["backbone_model"] == "tf_efficientnetv2_b2":
+            if config["backbone_model"] == "tf_efficientnetv2_b2" or config["backbone_model"] == "tf_efficientnetv2_b3":
                 for param in model.final_backbone.conv_head.parameters():
                     param.requires_grad = True
-                trainable_params.append({"params": model.final_backbone.conv_head.parameters()})
+                trainable_params.append({'params': model.final_backbone.conv_head.parameters()})
                 logging.info("Unfrozen parameters of conv_head.")
 
             if config["backbone_model"] == "resnet18":
@@ -308,7 +302,7 @@ def configure_training(model, config, num_input_channels):
                 if last_conv:
                     for param in last_conv.parameters():
                         param.requires_grad = True
-                    trainable_params.append({"params": last_conv.parameters()})
+                    trainable_params.append({'params': last_conv.parameters()})
                     logging.info(f"Unfrozen parameters of layer: {last_conv_name}")
                 else:
                     logging.error("No Conv2d layer found in the last block.")

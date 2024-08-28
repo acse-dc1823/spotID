@@ -13,7 +13,8 @@ def compute_dynamic_top_k_avg_precision(dist_matrix, labels, max_k, device):
     capped at a maximum of num_exemplars_in_class / k, lower than 1.
     Calculated each batch. Obviously, the larger the dataset, the lower
     the precision, as the chance of finding the correct match is lower.
-    Metric is good because it gives higher precision to those having matches
+    Metric is much stricter than top k match rate. 
+    It gives higher precision to those having matches
     closer to the anchor, as they'll count for all the k comparisons.
 
     :param dist_matrix: A 2D PyTorch tensor where dist_matrix[i, j]
@@ -77,7 +78,7 @@ def compute_class_distance_ratio(dist_matrix, labels, device):
     """
     Calculate the ratio of the average intra-class distance to the average
     inter-class distance. A lower value indicates that the model is learning
-    correctly to tell the difference between different classes.
+    correctly to tell the difference between different classes. 
 
     :param dist_matrix: A 2D PyTorch tensor where dist_matrix[i, j]
         is the distance from sample i to sample j.
@@ -118,9 +119,9 @@ def compute_class_distance_ratio(dist_matrix, labels, device):
 
 def compute_top_k_rank_match_detection(dist_matrix, labels, max_k, device):
     """
-    Calculate the Top-k Rank match detection: If there is a match in the
-    top-k most similar ranks for each sample. Return
-    the accuracy for each k from 1 to max_k.
+    Calculate the Top-k Rank match detection: Calculates the ratio of images
+    that contain a match in the top-k most similar ranks. Return
+    the accuracy for each k from 1 to max_k. Used for figure 8 in paper.
 
     :param dist_matrix: A 2D PyTorch tensor where dist_matrix[i, j]
         is the distance from sample i to sample j.
@@ -172,7 +173,16 @@ def compute_top_k_rank_match_detection(dist_matrix, labels, max_k, device):
 def compute_average_angular_separation(dist_mat, targets):
     """
     Compute average angular separation for same class and different class pairs,
-    and store the top 10 smallest angular separations.
+    and store the top 10 smallest angular separations. Use the cosine distance
+    matrix for this, taking the arccos (expensive operation, hence why this is
+    only computed for test set) for this. It then masks the correct and different
+    class pairs and computes the average angular separation for each.
+
+    Useful for understanding how the embedding space behaves in high dimensional space.
+    In a good embedding space, the same class pairs should have significantly smaller
+    angular separations than different class pairs. Different class pairs should be
+    close to orthogonal.
+
 
     Args:
     dist_mat (torch.Tensor): Cosine distance matrix

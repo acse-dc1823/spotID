@@ -30,18 +30,16 @@ class CosFace(nn.Module):
     CosFace loss as in the paper below.
     https://arxiv.org/pdf/1801.09414. Modification to cosface inspiration
     from: https://discovery.ucl.ac.uk/id/eprint/10108878/1/WanpingZhang-TNNLS-final.pdf
-    but we create our own modification function, which brings the peak penalty to
-    smaller angles (around 60 degrees) and has a small penalty for small angles
-    instead of 0.
+    but I create my own modification function, which adds a steeper penalty around
+    the peak, and a more gradual penalty around the trough.
     """
 
-    def __init__(self, in_features, out_features, scale=64.0, margin=0.3, m2=0.4):
+    def __init__(self, in_features, out_features, scale=64.0, margin=0.3):
         super(CosFace, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.scale = scale
         self.margin = margin
-        self.m2 = m2
         # Initialize the weights for the fc layer from embeddings to num classes
         # No biases as per paper. requires_grad=True
         self.weight = nn.Parameter(torch.Tensor(out_features, in_features))
@@ -50,8 +48,7 @@ class CosFace(nn.Module):
     def new_margin(self, cosine, one_hot):
         # Calculate the new margin adjustment based on the given function
         cos_squared = cosine.pow(2)
-        exp_component = torch.exp(1.3 * cosine - 1)
-        return one_hot * ((1 - cos_squared) * exp_component + 0.1) / 0.629
+        return one_hot * ((1 - cos_squared).pow(4) + 0.1) / 1.1
 
     def forward(self, input, labels, epoch=None):
         """
@@ -82,11 +79,8 @@ class CosFace(nn.Module):
         # h_theta_yi = self.margin * (1 - cosine_correct.pow(2))
         h_theta_yi = self.margin * self.new_margin(cosine_correct, one_hot)
 
-        # Calculate g(theta_j) and apply it to the incorrect classes
-        g_theta_j = self.m2 * cosine.pow(2) * (1 - one_hot)
-
         # Adjust the cosine similarity
-        modified_cosine = cosine - h_theta_yi + g_theta_j
+        modified_cosine = cosine - h_theta_yi
 
         # Scale the logits
         logits = modified_cosine * self.scale

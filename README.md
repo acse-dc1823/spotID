@@ -1,5 +1,7 @@
 # SpotID: A Leopard Individual Identifier
 
+![Project Logo](https://github.com/ese-msc-2023/irp-dc1823/raw/inference/interface/static/images/logo.jpg)
+
 This project attempts to use Deep Learning to create a Leopard Individual Identifier. It encodes each leopard image into N dimensional embeddings, and then these embeddings are compared with one another through a distance metric to decide which images correspond to the same leopard. Two methods were tried, Triplet Networks, and a modified CosFace. For more details, please read the attached paper. 
 
 ## Instructions for users and developers:
@@ -130,7 +132,7 @@ Finally, if new images are added to the raw data ("unprocessed_image_folder" abo
 
 If the user wants more freedom with what to do with their data, feel free to open `config_inference.json`, and modify the things that you need there. The default parameters should be good to run the default pipeline above, this is just in case you want to save the intermediate images in a different path, etc.  In the preprocessing pipeline, the image will be cropped (stored in "crop_output_folder"), background removed (stored in "bg_removed_output_folder") and edge detected (stored in "base_binary_output_folder"). 
 
-For computer savvy users: `inference_embeddings.py` is the python file that gets ran in the background when we click on "run model from scratch". Hence, again, if the user wants more freedom than what is offered through the interface, please feel free to do so here. For example, if the user has already done the preprocessing elsewhere and has the crop directory and the edge detected directory, the user can set "preprocessing = false", and provide the path to crop and binary. The current default config provides paths to the minimum datasets provided with the code.
+For computer savvy users: `inference_embeddings.py` is the python file that gets ran in the background when we click on "run model from scratch". Hence, again, if the user wants more freedom than what is offered through the interface, please feel free to do so here. For example, if the user has already done the preprocessing elsewhere and has the crop directory and the edge detected directory, the user can set `preprocessing = false`, and provide the path to crop and binary. The current default config provides paths to the minimum datasets provided with the code, hence by changing the preprocessing to false and running this file, the model will be ran directly without the preprocessing.
 
 ## Instructions for developers:
 
@@ -170,9 +172,22 @@ Some minimum usable datasets are provided under `leopard_id/data`, already cropp
 
 ### Preprocessing:
 
-As outlined in the paper, one of the keys of this model is the preprocessing. We first extract bounding boxes, then remove the background and finally perform edge detection. To do so, we have individual scripts for each. We have created a script that aggregates them all in one, so you only need to run that one. From leopard_id:
+NOTE: A minimum usable cropped and edge detected dataset are already provided with the repo under `leopard_id/data`. Hence, if the user only wants to test the model itself and not preprocessing, they can skip this subsection.
 
-Open the `config_inference.json` file and outline where your unprocessed image directory lies, and also the directories where you want to store the 3 preprocessing folders. For the model, we will need the binary output and the crop output, so the background removed is only stored as an intermediate step and just in case you need it for your exploration. If you don't, feel free to delete it.
+As outlined in the paper, one of the keys of this model is the preprocessing. The pipelines first extracts bounding boxes, then removes the background and finally performs edge detection. To do so, we have individual scripts for each. We have created a script that aggregates them all in one, so you only need to run that one. From leopard_id:
+
+Open the `config_inference.json` file and outline where your unprocessed image directory lies, and also the directories where you want to store the 3 preprocessing folders. For the model, we will need the binary output (edge detection) and the crop output, so the background removed is only stored as an intermediate step and just in case you need it for your exploration. If you don't, feel free to delete it.
+
+For example, using the minimum usable dataset already provided with this repo:
+
+```bash
+    "unprocessed_image_folder": "data/minimum_train_data_cropped",
+    "crop_output_folder": "data/crop_test",
+    "bg_removed_output_folder": "data/bg_rem_test",
+    "base_binary_output_folder": "data/test_binary_output",
+```
+
+The provided data was already cropped, hence the crop pipeline will probably take the whole image. An edge detected output is already provided, hence the name here is changed to demonstrate the deployment of the binary output. If not, 
 
 Once you have done this, we can run the preprocessing.
 
@@ -183,7 +198,7 @@ cd scripts_preprocessing
 ```bash
 python3 run_all_preprocessing.py
 ```
-Be aware that the remove background is a costly procedure, it takes around 10s per image locally. You only need to run this once, and then perform the different training tests with the preprocessed images
+Be aware that the remove background is a costly procedure, it takes around 10s per image locally. You only need to run this once, and then perform the different training tests with the preprocessed images.
 
 If needed, a `create-train-test.py` is provided under script_preprocessing, which will separate the directories in train and test randomly (not the images). This is to make sure that there are no leopards (even different images) seen in training in the test.
 
@@ -206,7 +221,7 @@ From leopard_id, open config.json, and modify it accordingly. The parameters are
     "learning_rate": "Float, initial learning rate, can use scheduler below",
     "epochs": "Integer, total number of epochs",
     "device": "'cuda' or 'cpu'. Can leave it as cuda, as if it doesn't find it it will directly go to cpu",
-    "verbose": "Whether to print out information. Will store it in logs, so recommended to leave it as true",
+    "verbose": "Basic essential logs are always logged. This indicates whether to print out extra information. Will store it in logs, so recommended to leave it as true",
     "backbone_model": "'resnet18' or 'tf_efficientnetv2_b2'. Recommended resnet for triplet, efficientnet for cosface",
     "margin": "Float, margin used for triplet and cosface. For modified cosface, it is m1",
     "max_k": "Integer, Maximum number of ranks inspected for evaluating data, see metrics directory for a better explanation",
@@ -223,11 +238,18 @@ From leopard_id, open config.json, and modify it accordingly. The parameters are
     "lr_scheduler": "Boolean. Whether to apply a lr scheduler"
 }
 ```
+The current config.json contains all the optimum parameters that were found for the Nature Conservation Foundation's training leopard data. A minimum usable dataset is provided with the preprocessing already performed, hence one can directly try the training loops without preprocessing.
 
 With this, we can start training. Simply run:
 
 ```bash
 python3 train.py
+```
+
+Comprehensive logging is provided which will be saved in logs.log. For extra optional logging including angles of exemplars (which will be slightly computationally expensive), set `verbose=True` in config. This is in addition to tensorboard graphs to monitor performance of the model. From `leopard_id`, one can open these graphs with:
+
+```bash
+tensorboard --logdir runs
 ```
 
 ### Pytests

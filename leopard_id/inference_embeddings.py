@@ -15,6 +15,19 @@ from scripts_preprocessing import crop_images_folder, remove_background_processo
 project_root = os.path.dirname(os.path.abspath(__file__))
 
 class InferenceDataset(Dataset):
+    """
+    A custom Dataset for inference on leopard images.
+    
+    This dataset loads image and mask (edge detection) pairs, applies transformations,
+    and prepares them for inference in the leopard identification model.
+
+    Attributes:
+        image_folder (str): Path to the folder containing leopard images.
+        mask_folder (str): Path to the folder containing corresponding mask images.
+        transform (callable, optional): Optional transform to be applied on images.
+        transform_binary (callable, optional): Optional transform to be applied on mask images.
+        pairs (list): List of tuples containing pairs of (image_path, mask_path).
+    """
     def __init__(self, image_folder, mask_folder, transform=None, transform_binary=None, existing_files=None):
         self.image_folder = image_folder
         self.mask_folder = mask_folder
@@ -72,6 +85,15 @@ class InferenceDataset(Dataset):
         return combined, img_name, mask_name
 
 def load_model(config):
+    """
+    Load the pre-trained leopard identification model.
+
+    Args:
+        config (dict): Configuration dictionary containing model parameters.
+
+    Returns:
+        EmbeddingNetwork: The loaded and initialized model.
+    """
     model = EmbeddingNetwork(backbone_model=config.get("backbone_model"),
                            num_dims=config.get("num_dimensions"),
                            input_channels=config.get("input_channels"))
@@ -83,6 +105,18 @@ def load_model(config):
 
 
 def create_transforms(config):
+    """
+    Create image transformation pipelines based on the configuration.
+    Same normalization and resizing as applied in training.
+
+    Args:
+        config (dict): Configuration dictionary containing transformation parameters.
+
+    Returns:
+        tuple: A tuple containing:
+            - common_transforms (transforms.Compose): Transformations for regular images.
+            - binary_transforms (transforms.Compose): Transformations for binary mask images.
+    """
     common_transforms = transforms.Compose([
         transforms.Resize((config['resize_height'], config['resize_width'])),
         transforms.ToTensor(),
@@ -105,6 +139,21 @@ def create_transforms(config):
 
 
 def run_inference(config_path):
+    """
+    Run the inference process for leopard identification.
+
+    This function performs the following steps:
+    1. Load configuration
+    2. Set up directories
+    3. Preprocess images if required
+    4. Load existing data (if any)
+    5. Run inference on new images
+    6. Update embeddings and distance matrix
+    7. Save results
+
+    Args:
+        config_path (str): Path to the configuration JSON file.
+    """
     config_path = os.path.abspath(config_path)
     
     with open(config_path, 'r') as file:

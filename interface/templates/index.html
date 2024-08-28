@@ -1,3 +1,10 @@
+<!-- 
+  Leopard Individual Identification
+  This is the main HTML template for the SpotID application. It contains the landing page and the main interface
+  for validating leopard images. The backend app.py file will serve this HTML template to the user's browser.
+
+  The html was written with significant aid from generative AI, Claude.ai mostly.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -135,7 +142,7 @@
 </head>
 <body>
     <div id="landing-page">
-        <img src="static/images/logo.webp" alt="SpotID Logo" style="max-width: 300px; margin-bottom: 30px;">
+        <img src="static/images/logo.jpg" alt="SpotID Logo" style="max-width: 300px; margin-bottom: 30px;">
         <div class="option">
             <h2>Open Existing Embeddings</h2>
             <input type="text" id="existing-embeddings-path" placeholder="Path to existing embeddings folder">
@@ -150,10 +157,10 @@
     </div>
     </div>
     <div id="logo-container">
-        <img id="logo" src="static/images/logo.webp" alt="SpotID Logo">
+        <img id="logo" src="static/images/logo.jpg" alt="SpotID Logo">
     </div>
     <div id="content">
-        <img id="small-logo" src="static/images/logo.webp" alt="SpotID Logo">
+        <img id="small-logo" src="static/images/logo.jpg" alt="SpotID Logo">
         <div id="root"></div>
     </div>
     <div id="loading-message"></div>

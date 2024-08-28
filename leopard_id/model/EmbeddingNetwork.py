@@ -131,11 +131,7 @@ class CustomEfficientNet(nn.Module):
 
 class EmbeddingNetwork(nn.Module):
     def __init__(
-        self,
-        backbone_model="tf_efficientnetv2_b2",
-        num_dims=256,
-        input_channels=3,
-        s=64.0,
+        self, backbone_model="tf_efficientnetv2_b2", num_dims=256, input_channels=3, s=64.0
     ):
         super(EmbeddingNetwork, self).__init__()
         self.s = s
@@ -148,7 +144,7 @@ class EmbeddingNetwork(nn.Module):
         else:
             # Use a custom modification if there are not 3 input channels
             original_model = timm.create_model(backbone_model, pretrained=True, features_only=False)
-            if backbone_model == "tf_efficientnetv2_b2":
+            if backbone_model == "tf_efficientnetv2_b2" or backbone_model == "tf_efficientnetv2_b3":
                 logging.info("creating custom efficientnet")
                 self.final_backbone = CustomEfficientNet(
                     original_model, num_input_channels=input_channels
@@ -164,7 +160,7 @@ class EmbeddingNetwork(nn.Module):
                 print("Backbone model should be either resnet18 or tf_efficientnetv2_b2")
                 raise ValueError
 
-        if backbone_model == "tf_efficientnetv2_b2":
+        if backbone_model == "tf_efficientnetv2_b2" or backbone_model == "tf_efficientnetv2_b3":
             final_in_features = self.final_backbone.classifier.out_features
         else:
             final_in_features = self.final_backbone.fc.out_features

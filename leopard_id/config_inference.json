@@ -1,6 +1,6 @@
 {
-    "model_path": "weights/best-model-cosface-random-crop.pth",
-    "preprocess": false,
+    "model_path": "weights/best-model-cosface.pth",
+    "preprocess": true,
     "unprocessed_image_folder": "data/minimum_train_data_cropped",
     "crop_output_folder": "data/crop_output",
     "bg_removed_output_folder": "data/background_removed_output",

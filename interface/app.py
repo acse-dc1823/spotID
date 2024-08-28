@@ -164,11 +164,11 @@ def create_or_open_db():
 def distance_to_confidence(distance):
     """
     Maps a distance value between two images to a confidence score between 0 and 100.
-    The confidence score is calculated as 100 * exp(-2 * (distance - 0.50)).
-    This, if the distance is closer than 0.5 (for cosine distance, this means
-    it being arccos(0.5)=60 degrees or closer), the confidence score is 100.
+    The confidence score is calculated as 100 * exp(-2 * (distance - 0.45)).
+    This, if the distance is closer than 0.45 (for cosine distance, this means
+    it being arccos(0.55)=56/6 degrees or closer), the confidence score is 100.
     """
-    score = 100 * np.exp(-2 * (max(distance - 0.50, 0)))
+    score = 100 * np.exp(-2 * (max(distance - 0.45, 0)))
     return score
 
 

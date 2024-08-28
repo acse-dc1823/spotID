@@ -10,7 +10,6 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)  # Assumes the tests folder is at the same level as leopard_id
 module_dir = os.path.join(parent_dir, 'leopard_id')  # Path to the leopard_id directory
 
-# Add it to sys.path for resolving the modules
 sys.path.insert(0, module_dir)
 
 from leopard_id.engine import evaluate_epoch_test

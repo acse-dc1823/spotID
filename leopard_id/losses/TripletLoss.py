@@ -25,11 +25,10 @@ def euclidean_dist(x, y):
 
 
 class TripletLoss(nn.Module):
-    def __init__(self, margin=0.20, verbose=False):
+    def __init__(self, margin=0.20):
         super(TripletLoss, self).__init__()
         self.margin = margin
         self.ranking_loss = nn.MarginRankingLoss(margin=self.margin)
-        self.verbose = verbose
 
     def forward(self, features, labels, epoch=0):
         """
@@ -43,14 +42,6 @@ class TripletLoss(nn.Module):
         dist_mat = euclidean_dist(features, features)
         batch_size = features.size(0)
 
-
-        # if self.verbose:
-        #     logging.info(f"batch size: {batch_size}")
-
-        
-        # if self.verbose:
-        #     logging.info(f"batch size: {batch_size}")
-
         triplet_loss = 0.0
         counter = 0
         for i in range(batch_size):
@@ -60,7 +51,7 @@ class TripletLoss(nn.Module):
 
             if len(pos_indices) == 0 or len(neg_indices) == 0:
                 continue  # No valid triplets
-            
+
             # Iterate over all positive pairs for the anchor
             for pos_idx in pos_indices:
                 pos_dist = dist_mat[i, pos_idx]
@@ -68,7 +59,10 @@ class TripletLoss(nn.Module):
                 # Otherwise, learning stagnates.
                 if epoch > 3:
                     # Semi-hard negative mining: negatives harder than the current positive but within margin
-                    semi_hard_negatives = neg_indices[(dist_mat[i, neg_indices] > pos_dist) & (dist_mat[i, neg_indices] < pos_dist + self.margin)]
+                    semi_hard_negatives = neg_indices[
+                        (dist_mat[i, neg_indices] > pos_dist)
+                        & (dist_mat[i, neg_indices] < pos_dist + self.margin)
+                    ]
                     if len(semi_hard_negatives) == 0:
                         continue  # Skip if no semi-hard negatives are found
 
@@ -79,7 +73,9 @@ class TripletLoss(nn.Module):
                     weights = weights / torch.sum(weights)
 
                     # Weighted random choice of negative indices
-                    neg_idx = np.random.choice(semi_hard_negatives.cpu().detach().numpy(), p=weights.cpu().detach().numpy())
+                    neg_idx = np.random.choice(
+                        semi_hard_negatives.cpu().detach().numpy(), p=weights.cpu().detach().numpy()
+                    )
 
                 else:
                     # Random choice from all valid negatives (completely random selection)

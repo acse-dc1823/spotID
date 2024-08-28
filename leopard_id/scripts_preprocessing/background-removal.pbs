@@ -29,6 +29,6 @@ pip list | grep rembg
 # Submit this one from scripts_preprocessing 
 cd $PBS_O_WORKDIR
 
-python3 background-removal.py
+python3 background_removal.py
 
 # Run the code

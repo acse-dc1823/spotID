@@ -23,6 +23,6 @@ source /rds/general/user/dc1823/home/anaconda3/bin/activate bbox-env
 # Submit this one from scripts_preprocessing 
 cd $PBS_O_WORKDIR
 
-python3 bbox-creation.py
+python3 bbox_creation.py
 
 # Run the code

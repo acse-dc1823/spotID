@@ -1,0 +1,503 @@
+<!-- 
+  Leopard Individual Identification
+  This is the main HTML template for the SpotID application. It contains the landing page and the main interface
+  for validating leopard images. The backend app.py file will serve this HTML template to the user's browser.
+
+  The html was written with significant aid from generative AI, Claude.ai mostly.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpotID: Leopard Individual Identification</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+        }
+        #logo-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: white;
+            z-index: 1000;
+            transition: opacity 1s ease-in-out;
+        }
+        #logo {
+            max-width: 70%;
+            max-height: 70%;
+            transition: all 1s ease-in-out;
+        }
+        #content {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #small-logo {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            max-width: 200px;
+            max-height: 100px;
+        }
+        .image-container {
+            position: relative;
+            overflow: hidden;
+            cursor: zoom-in;
+        }
+        .zoomed {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            cursor: zoom-out;
+        }
+        .zoomed img {
+            max-width: 100%;
+            max-height: 48vh;
+            object-fit: contain;
+            margin: 10px 0;
+        }
+        #landing-page {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: white;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 2000;
+        }
+        .option {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 400px;
+        }
+        .option input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        .option button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .option button:hover {
+            background-color: #45a049;
+        }
+        #loading-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            z-index: 2001;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="landing-page">
+        <img src="static/images/logo.jpg" alt="SpotID Logo" style="max-width: 300px; margin-bottom: 30px;">
+        <div class="option">
+            <h2>Open Existing Embeddings</h2>
+            <input type="text" id="existing-embeddings-path" placeholder="Path to existing embeddings folder">
+            <button onclick="openExistingEmbeddings()">Open Embeddings</button>
+        </div>
+        <div class="option">
+            <h2>Run Model from Scratch</h2>
+            <input type="text" id="embeddings-path" placeholder="Path for embeddings output">
+            <input type="text" id="uncropped-images-path" placeholder="Path to uncropped images">
+            <button onclick="runModelFromScratch()">Run Model</button>
+        </div>
+    </div>
+    </div>
+    <div id="logo-container">
+        <img id="logo" src="static/images/logo.jpg" alt="SpotID Logo">
+    </div>
+    <div id="content">
+        <img id="small-logo" src="static/images/logo.jpg" alt="SpotID Logo">
+        <div id="root"></div>
+    </div>
+    <div id="loading-message"></div>
+    <script>
+        function showLoadingMessage(message) {
+            const loadingMessage = document.getElementById('loading-message');
+            loadingMessage.textContent = message;
+            loadingMessage.style.display = 'block';
+        }
+
+        function hideLoadingMessage() {
+            document.getElementById('loading-message').style.display = 'none';
+        }
+
+        function openExistingEmbeddings() {
+            const embeddingsPath = document.getElementById('existing-embeddings-path').value;
+            showLoadingMessage('Loading existing embeddings...');
+            fetch('/open_existing_embeddings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ embeddings_path: embeddingsPath }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoadingMessage();
+                if (data.status === 'success') {
+                    hideLandingPage();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                hideLoadingMessage();
+            });
+        }
+
+        function runModelFromScratch() {
+            const embeddingsPath = document.getElementById('embeddings-path').value;
+            const uncroppedImagesPath = document.getElementById('uncropped-images-path').value;
+            showLoadingMessage('Running model from scratch. This may take a while...');
+            fetch('/run_model_from_scratch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    output_folder: embeddingsPath,
+                    unprocessed_image_folder: uncroppedImagesPath
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoadingMessage();
+                if (data.status === 'success') {
+                    hideLandingPage();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                hideLoadingMessage();
+            });
+        }
+
+        function hideLandingPage() {
+            document.getElementById('landing-page').style.display = 'none';
+            $('#logo-container').css('opacity', '1');
+            setTimeout(function() {
+                $('#logo-container').css('opacity', '0');
+                $('#logo').css({
+                    'max-width': '200px',
+                    'max-height': '100px',
+                    'position': 'absolute',
+                    'top': '10px',
+                    'left': '10px'
+                });
+                setTimeout(function() {
+                    $('#logo-container').hide();
+                    $('#content').css('display', 'flex');
+                    const event = new Event('appReady');
+                    document.dispatchEvent(event);
+                }, 1000);
+            }, 2000);
+        }
+    </script>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const SideBySideZoomableImages = ({ anchorImage, comparisonImage, anchorPath, comparisonPath, binaryAnchorImage, binaryComparisonImage, showEdgeDetected }) => {
+            const [zoomed, setZoomed] = useState(false);
+
+            const toggleZoom = () => {
+                setZoomed(!zoomed);
+            };
+
+            return (
+                <div className="relative">
+                    <div className="flex space-x-4 mb-4 cursor-zoom-in" onClick={toggleZoom}>
+                        <div className="border rounded p-4 w-[600px]">
+                            <h2 className="text-xl mb-2">Anchor Image</h2>
+                            <img src={showEdgeDetected ? binaryAnchorImage : anchorImage} alt="Anchor" className="w-full h-auto" />
+                            <p className="text-xs mt-2 break-all">{anchorPath}</p>
+                        </div>
+                        <div className="border rounded p-4 w-[600px]">
+                            <h2 className="text-xl mb-2">Comparison Image</h2>
+                            <img src={showEdgeDetected ? binaryComparisonImage : comparisonImage} alt="Comparison" className="w-full h-auto" />
+                            <p className="text-xs mt-2 break-all">{comparisonPath}</p>
+                        </div>
+                    </div>
+                    {zoomed && (
+                        <div className="zoomed" onClick={toggleZoom}>
+                            <img src={showEdgeDetected ? binaryAnchorImage : anchorImage} alt="Anchor" />
+                            <img src={showEdgeDetected ? binaryComparisonImage : comparisonImage} alt="Comparison" />
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const LeopardImageValidation = () => {
+            const [anchorImage, setAnchorImage] = useState('');
+            const [comparisonImage, setComparisonImage] = useState('');
+            const [binaryAnchorImage, setBinaryAnchorImage] = useState('');
+            const [binaryComparisonImage, setBinaryComparisonImage] = useState('');
+            const [showEdgeDetected, setShowEdgeDetected] = useState(false);
+            const [confidence, setConfidence] = useState(0);
+            const [currentComparisonIndex, setCurrentComparisonIndex] = useState(0);
+            const [anchorIndex, setAnchorIndex] = useState(0);
+            const [similarImages, setSimilarImages] = useState([]);
+            const [binarySimilarImages, setBinarySimilarImages] = useState([]);
+            const [similarPaths, setSimilarPaths] = useState([]);
+            const [similarIndices, setSimilarIndices] = useState([]);
+            const [confidences, setConfidences] = useState([]);
+            const [matchDir, setMatchDir] = useState('');
+            const [dbName, setDbName] = useState('');
+            const [feedback, setFeedback] = useState('');
+            const [anchorPath, setAnchorPath] = useState('');
+            const [comparisonPath, setComparisonPath] = useState('');
+            const [isReady, setIsReady] = useState(false);
+
+            useEffect(() => {
+                const handleAppReady = () => setIsReady(true);
+                document.addEventListener('appReady', handleAppReady);
+                return () => document.removeEventListener('appReady', handleAppReady);
+            }, []);
+
+
+            useEffect(() => {
+                if (isReady) {
+                    fetchImages(0);
+                }
+            }, [isReady]);
+
+            const fetchImages = async (index) => {
+                try {
+                    const response = await fetch(`/get_anchor_and_similar?index=${index}`);
+                    const data = await response.json();
+                    setAnchorImage(data.anchor);
+                    setBinaryAnchorImage(data.binary_anchor);
+                    setSimilarImages(data.similar);
+                    setBinarySimilarImages(data.binary_similar);
+                    setSimilarPaths(data.similar_paths);
+                    setSimilarIndices(data.similar_indices);
+                    setConfidences(data.confidences);
+                    setComparisonImage(data.similar[0]);
+                    setBinaryComparisonImage(data.binary_similar[0]);
+                    setConfidence(data.confidences[0]);
+                    setCurrentComparisonIndex(0);
+                    setAnchorIndex(data.anchor_index);
+                    setAnchorPath(data.anchor_path);
+                    setComparisonPath(data.similar_paths[0]);
+                } catch (error) {
+                    console.error('Error fetching images:', error);
+                    setFeedback('Error fetching images. Please check your embeddings path and try again.');
+                }
+            };
+
+            const handleDecision = async (isMatch) => {
+                await fetch('/validate_match', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        anchor: anchorIndex,
+                        match: similarIndices[currentComparisonIndex],
+                        is_match: isMatch
+                    }),
+                });
+
+                const nextIndex = currentComparisonIndex + 1;
+                if (nextIndex < similarImages.length) {
+                    setComparisonImage(similarImages[nextIndex]);
+                    setBinaryComparisonImage(binarySimilarImages[nextIndex]);
+                    setComparisonPath(similarPaths[nextIndex]);
+                    setConfidence(confidences[nextIndex]);
+                    setCurrentComparisonIndex(nextIndex);
+                } else {
+                    const response = await fetch(`/get_next_anchor?current_index=${anchorIndex}`);
+                    const data = await response.json();
+                    fetchImages(data.next_index);
+                }
+            };
+
+            const handleNextAnchor = async () => {
+                const response = await fetch(`/get_next_anchor?current_index=${anchorIndex}`);
+                const data = await response.json();
+                fetchImages(data.next_index);
+            };
+
+            const setMatchDirectory = async () => {
+                const response = await fetch('/set_match_dir', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ match_dir: matchDir }),
+                });
+                const data = await response.json();
+                setFeedback(data.message);
+            };
+
+            const createOrOpenDb = async () => {
+                const response = await fetch('/create_or_open_db', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ db_name: dbName }),
+                });
+                const data = await response.json();
+                setFeedback(data.message);
+            };
+
+            const endSession = async () => {
+                const response = await fetch('/end_session', {
+                    method: 'POST',
+                });
+                const data = await response.json();
+                setFeedback(data.message);
+            };
+
+            const toggleEdgeDetection = () => {
+                setShowEdgeDetected(!showEdgeDetected);
+            };
+
+            return (
+                <div className="flex flex-col items-center p-4">
+                    <h1 className="text-2xl font-bold mb-4">SpotID: Leopard Individual Identification</h1>
+
+                    <div className="mb-4">
+                        <input 
+                            type="text" 
+                            value={matchDir} 
+                            onChange={(e) => setMatchDir(e.target.value)}
+                            placeholder="Match Directory"
+                            className="border p-2 mr-2"
+                        />
+                        <button 
+                            onClick={setMatchDirectory}
+                            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                        >
+                            Set Match Directory
+                        </button>
+                    </div>
+
+                    <div className="mb-4">
+                        <input 
+                            type="text" 
+                            value={dbName} 
+                            onChange={(e) => setDbName(e.target.value)}
+                            placeholder="Database Name"
+                            className="border p-2 mr-2"
+                        />
+                        <button 
+                            onClick={createOrOpenDb}
+                            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                        >
+                            Create/Open DB
+                        </button>
+                    </div>
+
+                    {feedback && <p className="text-blue-500 mb-4">{feedback}</p>}
+
+                    <button 
+                        onClick={toggleEdgeDetection}
+                        className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded mb-4"
+                    >
+                        {showEdgeDetected ? "Show Original" : "Show Edge Detected"}
+                    </button>
+
+                    <SideBySideZoomableImages
+                        anchorImage={anchorImage}
+                        comparisonImage={comparisonImage}
+                        binaryAnchorImage={binaryAnchorImage}
+                        binaryComparisonImage={binaryComparisonImage}
+                        anchorPath={anchorPath}
+                        comparisonPath={comparisonPath}
+                        showEdgeDetected={showEdgeDetected}
+                    />
+
+                    <p className="text-lg mb-4">Confidence: {confidence.toFixed(2)}%</p>
+                    <div className="flex space-x-4 mb-4">
+                        <button 
+                            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                            onClick={() => handleDecision(true)}
+                        >
+                            Match
+                        </button>
+                        <button 
+                            className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+                            onClick={() => handleDecision(false)}
+                        >
+                            Not a Match
+                        </button>
+                    </div>
+                    <button 
+                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mb-4"
+                        onClick={handleNextAnchor}
+                    >
+                        Next Anchor Image
+                    </button>
+                    <button 
+                        className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
+                        onClick={endSession}
+                    >
+                        End Session
+                    </button>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<LeopardImageValidation />, document.getElementById('root'));
+    </script>
+</body>
+</html>

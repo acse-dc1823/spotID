@@ -76,10 +76,11 @@ class CosFace(nn.Module):
         one_hot.scatter_(1, labels.view(-1, 1), 1)
         # Calculate h(theta_y_i) and apply it to the correct class
         cosine_correct = cosine * one_hot
-        # h_theta_yi = self.margin * (1 - cosine_correct.pow(2))
+
         h_theta_yi = self.margin * self.new_margin(cosine_correct, one_hot)
 
         # Adjust the cosine similarity
+        # original cosface would be modified_cosine = cosine - one_hot * self.margin
         modified_cosine = cosine - h_theta_yi
 
         # Scale the logits

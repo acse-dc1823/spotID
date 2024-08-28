@@ -2,7 +2,7 @@
 
 ![Project Logo](https://github.com/ese-msc-2023/irp-dc1823/raw/inference/interface/static/images/logo.jpg)
 
-This project attempts to use Deep Learning to create a Leopard Individual Identifier. It encodes each leopard image into N dimensional embeddings, and then these embeddings are compared with one another through a distance metric to decide which images correspond to the same leopard. Two methods were tried, Triplet Networks, and a modified CosFace. For more details, please read the attached paper. 
+This project attempts to use Deep Learning to create a Leopard Individual Identifier. Although the focus of the research was advancing the model, a basic user interface for wildlife researchers is provided. The model encodes each leopard image into N dimensional embeddings (vectors), and then these embeddings are compared with one another through a distance metric to decide which images correspond to the same leopard. Two methods were tried, Triplet Networks, and a modified CosFace. The one saved for the user is the modified CosFace, as it reached considerably higher performance compared to the Triplet Network For more details, please read the attached paper. 
 
 ## Instructions for users and developers:
 

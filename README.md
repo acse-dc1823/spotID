@@ -264,6 +264,18 @@ export PYTHONPATH=path/to/irp-dc1823:$PYTHONPATH
 pytest tests/
 ```
 
+## Citation
+If you use this work as part of your research, please cite "Deep Learning for Leopard Individual Identification: An Adaptive Angular Margin Approach":
+
+```bibtex
+@misc{colomer2024leopard,
+  author       = {Colomer Matachana, David},
+  title        = {Deep Learning for Leopard Individual Identification: An Adaptive Angular Margin Approach},
+  year         = {2024},
+  month        = {August},
+  note         = {Unpublished manuscript, available at \url{https://github.com/ese-msc-2023/irp-dc1823}},
+}
+```
 
 
 

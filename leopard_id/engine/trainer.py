@@ -37,7 +37,7 @@ def train_epoch(
     """
     Train the model for one epoch and return the average loss. Also evaluate the model
     with the chosen metrics on the training data. Do it in one function to avoid accessing
-    data twice. Average metrics over all batches.
+    data twice, which is a bottleneck on an RDS. Average metrics over all batches.
     """
     model.train()
     total_data_time = 0
@@ -62,13 +62,13 @@ def train_epoch(
         total_forward_time += forward_time
 
         if torch.isnan(outputs).any() or torch.isinf(outputs).any():
-            logging.error(f"Detected NaN or Inf in outputs")
+            logging.error("Detected NaN or Inf in outputs")
             continue
 
-        if method == "triplet":  # add this later
+        if method == "triplet":
             loss = criterion(outputs, targets, epoch)
 
-        else:  # For now, only else is cosface loss. Might have to change later
+        else:  # For now, only else is cosface loss.
             # For cosface, need to pass the logits through the cosface layer
             # to get the classification loss
             outputs_cosface = classifier(outputs, targets)
@@ -180,7 +180,8 @@ def evaluate_data(model, outputs, targets, device, method="triplet", max_k=5, ve
 def evaluate_epoch_test(model, data_loader, device, max_k, method="triplet", verbose=True):
     """
     Evaluate specifically for testing data inside an epoch. Collects outputs across
-    batches and then evaluates them all together to compute metrics for the entire test dataset.
+    batches for efficient memory management, and then evaluates them all together
+    to compute metrics for the entire test dataset.
     """
     model.eval()
     all_outputs = []
@@ -224,6 +225,13 @@ def evaluate_epoch_test(model, data_loader, device, max_k, method="triplet", ver
 
 
 def configure_training(model, config, num_input_channels):
+    """
+    Configures the model training based on config parameters. Either the entire model
+    is trained (if train_all_layers=true), or a number of layers up to 3 are trained.
+    Functionality to train the first conv layer if the input has more than 3 channels.
+    Functionality for resnet and efficientnet. Returns the optimizer with the trainable
+    parameters.
+    """
 
     def print_layer_status(model):
         for name, module in model.named_modules():
@@ -316,8 +324,8 @@ def configure_training(model, config, num_input_channels):
 
 def train_model(model, train_loader, test_loader, device, config, num_input_channels, project_root):
     """
-    Train and evaluate the model, focusing only on the last added
-    embedding layer. Save the model every epoch if the average precision
+    Train and evaluate the model. Acts as a high level orchestrator calling other functions in this
+    file to train and test the model. Saves the model every epoch if the average precision
     is higher than the previous epoch, starting from the 15th epoch.
     """
 
@@ -357,13 +365,13 @@ def train_model(model, train_loader, test_loader, device, config, num_input_chan
     max_k = config["max_k"]
 
     if method == "cosface":
+        # CosFace loss requires an extra classifier layer
         num_classes = max(train_loader.dataset.label_to_index.values()) + 1
         logging.info(f"Setting up CosFace loss: Num classes for cosface: {num_classes}")
         classifier = CosFace(
             config["number_embedding_dimensions"], num_classes, margin=config["margin"]
         ).to(device)
     else:
-        logging.info("Setting up Triplet loss")
         classifier = None
 
     best_precision = 0

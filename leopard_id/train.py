@@ -38,7 +38,7 @@ def main(config_file="config.json"):
     print(model)
     print(summary(model, (num_input_channels, config["resize_height"], config["resize_width"])))
 
-    resnet_model = train_model(
+    model = train_model(
         model,
         train_loader,
         test_loader,
@@ -47,12 +47,12 @@ def main(config_file="config.json"):
         num_input_channels=num_input_channels,
         project_root=project_root,
     )
-    main_executor_visualization(resnet_model)
+    main_executor_visualization(model)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Run the triplet network training with an optional configuration file."
+        description="Run the network training with an optional configuration file."
     )
     parser.add_argument(
         "--config_file",

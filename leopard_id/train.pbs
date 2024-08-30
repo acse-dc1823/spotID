@@ -25,6 +25,6 @@ which pip
 # Submit this one from scripts_preprocessing 
 cd $PBS_O_WORKDIR
 
-python3 train.py --config_file config1.json
+python3 train.py --config_file config.json
 
 # Run the code

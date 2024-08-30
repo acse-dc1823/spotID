@@ -78,7 +78,7 @@ This section outlines how to use the model and the interface for users once the 
 Navigate to the interface folder. From leopard_id, this is:
 
 ```bash
-cd ../interface
+cd interface
 ```
 
 Run the interface:

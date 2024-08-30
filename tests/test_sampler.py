@@ -1,3 +1,6 @@
+# author: David Colomer Matachana
+# GitHub username: acse-dc1823
+
 import pytest
 from leopard_id.dataloader import LeopardBatchSampler
 

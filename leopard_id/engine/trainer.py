@@ -1,3 +1,5 @@
+# author: David Colomer Matachana
+# GitHub username: acse-dc1823
 import os
 import torch
 import torch.optim as optim

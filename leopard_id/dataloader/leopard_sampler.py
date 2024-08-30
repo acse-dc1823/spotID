@@ -1,3 +1,6 @@
+# author: David Colomer Matachana
+# GitHub username: acse-dc1823
+
 import numpy as np
 import random
 from torch.utils.data import BatchSampler
@@ -114,7 +117,7 @@ class LeopardBatchSampler(BatchSampler):
 
                 while len(batch) >= self.batch_size:
                     yield batch[: self.batch_size]
-                    batch = batch[self.batch_size :]  # Correctly manage overflow
+                    batch = batch[self.batch_size:]  # Correctly manage overflow
 
                 # Recalculate weights after updating indices
                 weights = [

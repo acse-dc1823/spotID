@@ -1,3 +1,6 @@
+# author: David Colomer Matachana
+# GitHub username: acse-dc1823
+
 import torchvision.transforms as T
 
 

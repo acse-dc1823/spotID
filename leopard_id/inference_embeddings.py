@@ -1,3 +1,6 @@
+# author: David Colomer Matachana
+# GitHub username: acse-dc1823
+
 import os
 import sys
 import json
@@ -14,6 +17,7 @@ from scripts_preprocessing import crop_images_folder, remove_background_processo
 
 project_root = os.path.dirname(os.path.abspath(__file__))
 
+
 class InferenceDataset(Dataset):
     """
     A custom Dataset for inference on leopard images.
@@ -28,15 +32,16 @@ class InferenceDataset(Dataset):
         transform_binary (callable, optional): Optional transform to be applied on mask images.
         pairs (list): List of tuples containing pairs of (image_path, mask_path).
     """
-    def __init__(self, image_folder, mask_folder, transform=None, transform_binary=None, existing_files=None):
+    def __init__(self, image_folder, mask_folder, transform=None, transform_binary=None,
+                 existing_files=None):
         self.image_folder = image_folder
         self.mask_folder = mask_folder
         self.transform = transform
         self.transform_binary = transform_binary
         self.pairs = []
-        
+
         existing_files = set(existing_files) if existing_files else set()
-        
+
         for dirpath, _, filenames in os.walk(image_folder):
             for filename in filenames:
                 if filename.endswith(('.png', '.jpg', '.jpeg')):
@@ -50,7 +55,7 @@ class InferenceDataset(Dataset):
                                 self.pairs.append((img_path, mask_path))
                         else:
                             self.pairs.append((img_path, None))
-        
+
         # Sort pairs to ensure consistent ordering
         self.pairs.sort(key=lambda x: x[0])
 
@@ -60,10 +65,10 @@ class InferenceDataset(Dataset):
     def __getitem__(self, idx):
         img_name, mask_name = self.pairs[idx]
         image = Image.open(img_name).convert('RGB')
-        
+
         if mask_name:
             mask = Image.open(mask_name).convert('L')
-            
+
             if self.transform:
                 image = self.transform(image)
             else:
@@ -84,6 +89,7 @@ class InferenceDataset(Dataset):
 
         return combined, img_name, mask_name
 
+
 def load_model(config):
     """
     Load the pre-trained leopard identification model.
@@ -95,8 +101,8 @@ def load_model(config):
         EmbeddingNetwork: The loaded and initialized model.
     """
     model = EmbeddingNetwork(backbone_model=config.get("backbone_model"),
-                           num_dims=config.get("num_dimensions"),
-                           input_channels=config.get("input_channels"))
+                             num_dims=config.get("num_dimensions"),
+                             input_channels=config.get("input_channels"))
     model_path = os.path.abspath(os.path.join(project_root, config["model_path"]))
 
     model.load_state_dict(torch.load(model_path, map_location='cpu'))
@@ -122,12 +128,13 @@ def create_transforms(config):
         transforms.ToTensor(),
         transforms.Normalize(mean=config['mean_normalize'], std=config['std_normalize'])
     ])
-    
+
     if config.get('mean_normalize_binary_mask') and config.get('std_normalize_binary_mask'):
         binary_transforms = transforms.Compose([
             transforms.Resize((config['resize_height'], config['resize_width'])),
             transforms.ToTensor(),
-            transforms.Normalize(mean=config['mean_normalize_binary_mask'], std=config['std_normalize_binary_mask'])
+            transforms.Normalize(mean=config['mean_normalize_binary_mask'],
+                                 std=config['std_normalize_binary_mask'])
         ])
     else:
         binary_transforms = transforms.Compose([
@@ -163,8 +170,10 @@ def run_inference(config_path):
     output_folder = os.path.abspath(os.path.join(project_root, config['output_folder']))
     base_input_dir = os.path.abspath(os.path.join(project_root, config['unprocessed_image_folder']))
     base_crop_output_dir = os.path.abspath(os.path.join(project_root, config['crop_output_folder']))
-    base_bg_removed_output_dir = os.path.abspath(os.path.join(project_root, config['bg_removed_output_folder']))
-    base_binary_output_dir = os.path.abspath(os.path.join(project_root, config['base_binary_output_folder']))
+    base_bg_removed_output_dir = os.path.abspath(os.path.join(project_root,
+                                                              config['bg_removed_output_folder']))
+    base_binary_output_dir = os.path.abspath(os.path.join(project_root,
+                                                          config['base_binary_output_folder']))
 
     # Create output folders if they don't exist
     os.makedirs(output_folder, exist_ok=True)
@@ -176,7 +185,7 @@ def run_inference(config_path):
         crop_images_folder(base_input_dir, base_crop_output_dir, store_full_images=False)
         remove_background_processor(base_crop_output_dir, base_bg_removed_output_dir)
         edge_detection(base_bg_removed_output_dir, base_binary_output_dir)
-    
+
     # Load existing filepaths and embeddings
     image_filenames_path = os.path.join(output_folder, 'image_filenames.txt')
     binary_image_filenames_path = os.path.join(output_folder, 'binary_image_filenames.txt')
@@ -252,6 +261,7 @@ def run_inference(config_path):
         print(f"{len(new_image_files)} new images processed and added.")
     else:
         print("No new images found. Embeddings and distance matrix remain unchanged.")
+
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

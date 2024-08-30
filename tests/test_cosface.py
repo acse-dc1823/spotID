@@ -1,3 +1,5 @@
+# author: David Colomer Matachana
+# GitHub username: acse-dc1823
 import pytest
 import torch
 import torch.nn.functional as F

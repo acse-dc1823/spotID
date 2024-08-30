@@ -1,3 +1,6 @@
+# author: David Colomer Matachana
+# GitHub username: acse-dc1823
+
 import torch
 import plotly.graph_objs as go
 from sklearn.manifold import TSNE

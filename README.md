@@ -200,7 +200,7 @@ For example, using the minimum usable dataset already provided with this repo, c
     "base_binary_output_folder": "../data/test_binary_output",
 ```
 
-The provided data was already cropped, hence the crop pipeline will probably take the whole image. An edge detected output is already provided, hence the name here is changed to demonstrate the deployment of the binary output. If not, 
+The provided data was already cropped, hence the crop pipeline will probably take the whole image. An edge detected output is already provided, hence the name here is changed to demonstrate the deployment of the binary output.
 
 Once you have done this, we can run the preprocessing.
 

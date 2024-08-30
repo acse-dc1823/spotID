@@ -1,3 +1,6 @@
+# author: David Colomer Matachana
+# GitHub username: acse-dc1823
+
 """
 This script splits a dataset into training and testing sets based on a specified test percentage.
 The split is done by directories (e.g., by leopard), so the image proportions may vary.

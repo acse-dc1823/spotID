@@ -1,3 +1,5 @@
+# author: David Colomer Matachana
+# GitHub username: acse-dc1823
 from flask import Flask, jsonify, request, render_template, send_file
 import numpy as np
 import os

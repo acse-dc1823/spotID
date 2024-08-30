@@ -1,3 +1,6 @@
+# author: David Colomer Matachana
+# GitHub username: acse-dc1823
+
 """
 Script to run all of the preprocessing steps for the image dataset to prepare
 the dataset for training. This script will take your directory of raw

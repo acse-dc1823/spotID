@@ -1,3 +1,6 @@
+# author: David Colomer Matachana
+# GitHub username: acse-dc1823
+
 from torch.utils.data import Dataset
 import torch
 from torchvision.transforms import ToTensor

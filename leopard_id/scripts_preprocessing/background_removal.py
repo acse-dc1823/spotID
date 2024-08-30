@@ -1,3 +1,6 @@
+# author: David Colomer Matachana
+# GitHub username: acse-dc1823
+
 """
 Image Processing Script for Contour Detection and Edge Highlighting
 

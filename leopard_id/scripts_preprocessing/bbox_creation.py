@@ -1,3 +1,6 @@
+# author: David Colomer Matachana
+# GitHub username: acse-dc1823
+
 """
 This script processes images in the specified base_input_dir to create bounding boxes
 around animals using PytorchWildlife (based on YOLO). It saves both cropped images

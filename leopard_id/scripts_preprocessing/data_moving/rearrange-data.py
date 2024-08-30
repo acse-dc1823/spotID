@@ -1,3 +1,6 @@
+# author: David Colomer Matachana
+# GitHub username: acse-dc1823
+
 """
 This script is only relevant for the NCF, ignore it otherwise.
 processes a dataset from the NCF, which is organized by location, year, flank, etc.,

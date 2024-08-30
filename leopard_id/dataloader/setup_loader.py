@@ -1,3 +1,6 @@
+# author: David Colomer Matachana
+# GitHub username: acse-dc1823
+
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms

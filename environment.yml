@@ -1,4 +1,4 @@
-name: leopard-bbox
+name: leopard-id
 channels:
   - defaults
 dependencies:

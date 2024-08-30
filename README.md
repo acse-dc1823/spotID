@@ -29,6 +29,14 @@ Replace path/to with the actual path where you cloned or extracted the project.
 
 
 ### Step 3: Create and Activate a Virtual Environment
+
+First, ensure you have Python 3.10 or later installed. You can check your Python version by running:
+```bash
+python --version
+```
+
+If you need to upgrade, visit the official Python website to download and install the latest version.
+
 Create a virtual environment:
 
 ```bash
@@ -54,6 +62,14 @@ pip install -r requirements.txt
 ```
 
 You are now ready to use the software for encoding images into embeddings.
+
+### Alternative to Step 3 and 4:
+Alternatively, an `environment.yml` is provided, meaning you can create everything seamlessly if you have conda installed: 
+
+```bash
+conda env create -f environment.yml
+conda activate leopard-id
+```
 
 ## Instructions for users only
 

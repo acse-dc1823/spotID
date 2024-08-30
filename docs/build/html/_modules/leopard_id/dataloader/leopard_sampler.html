@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>leopard_id.dataloader.leopard_sampler &mdash; SpotID: Leopard Individual Identification 30/08/2024 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=3c203f6c"></script>
+        <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            SpotID: Leopard Individual Identification
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">leopard_id</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">SpotID: Leopard Individual Identification</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">leopard_id.dataloader.leopard_sampler</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for leopard_id.dataloader.leopard_sampler</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">BatchSampler</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+
+<span class="c1"># Configure logging</span>
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
+    <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;logs.log&quot;</span><span class="p">,</span>
+    <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span>
+    <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(asctime)s</span><span class="s2"> - </span><span class="si">%(levelname)s</span><span class="s2"> - </span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="LeopardBatchSampler">
+<a class="viewcode-back" href="../../../leopard_id.dataloader.html#leopard_id.dataloader.leopard_sampler.LeopardBatchSampler">[docs]</a>
+<span class="k">class</span> <span class="nc">LeopardBatchSampler</span><span class="p">(</span><span class="n">BatchSampler</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Custom batch sampler for leopards that ensures each batch contains images</span>
+<span class="sd">    from multiple leopards. Each leopard will contribute up to a maximum of</span>
+<span class="sd">    4 images per batch, depending on availability.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        dataset (Dataset): The dataset from which to sample, expected to have</span>
+<span class="sd">        a &#39;leopards&#39; attribute listing identifiers.</span>
+<span class="sd">        batch_size (int): The number of items in each batch.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">max_images_indiv</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the batch sampler with dataset information, batch size.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">leopard_to_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_map_leopards_to_indices</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">leopards</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">leopard_to_indices</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_images_indiv</span> <span class="o">=</span> <span class="n">max_images_indiv</span>
+
+    <span class="k">def</span> <span class="nf">_map_leopards_to_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a mapping from each leopard identifier to the list of indices</span>
+<span class="sd">        of its images in the dataset.</span>
+<span class="sd">        This facilitates quick access to images during batch sampling.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">leopard_to_indices</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">leopard</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">leopards</span><span class="p">):</span>
+            <span class="c1"># First time we encounter leopard we need to instantiate list</span>
+            <span class="k">if</span> <span class="n">leopard</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">leopard_to_indices</span><span class="p">:</span>
+                <span class="n">leopard_to_indices</span><span class="p">[</span><span class="n">leopard</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">leopard_to_indices</span><span class="p">[</span><span class="n">leopard</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">leopard_to_indices</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        An iterator that generates batches of indices from the dataset, where</span>
+<span class="sd">        each batch contains indices of images from multiple leopards.</span>
+<span class="sd">        The leopards are chosen with a probability proportional to the</span>
+<span class="sd">        logarithm of the number of available images, such that leopards</span>
+<span class="sd">        with more instances are more likely to be selected, but not</span>
+<span class="sd">        overwhelmingly so due to the logarithm. We do this so that later</span>
+<span class="sd">        batches aren&#39;t dominated by a single leopard (uniform probability of</span>
+<span class="sd">        choosing leopards would actually mean leopards with more instances</span>
+<span class="sd">        aren&#39;t consumed till the end, as they need to be chosen many times</span>
+<span class="sd">        to consume them).</span>
+
+<span class="sd">        Yields:</span>
+<span class="sd">            list: A batch of image indices. Each batch is constrained</span>
+<span class="sd">            by `batch_size`.</span>
+
+<span class="sd">        Steps:</span>
+<span class="sd">        1. Prepare a copy of available indices for each leopard.</span>
+<span class="sd">        2. Calculate initial weights based on the logarithm of the number</span>
+<span class="sd">           of available indices for active leopards.</span>
+<span class="sd">        3. Continue to select leopards and sample images until all</span>
+<span class="sd">           indices are exhausted:</span>
+<span class="sd">          - Select a leopard based on the current weights.</span>
+<span class="sd">          - Sample up to 4 images from the selected leopard.</span>
+<span class="sd">          - Update the batch and remove the selected indices from the</span>
+<span class="sd">            leopard&#39;s available pool.</span>
+<span class="sd">          - If a batch reaches the specified size, yield it and</span>
+<span class="sd">            reset for the next batch.</span>
+<span class="sd">        4. Once all images are selected or when no more indices are available,</span>
+<span class="sd">           finalize and yield any remaining images if they meet</span>
+<span class="sd">           the batch size requirements.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">available_indices</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">leopard</span><span class="p">:</span> <span class="n">indices</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">leopard</span><span class="p">,</span> <span class="n">indices</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">leopard_to_indices</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">num_operations</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1"># Calculate weights based on the number</span>
+            <span class="c1">#  of available indices for each leopard</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">available_indices</span><span class="p">[</span><span class="n">leopard</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">leopard</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">leopards</span>
+                <span class="k">if</span> <span class="n">available_indices</span><span class="p">[</span><span class="n">leopard</span><span class="p">]</span>
+            <span class="p">]</span>
+
+            <span class="n">leopards_with_indices</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">leopard</span> <span class="k">for</span> <span class="n">leopard</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">leopards</span> <span class="k">if</span> <span class="n">available_indices</span><span class="p">[</span><span class="n">leopard</span><span class="p">]</span>
+            <span class="p">]</span>
+
+            <span class="k">while</span> <span class="nb">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">num_operations</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">chosen_leopard</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choices</span><span class="p">(</span><span class="n">leopards_with_indices</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+                <span class="n">num_images</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">available_indices</span><span class="p">[</span><span class="n">chosen_leopard</span><span class="p">]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_images_indiv</span><span class="p">)</span>
+                <span class="n">selected_indices</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">available_indices</span><span class="p">[</span><span class="n">chosen_leopard</span><span class="p">],</span> <span class="n">num_images</span><span class="p">)</span>
+
+                <span class="n">batch</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">selected_indices</span><span class="p">)</span>
+                <span class="n">available_indices</span><span class="p">[</span><span class="n">chosen_leopard</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">idx</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">available_indices</span><span class="p">[</span><span class="n">chosen_leopard</span><span class="p">]</span> <span class="k">if</span> <span class="n">idx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">selected_indices</span>
+                <span class="p">]</span>
+
+                <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">:</span>
+                    <span class="k">yield</span> <span class="n">batch</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="p">]</span>
+                    <span class="n">batch</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="p">:]</span>  <span class="c1"># Correctly manage overflow</span>
+
+                <span class="c1"># Recalculate weights after updating indices</span>
+                <span class="n">weights</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">available_indices</span><span class="p">[</span><span class="n">leopard</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">leopard</span> <span class="ow">in</span> <span class="n">leopards_with_indices</span>
+                    <span class="k">if</span> <span class="n">available_indices</span><span class="p">[</span><span class="n">leopard</span><span class="p">]</span>
+                <span class="p">]</span>
+
+                <span class="n">leopards_with_indices</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">leopard</span> <span class="k">for</span> <span class="n">leopard</span> <span class="ow">in</span> <span class="n">leopards_with_indices</span> <span class="k">if</span> <span class="n">available_indices</span><span class="p">[</span><span class="n">leopard</span><span class="p">]</span>
+                <span class="p">]</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">batch</span>
+                <span class="n">batch</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># Ensure batch is cleared after yielding</span>
+
+            <span class="c1"># Summing up available images</span>
+
+            <span class="n">available_images</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span> <span class="k">for</span> <span class="n">indices</span> <span class="ow">in</span> <span class="n">available_indices</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
+
+            <span class="k">if</span> <span class="n">available_images</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">break</span>  <span class="c1"># Exit loop if all indices have been used</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Provides an estimate of the number of batches per epoch based</span>
+<span class="sd">        on total images and batch size.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Sum up all indices available across all leopards and calculate</span>
+        <span class="c1"># the number of batches</span>
+        <span class="n">total_images</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span> <span class="k">for</span> <span class="n">indices</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">leopard_to_indices</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">total_images</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="p">)</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span>  <span class="c1"># Ceiling division for complete batches</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, David Colomer Matachana.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

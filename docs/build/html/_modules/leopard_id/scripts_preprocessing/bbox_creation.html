@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>leopard_id.scripts_preprocessing.bbox_creation &mdash; SpotID: Leopard Individual Identification 30/08/2024 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=3c203f6c"></script>
+        <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            SpotID: Leopard Individual Identification
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">leopard_id</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">SpotID: Leopard Individual Identification</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">leopard_id.scripts_preprocessing.bbox_creation</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for leopard_id.scripts_preprocessing.bbox_creation</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This script processes images in the specified base_input_dir to create bounding boxes</span>
+<span class="sd">around animals using PytorchWildlife (based on YOLO). It saves both cropped images</span>
+<span class="sd">and full images with bounding boxes in separate directories.</span>
+
+<span class="sd">Steps:</span>
+
+<span class="sd">1. **Setup:**</span>
+<span class="sd">   - Configures logging and device settings (CUDA if available).</span>
+<span class="sd">   - Initializes the MegaDetectorV5 model from PytorchWildlife.</span>
+<span class="sd">   - Defines base directories for input and output data, creating them if they don&#39;t exist.</span>
+<span class="sd">   - Sets up image transformation parameters.</span>
+
+<span class="sd">2. **Functions:**</span>
+<span class="sd">   - `process_image(img_path, full_output_path, crop_output_path)`:</span>
+<span class="sd">   Processes a single image to detect animals, save the full image with bounding boxes,</span>
+<span class="sd">   and save cropped images of detected animals. Logs processing time for each image.</span>
+
+<span class="sd">3. **Main Loop:**</span>
+<span class="sd">   - Iterates through all subdirectories and images in base_input_dir.</span>
+<span class="sd">   - Processes each image, saving results in the appropriate output directories.</span>
+<span class="sd">   - Logs the processing time for each directory and calculates average times for images</span>
+<span class="sd">     and directories.</span>
+
+<span class="sd">Finally, the script logs the total processing time and prints a confirmation message upon</span>
+<span class="sd">completion.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">PytorchWildlife.models</span> <span class="kn">import</span> <span class="n">detection</span> <span class="k">as</span> <span class="n">pw_detection</span>
+<span class="kn">from</span> <span class="nn">PytorchWildlife.data</span> <span class="kn">import</span> <span class="n">transforms</span> <span class="k">as</span> <span class="n">pw_trans</span>
+<span class="kn">from</span> <span class="nn">PytorchWildlife</span> <span class="kn">import</span> <span class="n">utils</span> <span class="k">as</span> <span class="n">pw_utils</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
+    <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;../data/processing_log.log&quot;</span><span class="p">,</span>
+    <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span>
+    <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(asctime)s</span><span class="s2">:</span><span class="si">%(levelname)s</span><span class="s2">:</span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="c1"># Function to process a single image</span>
+<div class="viewcode-block" id="process_image">
+<a class="viewcode-back" href="../../../leopard_id.scripts_preprocessing.html#leopard_id.scripts_preprocessing.bbox_creation.process_image">[docs]</a>
+<span class="k">def</span> <span class="nf">process_image</span><span class="p">(</span>
+    <span class="n">img_path</span><span class="p">,</span>
+    <span class="n">full_output_path</span><span class="p">,</span>
+    <span class="n">crop_output_path</span><span class="p">,</span>
+    <span class="n">transform</span><span class="p">,</span>
+    <span class="n">detection_model</span><span class="p">,</span>
+    <span class="n">store_full_images</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>  <span class="c1"># Start time for processing this image</span>
+
+    <span class="n">img</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">img_path</span><span class="p">)</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s2">&quot;RGB&quot;</span><span class="p">))</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">detection_model</span><span class="o">.</span><span class="n">single_image_detection</span><span class="p">(</span>
+        <span class="n">transform</span><span class="p">(</span><span class="n">img</span><span class="p">),</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">img_path</span><span class="p">,</span> <span class="n">conf_thres</span><span class="o">=</span><span class="mf">0.6</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">store_full_images</span><span class="p">:</span>
+        <span class="n">pw_utils</span><span class="o">.</span><span class="n">save_detection_images</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">full_output_path</span><span class="p">)</span>
+    <span class="n">results_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">results</span><span class="p">]</span>
+    <span class="n">pw_utils</span><span class="o">.</span><span class="n">save_crop_images</span><span class="p">(</span><span class="n">results_list</span><span class="p">,</span> <span class="n">crop_output_path</span><span class="p">)</span>
+
+    <span class="c1"># Calculate time taken and log it</span>
+    <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span>  <span class="c1"># Return processing time for this image</span></div>
+
+
+
+<div class="viewcode-block" id="is_image_processed">
+<a class="viewcode-back" href="../../../leopard_id.scripts_preprocessing.html#leopard_id.scripts_preprocessing.bbox_creation.is_image_processed">[docs]</a>
+<span class="k">def</span> <span class="nf">is_image_processed</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">output_dir</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">filename</span> <span class="ow">in</span> <span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="get_unprocessed_images">
+<a class="viewcode-back" href="../../../leopard_id.scripts_preprocessing.html#leopard_id.scripts_preprocessing.bbox_creation.get_unprocessed_images">[docs]</a>
+<span class="k">def</span> <span class="nf">get_unprocessed_images</span><span class="p">(</span><span class="n">input_dir</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">):</span>
+    <span class="n">unprocessed</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">input_dir</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.jpg&quot;</span><span class="p">):</span>
+                <span class="n">input_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+                <span class="n">relative_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">input_dir</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">is_image_processed</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">)):</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Processing image </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span><span class="w"> </span><span class="n">relative_path</span><span class="p">,</span><span class="w"> </span><span class="n">file</span><span class="p">)</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+                    <span class="n">unprocessed</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">input_path</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Image </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_dir</span><span class="p">,</span><span class="w"> </span><span class="n">relative_path</span><span class="p">,</span><span class="w"> </span><span class="n">file</span><span class="p">)</span><span class="si">}</span><span class="s2"> has already been processed for background removal, skipping...&quot;</span>
+                    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">unprocessed</span></div>
+
+
+
+<div class="viewcode-block" id="crop_images_folder">
+<a class="viewcode-back" href="../../../leopard_id.scripts_preprocessing.html#leopard_id.scripts_preprocessing.bbox_creation.crop_images_folder">[docs]</a>
+<span class="k">def</span> <span class="nf">crop_images_folder</span><span class="p">(</span>
+    <span class="n">base_input_dir</span><span class="p">,</span> <span class="n">base_crop_output_dir</span><span class="p">,</span> <span class="n">base_full_output_dir</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">store_full_images</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">):</span>
+    <span class="c1"># Device configuration</span>
+    <span class="n">DEVICE</span> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span>
+    <span class="n">detection_model</span> <span class="o">=</span> <span class="n">pw_detection</span><span class="o">.</span><span class="n">MegaDetectorV5</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">DEVICE</span><span class="p">,</span> <span class="n">pretrained</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Ensure output directories exist</span>
+    <span class="k">if</span> <span class="n">store_full_images</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">base_full_output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">base_crop_output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Image transformation</span>
+    <span class="n">transform</span> <span class="o">=</span> <span class="n">pw_trans</span><span class="o">.</span><span class="n">MegaDetector_v5_Transform</span><span class="p">(</span>
+        <span class="n">target_size</span><span class="o">=</span><span class="n">detection_model</span><span class="o">.</span><span class="n">IMAGE_SIZE</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">detection_model</span><span class="o">.</span><span class="n">STRIDE</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Start timing for the entire processing</span>
+    <span class="n">start_total_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">image_times</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># Store times for each image to calculate average</span>
+    <span class="n">dir_times</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># Get list of unprocessed images</span>
+    <span class="n">unprocessed_images</span> <span class="o">=</span> <span class="n">get_unprocessed_images</span><span class="p">(</span><span class="n">base_input_dir</span><span class="p">,</span> <span class="n">base_crop_output_dir</span><span class="p">)</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">unprocessed_images</span><span class="p">)</span><span class="si">}</span><span class="s2"> unprocessed images.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Process unprocessed images</span>
+    <span class="k">for</span> <span class="n">img_path</span><span class="p">,</span> <span class="n">relative_path</span> <span class="ow">in</span> <span class="n">unprocessed_images</span><span class="p">:</span>
+        <span class="n">full_output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base_full_output_dir</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">)</span>
+        <span class="n">crop_output_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">base_crop_output_dir</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">)</span>
+
+        <span class="c1"># Ensure output subdirectories exist</span>
+        <span class="k">if</span> <span class="n">store_full_images</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">full_output_path</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">crop_output_path</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Process the image and log time</span>
+        <span class="n">image_time</span> <span class="o">=</span> <span class="n">process_image</span><span class="p">(</span>
+            <span class="n">img_path</span><span class="p">,</span>
+            <span class="n">full_output_path</span><span class="p">,</span>
+            <span class="n">crop_output_path</span><span class="p">,</span>
+            <span class="n">transform</span><span class="p">,</span>
+            <span class="n">detection_model</span><span class="p">,</span>
+            <span class="n">store_full_images</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">image_times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image_time</span><span class="p">)</span>
+
+        <span class="c1"># Update directory times</span>
+        <span class="k">if</span> <span class="n">relative_path</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dir_times</span><span class="p">:</span>
+            <span class="n">dir_times</span><span class="p">[</span><span class="n">relative_path</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">dir_times</span><span class="p">[</span><span class="n">relative_path</span><span class="p">]</span> <span class="o">+=</span> <span class="n">image_time</span>
+
+    <span class="c1"># Log statistics</span>
+    <span class="k">if</span> <span class="n">image_times</span><span class="p">:</span>
+        <span class="n">average_time_per_image</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">image_times</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">image_times</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Average time per image: </span><span class="si">{</span><span class="n">average_time_per_image</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> seconds&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">dir_path</span><span class="p">,</span> <span class="n">dir_time</span> <span class="ow">in</span> <span class="n">dir_times</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total time for directory </span><span class="si">{</span><span class="n">dir_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">dir_time</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> seconds&quot;</span><span class="p">)</span>
+
+    <span class="n">end_total_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">total_processing_time</span> <span class="o">=</span> <span class="n">end_total_time</span> <span class="o">-</span> <span class="n">start_total_time</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total processing time: </span><span class="si">{</span><span class="n">total_processing_time</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> seconds&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Processed </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">unprocessed_images</span><span class="p">)</span><span class="si">}</span><span class="s2"> new images.&quot;</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># base_input_dir = &quot;../data/inference_images&quot;</span>
+<span class="c1"># base_full_output_dir = &quot;../data/full_output_test_2&quot;</span>
+<span class="c1"># base_crop_output_dir = &quot;../data/crop_output_test_2&quot;</span>
+<span class="c1"># crop_images_folder(base_input_dir, base_crop_output_dir,</span>
+<span class="c1">#                    store_full_images=False)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, David Colomer Matachana.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

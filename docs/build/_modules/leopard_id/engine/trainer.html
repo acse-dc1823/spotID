@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>leopard_id.engine.trainer &mdash; SpotID: Leopard Individual Identification 30/08/2024 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=3c203f6c"></script>
+        <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            SpotID: Leopard Individual Identification
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">leopard_id</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">SpotID: Leopard Individual Identification</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">leopard_id.engine.trainer</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for leopard_id.engine.trainer</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.optim</span> <span class="k">as</span> <span class="nn">optim</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">CrossEntropyLoss</span>
+<span class="kn">from</span> <span class="nn">torch.optim.lr_scheduler</span> <span class="kn">import</span> <span class="n">StepLR</span>
+
+<span class="c1"># To launch TensorBoard, run tensorboard --logdir runs</span>
+<span class="kn">from</span> <span class="nn">torch.utils.tensorboard</span> <span class="kn">import</span> <span class="n">SummaryWriter</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">from</span> <span class="nn">losses</span> <span class="kn">import</span> <span class="n">TripletLoss</span><span class="p">,</span> <span class="n">euclidean_dist</span><span class="p">,</span> <span class="n">CosFace</span><span class="p">,</span> <span class="n">cosine_dist</span>
+<span class="kn">from</span> <span class="nn">metrics</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">compute_dynamic_top_k_avg_precision</span><span class="p">,</span>
+    <span class="n">compute_class_distance_ratio</span><span class="p">,</span>
+    <span class="n">compute_top_k_rank_match_detection</span><span class="p">,</span>
+    <span class="n">compute_average_angular_separation</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
+    <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;timings.log&quot;</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(asctime)s</span><span class="s2"> - </span><span class="si">%(levelname)s</span><span class="s2"> - </span><span class="si">%(message)s</span><span class="s2">&quot;</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="train_epoch">
+<a class="viewcode-back" href="../../../leopard_id.engine.html#leopard_id.engine.trainer.train_epoch">[docs]</a>
+<span class="k">def</span> <span class="nf">train_epoch</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">,</span>
+    <span class="n">data_loader</span><span class="p">,</span>
+    <span class="n">optimizer</span><span class="p">,</span>
+    <span class="n">criterion</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">,</span>
+    <span class="n">max_k</span><span class="p">,</span>
+    <span class="n">epoch</span><span class="p">,</span>
+    <span class="n">method</span><span class="o">=</span><span class="s2">&quot;triplet&quot;</span><span class="p">,</span>
+    <span class="n">classifier</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Train the model for one epoch and return the average loss. Also evaluate the model</span>
+<span class="sd">    with the chosen metrics on the training data. Do it in one function to avoid accessing</span>
+<span class="sd">    data twice. Average metrics over all batches.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+    <span class="n">total_data_time</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">total_forward_time</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">total_train_eval_time</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">start_data_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="n">total_loss</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">total_precision</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">total_class_distance_ratio</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">total_match_rate</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="ow">in</span> <span class="n">data_loader</span><span class="p">:</span>
+        <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">targets</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">data_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_data_time</span>
+        <span class="n">total_data_time</span> <span class="o">+=</span> <span class="n">data_time</span>
+
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+
+        <span class="n">start_forward_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="n">forward_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_forward_time</span>
+        <span class="n">total_forward_time</span> <span class="o">+=</span> <span class="n">forward_time</span>
+
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="ow">or</span> <span class="n">torch</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Detected NaN or Inf in outputs&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;triplet&quot;</span><span class="p">:</span>  <span class="c1"># add this later</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">criterion</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">epoch</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># For now, only else is cosface loss. Might have to change later</span>
+            <span class="c1"># For cosface, need to pass the logits through the cosface layer</span>
+            <span class="c1"># to get the classification loss</span>
+            <span class="n">outputs_cosface</span> <span class="o">=</span> <span class="n">classifier</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">criterion</span><span class="p">(</span><span class="n">outputs_cosface</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">loss</span><span class="o">.</span><span class="n">grad_fn</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Loss tensor with value: </span><span class="si">{</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">}</span><span class="s2"> has no grad_fn, aborting backward to avoid crash&quot;</span>
+            <span class="p">)</span>
+            <span class="k">continue</span>  <span class="c1"># Skip backward and log the issue, but avoid crashing</span>
+
+        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+
+        <span class="c1"># loss is already averaged per comparison</span>
+        <span class="n">total_loss</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+        <span class="c1"># start evaluation on training data</span>
+        <span class="n">start_eval_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">train_precision</span><span class="p">,</span> <span class="n">train_class_distance_ratio</span><span class="p">,</span> <span class="n">train_match_rate</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">evaluate_data</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">max_k</span><span class="o">=</span><span class="n">max_k</span>
+        <span class="p">)</span>
+        <span class="n">train_eval_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_eval_time</span>
+        <span class="n">total_train_eval_time</span> <span class="o">+=</span> <span class="n">train_eval_time</span>
+
+        <span class="n">total_precision</span> <span class="o">+=</span> <span class="n">train_precision</span>
+        <span class="n">total_class_distance_ratio</span> <span class="o">+=</span> <span class="n">train_class_distance_ratio</span>
+        <span class="n">total_match_rate</span> <span class="o">+=</span> <span class="n">train_match_rate</span>
+        <span class="n">start_data_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span>
+        <span class="k">del</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">targets</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span>
+
+    <span class="c1"># Average loss per batch</span>
+    <span class="n">avg_loss</span> <span class="o">=</span> <span class="n">total_loss</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_loader</span><span class="p">)</span>
+    <span class="n">avg_precision</span> <span class="o">=</span> <span class="n">total_precision</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_loader</span><span class="p">)</span>
+    <span class="n">avg_class_distance_ratio</span> <span class="o">=</span> <span class="n">total_class_distance_ratio</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_loader</span><span class="p">)</span>
+    <span class="n">avg_match_rate</span> <span class="o">=</span> <span class="n">total_match_rate</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_loader</span><span class="p">)</span>
+
+    <span class="c1"># Logging the cumulative times</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cumulative data loading time for training: </span><span class="si">{</span><span class="n">total_data_time</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> seconds&quot;</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cumulative forward pass time for training: </span><span class="si">{</span><span class="n">total_forward_time</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> seconds&quot;</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cumulative training evaluation time: </span><span class="si">{</span><span class="n">total_train_eval_time</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> seconds&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">avg_loss</span><span class="p">,</span> <span class="n">avg_precision</span><span class="p">,</span> <span class="n">avg_class_distance_ratio</span><span class="p">,</span> <span class="n">avg_match_rate</span></div>
+
+
+
+<div class="viewcode-block" id="evaluate_data">
+<a class="viewcode-back" href="../../../leopard_id.engine.html#leopard_id.engine.trainer.evaluate_data">[docs]</a>
+<span class="k">def</span> <span class="nf">evaluate_data</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;triplet&quot;</span><span class="p">,</span> <span class="n">max_k</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Evaluate the model and return the average precision, class distance</span>
+<span class="sd">    ratio and top k match ratio using logging for verbose output. Gets called</span>
+<span class="sd">    inside an epoch, so is returning each metric for a specific batch.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="c1"># Distance matrix computation</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;triplet&quot;</span><span class="p">:</span>
+            <span class="n">dist_mat</span> <span class="o">=</span> <span class="n">euclidean_dist</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># For now, cosface loss</span>
+            <span class="n">dist_mat</span> <span class="o">=</span> <span class="n">cosine_dist</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">)</span>
+        <span class="n">time_taken_dist</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span>
+
+        <span class="c1"># Precision calculation</span>
+        <span class="n">start_time_precision</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">batch_precision</span> <span class="o">=</span> <span class="n">compute_dynamic_top_k_avg_precision</span><span class="p">(</span><span class="n">dist_mat</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">max_k</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="n">time_taken_precision</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time_precision</span>
+
+        <span class="c1"># Class distance ratio calculation</span>
+        <span class="n">start_time_ratio</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">class_distance_ratio</span> <span class="o">=</span> <span class="n">compute_class_distance_ratio</span><span class="p">(</span><span class="n">dist_mat</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="n">time_taken_ratio</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time_ratio</span>
+
+        <span class="c1"># Top k match rate</span>
+        <span class="n">start_time_match_rate</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">batch_match_rate</span> <span class="o">=</span> <span class="n">compute_top_k_rank_match_detection</span><span class="p">(</span><span class="n">dist_mat</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">max_k</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="n">time_taken_match_rate</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time_match_rate</span>
+
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Time taken to calculate class distance: </span><span class="si">{</span><span class="n">time_taken_dist</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> s&quot;</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Time taken to calculate precision: </span><span class="si">{</span><span class="n">time_taken_precision</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> s&quot;</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Time taken to calculate class distance ratio: </span><span class="si">{</span><span class="n">time_taken_ratio</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> s&quot;</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Time taken to calculate top k match rate: &quot;</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">time_taken_match_rate</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> s&quot;</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">method</span> <span class="o">!=</span> <span class="s2">&quot;triplet&quot;</span><span class="p">:</span>  <span class="c1"># For cosface loss</span>
+                <span class="c1"># Compute average angular separation</span>
+                <span class="n">avg_same_class_angle</span><span class="p">,</span> <span class="n">avg_diff_class_angle</span><span class="p">,</span> <span class="n">top_10_smallest_angles</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">compute_average_angular_separation</span><span class="p">(</span><span class="n">dist_mat</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Average angular separation (same class): </span><span class="si">{</span><span class="n">avg_same_class_angle</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> degrees&quot;</span>
+                <span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Average angular separation (different classes): </span><span class="si">{</span><span class="n">avg_diff_class_angle</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> degrees&quot;</span>
+                <span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Top 10 smallest angular separations: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="n">top_10_smallest_angles</span><span class="p">))</span><span class="si">}</span><span class="s2"> degrees&quot;</span>
+                <span class="p">)</span>
+
+    <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">batch_precision</span><span class="p">,</span> <span class="n">class_distance_ratio</span><span class="p">,</span> <span class="n">batch_match_rate</span><span class="p">,</span> <span class="n">dist_mat</span></div>
+
+
+
+<div class="viewcode-block" id="evaluate_epoch_test">
+<a class="viewcode-back" href="../../../leopard_id.engine.html#leopard_id.engine.trainer.evaluate_epoch_test">[docs]</a>
+<span class="k">def</span> <span class="nf">evaluate_epoch_test</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">data_loader</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">max_k</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;triplet&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Evaluate specifically for testing data inside an epoch. Collects outputs across</span>
+<span class="sd">    batches and then evaluates them all together to compute metrics for the entire test dataset.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+    <span class="n">all_outputs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">all_targets</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">data_time</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">use_cuda</span> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span> <span class="ow">in</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span>
+
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>  <span class="c1"># Disable gradient computation to save memory and computations</span>
+        <span class="k">for</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="ow">in</span> <span class="n">data_loader</span><span class="p">:</span>
+            <span class="n">batch_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">targets</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+            <span class="c1"># Forward pass for current batch</span>
+            <span class="n">outputs</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+            <span class="c1"># Store outputs and targets to compute metrics later</span>
+            <span class="n">all_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">outputs</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span>  <span class="c1"># Detach outputs to avoid saving computation graph</span>
+            <span class="n">all_targets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span>
+
+            <span class="n">data_time</span> <span class="o">+=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">batch_start_time</span>
+
+            <span class="c1"># Clean up to prevent memory leaks</span>
+            <span class="k">del</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">targets</span>
+            <span class="k">if</span> <span class="n">use_cuda</span><span class="p">:</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span>
+
+        <span class="c1"># Concatenate all collected outputs and targets</span>
+        <span class="n">all_outputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_outputs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">all_targets</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_targets</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Evaluate the entire dataset at once</span>
+        <span class="n">total_precision</span><span class="p">,</span> <span class="n">class_distance_ratio</span><span class="p">,</span> <span class="n">total_match_rate</span><span class="p">,</span> <span class="n">dist_mat</span> <span class="o">=</span> <span class="n">evaluate_data</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="n">all_outputs</span><span class="p">,</span> <span class="n">all_targets</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">max_k</span><span class="o">=</span><span class="n">max_k</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
+        <span class="p">)</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Time taken to access test data </span><span class="si">{</span><span class="n">data_time</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> s&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">total_precision</span><span class="p">,</span> <span class="n">class_distance_ratio</span><span class="p">,</span> <span class="n">total_match_rate</span></div>
+
+
+
+<div class="viewcode-block" id="configure_training">
+<a class="viewcode-back" href="../../../leopard_id.engine.html#leopard_id.engine.trainer.configure_training">[docs]</a>
+<span class="k">def</span> <span class="nf">configure_training</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">num_input_channels</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">print_layer_status</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_modules</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">requires_grad</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">module</span><span class="o">.</span><span class="n">parameters</span><span class="p">()):</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Layer </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> is unfrozen for training.&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Layer </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> is frozen.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Initialize the list for trainable parameters</span>
+    <span class="n">trainable_params</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;train_all_layers&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="c1"># Set all parameters to trainable</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+            <span class="n">param</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># Collect all parameters for the optimizer</span>
+        <span class="n">trainable_params</span><span class="o">.</span><span class="n">extend</span><span class="p">({</span><span class="s1">&#39;params&#39;</span><span class="p">:</span> <span class="n">param</span><span class="p">}</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;All layers are set to be trainable.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Freeze all pretrained layers initially</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+            <span class="n">param</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># If we have more than 3 input channels, train the first conv layer (conv_stem)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">num_input_channels</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">num_input_channels</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;backbone_model&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;tf_efficientnetv2_b2&quot;</span> <span class="ow">or</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;backbone_model&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;tf_efficientnetv2_b3&quot;</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">final_backbone</span><span class="o">.</span><span class="n">conv_stem</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+                    <span class="n">param</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">trainable_params</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;params&#39;</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">final_backbone</span><span class="o">.</span><span class="n">conv_stem</span><span class="o">.</span><span class="n">parameters</span><span class="p">()})</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Unfrozen parameters of conv_stem layer to accept input of more than 3 channels.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;backbone_model&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;resnet18&quot;</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">final_backbone</span><span class="o">.</span><span class="n">conv1</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+                    <span class="n">param</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">trainable_params</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;params&#39;</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">final_backbone</span><span class="o">.</span><span class="n">conv1</span><span class="o">.</span><span class="n">parameters</span><span class="p">()})</span>
+
+        <span class="c1"># Unfreeze specific layers based on configuration</span>
+        <span class="n">num_layers_to_train</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;num_last_layers_to_train&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">num_layers_to_train</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># Unfreeze and add the embedding layer parameters</span>
+            <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">embedding_layer</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+                <span class="n">param</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">trainable_params</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;params&#39;</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">embedding_layer</span><span class="o">.</span><span class="n">parameters</span><span class="p">()})</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Unfrozen parameters of embedding layer.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">num_layers_to_train</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="c1"># Unfreeze and add the classifier parameters</span>
+            <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;backbone_model&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;tf_efficientnetv2_b2&quot;</span> <span class="ow">or</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;backbone_model&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;tf_efficientnetv2_b3&quot;</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">final_backbone</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+                    <span class="n">param</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">trainable_params</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;params&#39;</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">final_backbone</span><span class="o">.</span><span class="n">classifier</span><span class="o">.</span><span class="n">parameters</span><span class="p">()})</span>
+            <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;backbone_model&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;resnet18&quot;</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">final_backbone</span><span class="o">.</span><span class="n">fc</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+                    <span class="n">param</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">trainable_params</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;params&#39;</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">final_backbone</span><span class="o">.</span><span class="n">fc</span><span class="o">.</span><span class="n">parameters</span><span class="p">()})</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Unfrozen parameters of classifier layer.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">num_layers_to_train</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="c1"># Unfreeze and add the conv_head parameters</span>
+            <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;backbone_model&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;tf_efficientnetv2_b2&quot;</span> <span class="ow">or</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;backbone_model&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;tf_efficientnetv2_b3&quot;</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">final_backbone</span><span class="o">.</span><span class="n">conv_head</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+                    <span class="n">param</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">trainable_params</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;params&#39;</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">final_backbone</span><span class="o">.</span><span class="n">conv_head</span><span class="o">.</span><span class="n">parameters</span><span class="p">()})</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Unfrozen parameters of conv_head.&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;backbone_model&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;resnet18&quot;</span><span class="p">:</span>
+                <span class="n">last_layer_group</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">final_backbone</span><span class="o">.</span><span class="n">layer4</span><span class="o">.</span><span class="n">children</span><span class="p">())[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">last_conv</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">last_conv_name</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">last_layer_group</span><span class="o">.</span><span class="n">named_children</span><span class="p">())):</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">):</span>
+                        <span class="n">last_conv</span> <span class="o">=</span> <span class="n">layer</span>
+                        <span class="n">last_conv_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;layer4.</span><span class="si">{</span><span class="n">last_layer_group</span><span class="o">.</span><span class="n">_get_name</span><span class="p">()</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="k">break</span>
+
+                <span class="k">if</span> <span class="n">last_conv</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">last_conv</span><span class="o">.</span><span class="n">parameters</span><span class="p">():</span>
+                        <span class="n">param</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="n">trainable_params</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;params&#39;</span><span class="p">:</span> <span class="n">last_conv</span><span class="o">.</span><span class="n">parameters</span><span class="p">()})</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unfrozen parameters of layer: </span><span class="si">{</span><span class="n">last_conv_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;No Conv2d layer found in the last block.&quot;</span><span class="p">)</span>
+    <span class="c1"># Log the status of each layer</span>
+    <span class="n">print_layer_status</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+    <span class="c1"># Setup the optimizer with only the trainable parameters</span>
+    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">trainable_params</span><span class="p">,</span> <span class="n">lr</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;learning_rate&quot;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">optimizer</span></div>
+
+
+
+<div class="viewcode-block" id="train_model">
+<a class="viewcode-back" href="../../../leopard_id.engine.html#leopard_id.engine.trainer.train_model">[docs]</a>
+<span class="k">def</span> <span class="nf">train_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">test_loader</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">num_input_channels</span><span class="p">,</span> <span class="n">project_root</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Train and evaluate the model, focusing only on the last added</span>
+<span class="sd">    embedding layer. Save the model every epoch if the average precision</span>
+<span class="sd">    is higher than the previous epoch, starting from the 15th epoch.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">method</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;method&quot;</span><span class="p">]</span>
+    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">configure_training</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">num_input_channels</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;lr_scheduler&quot;</span><span class="p">):</span>
+        <span class="n">scheduler</span> <span class="o">=</span> <span class="n">StepLR</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;triplet&quot;</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;setting up triplet loss&quot;</span><span class="p">)</span>
+        <span class="n">criterion</span> <span class="o">=</span> <span class="n">TripletLoss</span><span class="p">(</span><span class="n">margin</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;margin&quot;</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;setting up Cross Entropy loss for cosface&quot;</span><span class="p">)</span>
+        <span class="n">criterion</span> <span class="o">=</span> <span class="n">CrossEntropyLoss</span><span class="p">()</span>
+
+    <span class="n">writer</span> <span class="o">=</span> <span class="n">SummaryWriter</span><span class="p">()</span>  <span class="c1"># TensorBoard summary writer initialized here</span>
+
+    <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">hparams</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;lr&quot;</span><span class="p">:</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;learning_rate&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;epochs&quot;</span><span class="p">:</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;epochs&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;batch_size&quot;</span><span class="p">:</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;batch_size&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;device&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">device</span><span class="p">),</span>
+        <span class="s2">&quot;margin&quot;</span><span class="p">:</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;margin&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;backbone_model&quot;</span><span class="p">:</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;backbone_model&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;max_k&quot;</span><span class="p">:</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;max_k&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;num_last_layers_trained&quot;</span><span class="p">:</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;num_last_layers_to_train&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;train_all_layers&quot;</span><span class="p">:</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;train_all_layers&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;train_set&quot;</span><span class="p">:</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;train_data_dir&quot;</span><span class="p">],</span>
+    <span class="p">}</span>
+
+    <span class="c1"># Initialize logging of hyperparameters at the start of training</span>
+    <span class="n">writer</span><span class="o">.</span><span class="n">add_hparams</span><span class="p">(</span><span class="n">hparam_dict</span><span class="o">=</span><span class="n">hparams</span><span class="p">,</span> <span class="n">metric_dict</span><span class="o">=</span><span class="p">{})</span>
+
+    <span class="n">cumulative_test_eval_time</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">max_k</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;max_k&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;cosface&quot;</span><span class="p">:</span>
+        <span class="n">num_classes</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">train_loader</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">label_to_index</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Setting up CosFace loss: Num classes for cosface: </span><span class="si">{</span><span class="n">num_classes</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">classifier</span> <span class="o">=</span> <span class="n">CosFace</span><span class="p">(</span>
+            <span class="n">config</span><span class="p">[</span><span class="s2">&quot;number_embedding_dimensions&quot;</span><span class="p">],</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">margin</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;margin&quot;</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Setting up Triplet loss&quot;</span><span class="p">)</span>
+        <span class="n">classifier</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">best_precision</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">best_model_state</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;epochs&quot;</span><span class="p">]):</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="n">train_loss</span><span class="p">,</span> <span class="n">train_precision</span><span class="p">,</span> <span class="n">train_class_distance_ratio</span><span class="p">,</span> <span class="n">train_match_rate</span> <span class="o">=</span> <span class="n">train_epoch</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span>
+            <span class="n">train_loader</span><span class="p">,</span>
+            <span class="n">optimizer</span><span class="p">,</span>
+            <span class="n">criterion</span><span class="p">,</span>
+            <span class="n">device</span><span class="p">,</span>
+            <span class="n">max_k</span><span class="p">,</span>
+            <span class="n">epoch</span><span class="p">,</span>
+            <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
+            <span class="n">classifier</span><span class="o">=</span><span class="n">classifier</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span><span class="s2">&quot;Loss/Train&quot;</span><span class="p">,</span> <span class="n">train_loss</span><span class="p">,</span> <span class="n">epoch</span><span class="p">)</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span><span class="s2">&quot;Precision/Train&quot;</span><span class="p">,</span> <span class="n">train_precision</span><span class="p">,</span> <span class="n">epoch</span><span class="p">)</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span><span class="s2">&quot;Class Distance Ratio/Train&quot;</span><span class="p">,</span> <span class="n">train_class_distance_ratio</span><span class="p">,</span> <span class="n">epoch</span><span class="p">)</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span><span class="s2">&quot;top </span><span class="si">{}</span><span class="s2"> match rate/Train&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">max_k</span><span class="p">),</span> <span class="n">train_match_rate</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">epoch</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">test_loader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">start_eval_test</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="n">test_precision</span><span class="p">,</span> <span class="n">test_class_dist_ratio</span><span class="p">,</span> <span class="n">test_match_rate</span> <span class="o">=</span> <span class="n">evaluate_epoch_test</span><span class="p">(</span>
+                <span class="n">model</span><span class="p">,</span> <span class="n">test_loader</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">max_k</span><span class="o">=</span><span class="n">max_k</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+            <span class="n">eval_test_duration</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_eval_test</span>
+            <span class="n">cumulative_test_eval_time</span> <span class="o">+=</span> <span class="n">eval_test_duration</span>
+
+            <span class="n">writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span><span class="s2">&quot;Precision/Test&quot;</span><span class="p">,</span> <span class="n">test_precision</span><span class="p">,</span> <span class="n">epoch</span><span class="p">)</span>
+            <span class="n">writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span><span class="s2">&quot;Class Distance Ratio/Test&quot;</span><span class="p">,</span> <span class="n">test_class_dist_ratio</span><span class="p">,</span> <span class="n">epoch</span><span class="p">)</span>
+            <span class="n">writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span><span class="s2">&quot;top </span><span class="si">{}</span><span class="s2"> match rate/Test&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">max_k</span><span class="p">),</span> <span class="n">test_match_rate</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">epoch</span><span class="p">)</span>
+
+            <span class="c1"># Save model if precision is higher than previous best, starting from 15th epoch</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">&gt;=</span> <span class="mi">14</span> <span class="ow">and</span> <span class="n">test_precision</span> <span class="o">&gt;</span> <span class="n">best_precision</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+                <span class="n">epoch</span> <span class="o">==</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;epochs&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">epoch</span> <span class="o">&lt;</span> <span class="mi">14</span>
+            <span class="p">):</span>
+                <span class="n">best_precision</span> <span class="o">=</span> <span class="n">test_precision</span>
+                <span class="n">best_model_state</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+                <span class="n">save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_root</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;save_path&quot;</span><span class="p">])</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">best_model_state</span><span class="p">,</span> <span class="n">save_path</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Model saved at epoch </span><span class="si">{</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2"> with precision </span><span class="si">{</span><span class="n">best_precision</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Save model at the end of training if no test set is provided</span>
+            <span class="k">if</span> <span class="n">epoch</span> <span class="o">==</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;epochs&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">best_model_state</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+                <span class="n">save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_root</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;save_path&quot;</span><span class="p">])</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">best_model_state</span><span class="p">,</span> <span class="n">save_path</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Model saved at epoch </span><span class="si">{</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">elapsed_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;epochs&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> - &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Train Loss: </span><span class="si">{</span><span class="n">train_loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> - &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Train Precision: </span><span class="si">{</span><span class="n">train_precision</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> - &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Train Class Distance Ratio: </span><span class="si">{</span><span class="n">train_class_distance_ratio</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> - &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Train top </span><span class="si">{</span><span class="n">max_k</span><span class="si">}</span><span class="s2"> match rate: </span><span class="si">{</span><span class="n">train_match_rate</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> - &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Time: </span><span class="si">{</span><span class="n">elapsed_time</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> s&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">test_loader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Test Precision: </span><span class="si">{</span><span class="n">test_precision</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> - &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Test Class Distance Ratio: </span><span class="si">{</span><span class="n">test_class_dist_ratio</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> - &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Test top </span><span class="si">{</span><span class="n">max_k</span><span class="si">}</span><span class="s2"> match rate: </span><span class="si">{</span><span class="n">test_match_rate</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2"> - &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Cumulative Test Eval Time: </span><span class="si">{</span><span class="n">cumulative_test_eval_time</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> s&quot;</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;lr_scheduler&quot;</span><span class="p">):</span>
+            <span class="n">scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+
+    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">final_test_match_rate</span> <span class="o">=</span> <span class="n">evaluate_epoch_test</span><span class="p">(</span>
+        <span class="n">model</span><span class="p">,</span> <span class="n">test_loader</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">max_k</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">final_test_match_rate</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">add_scalar</span><span class="p">(</span><span class="s2">&quot;top k final match rate/Test Final&quot;</span><span class="p">,</span> <span class="n">final_test_match_rate</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">k</span><span class="p">)</span>
+    <span class="n">final_metrics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;final_train_precision&quot;</span><span class="p">:</span> <span class="n">train_precision</span><span class="p">,</span>
+        <span class="s2">&quot;final_test_precision&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">test_precision</span> <span class="k">if</span> <span class="n">test_loader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="s2">&quot;final_test_top </span><span class="si">{}</span><span class="s2"> match rate&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">max_k</span><span class="p">):</span> <span class="p">(</span>
+            <span class="n">test_precision</span> <span class="k">if</span> <span class="n">test_loader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">),</span>
+    <span class="p">}</span>
+
+    <span class="n">writer</span><span class="o">.</span><span class="n">add_hparams</span><span class="p">(</span><span class="n">hparam_dict</span><span class="o">=</span><span class="p">{},</span> <span class="n">metric_dict</span><span class="o">=</span><span class="n">final_metrics</span><span class="p">)</span>
+
+    <span class="n">writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">model</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, David Colomer Matachana.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

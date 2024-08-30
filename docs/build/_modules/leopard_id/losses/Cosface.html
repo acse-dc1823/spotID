@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>leopard_id.losses.Cosface &mdash; SpotID: Leopard Individual Identification 30/08/2024 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=3c203f6c"></script>
+        <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            SpotID: Leopard Individual Identification
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">leopard_id</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">SpotID: Leopard Individual Identification</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">leopard_id.losses.Cosface</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for leopard_id.losses.Cosface</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
+<span class="kn">import</span> <span class="nn">math</span>
+
+
+<div class="viewcode-block" id="cosine_dist">
+<a class="viewcode-back" href="../../../leopard_id.losses.html#leopard_id.losses.Cosface.cosine_dist">[docs]</a>
+<span class="k">def</span> <span class="nf">cosine_dist</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the cosine distance matrix between two sets of vectors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x_cloned</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">y_cloned</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="c1"># Normalize x and y along the feature dimension (dim=1)</span>
+    <span class="n">x_norm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">x_cloned</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">y_norm</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">y_cloned</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Compute cosine similarity</span>
+    <span class="n">cosine_sim</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mm</span><span class="p">(</span><span class="n">x_norm</span><span class="p">,</span> <span class="n">y_norm</span><span class="o">.</span><span class="n">t</span><span class="p">())</span>
+
+    <span class="c1"># Convert similarity to distance</span>
+    <span class="n">cosine_dist</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">cosine_sim</span>
+    <span class="n">cosine_dist</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">cosine_dist</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">cosine_dist</span></div>
+
+
+
+<div class="viewcode-block" id="CosFace">
+<a class="viewcode-back" href="../../../leopard_id.losses.html#leopard_id.losses.Cosface.CosFace">[docs]</a>
+<span class="k">class</span> <span class="nc">CosFace</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Linear layer with normalized weights. Sets up logits to compute the</span>
+<span class="sd">    CosFace loss as in the paper below.</span>
+<span class="sd">    https://arxiv.org/pdf/1801.09414. Modification to cosface inspiration</span>
+<span class="sd">    from: https://discovery.ucl.ac.uk/id/eprint/10108878/1/WanpingZhang-TNNLS-final.pdf</span>
+<span class="sd">    but I create my own modification function, which adds a steeper penalty around</span>
+<span class="sd">    the peak, and a more gradual penalty around the trough.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_features</span><span class="p">,</span> <span class="n">out_features</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">64.0</span><span class="p">,</span> <span class="n">margin</span><span class="o">=</span><span class="mf">0.3</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CosFace</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_features</span> <span class="o">=</span> <span class="n">in_features</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out_features</span> <span class="o">=</span> <span class="n">out_features</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">scale</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">margin</span> <span class="o">=</span> <span class="n">margin</span>
+        <span class="c1"># Initialize the weights for the fc layer from embeddings to num classes</span>
+        <span class="c1"># No biases as per paper. requires_grad=True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span><span class="n">out_features</span><span class="p">,</span> <span class="n">in_features</span><span class="p">))</span>
+        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">kaiming_uniform_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">a</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">5</span><span class="p">))</span>
+
+<div class="viewcode-block" id="CosFace.new_margin">
+<a class="viewcode-back" href="../../../leopard_id.losses.html#leopard_id.losses.Cosface.CosFace.new_margin">[docs]</a>
+    <span class="k">def</span> <span class="nf">new_margin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cosine</span><span class="p">,</span> <span class="n">one_hot</span><span class="p">):</span>
+        <span class="c1"># Calculate the new margin adjustment based on the given function</span>
+        <span class="n">cos_squared</span> <span class="o">=</span> <span class="n">cosine</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">one_hot</span> <span class="o">*</span> <span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">cos_squared</span><span class="p">)</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.1</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1.1</span></div>
+
+
+<div class="viewcode-block" id="CosFace.forward">
+<a class="viewcode-back" href="../../../leopard_id.losses.html#leopard_id.losses.Cosface.CosFace.forward">[docs]</a>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For each exemplar, we need to calculate the cosine similarity between</span>
+<span class="sd">        the feature vector (the embedding) and the weight vector associated</span>
+<span class="sd">        to its correct class (of size embedding). In vector form, calculate</span>
+<span class="sd">        W_i^T * x_i, the result of the neural network with no bias at the</span>
+<span class="sd">        correct class. Since we are speeding up the training process, we will</span>
+<span class="sd">        calculate it for an entire batch of exemplars, hence we use the linear</span>
+<span class="sd">        transformation for the multiplication of weights with the batch input.</span>
+
+<span class="sd">        We then apply the margin, but only to the correct class. With the</span>
+<span class="sd">        modified logits, we can call CrossEntropyLoss safely to calculate the</span>
+<span class="sd">        loss.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="c1"># Normalize the weights for each row, they have to have norm 1 for the formula</span>
+        <span class="n">weight_norm</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Compute cosine similarity using normalized feature vectors. W^T * x</span>
+        <span class="n">cosine</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">weight_norm</span><span class="p">)</span>
+
+        <span class="c1"># Apply the margin to the correct class</span>
+        <span class="n">one_hot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">cosine</span><span class="p">)</span>
+        <span class="n">one_hot</span><span class="o">.</span><span class="n">scatter_</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">labels</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># Calculate h(theta_y_i) and apply it to the correct class</span>
+        <span class="n">cosine_correct</span> <span class="o">=</span> <span class="n">cosine</span> <span class="o">*</span> <span class="n">one_hot</span>
+
+        <span class="n">h_theta_yi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">margin</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_margin</span><span class="p">(</span><span class="n">cosine_correct</span><span class="p">,</span> <span class="n">one_hot</span><span class="p">)</span>
+
+        <span class="c1"># Adjust the cosine similarity</span>
+        <span class="c1"># original cosface would be modified_cosine = cosine - one_hot * self.margin</span>
+        <span class="n">modified_cosine</span> <span class="o">=</span> <span class="n">cosine</span> <span class="o">-</span> <span class="n">h_theta_yi</span>
+
+        <span class="c1"># Scale the logits</span>
+        <span class="n">logits</span> <span class="o">=</span> <span class="n">modified_cosine</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale</span>
+
+        <span class="k">return</span> <span class="n">logits</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, David Colomer Matachana.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

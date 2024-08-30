@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>leopard_id.metrics package &mdash; SpotID: Leopard Individual Identification 30/08/2024 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=3c203f6c"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="leopard_id.model package" href="leopard_id.model.html" />
+    <link rel="prev" title="leopard_id.losses package" href="leopard_id.losses.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            SpotID: Leopard Individual Identification
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">leopard_id</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="leopard_id.html">leopard_id package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="leopard_id.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="leopard_id.dataloader.html">leopard_id.dataloader package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="leopard_id.engine.html">leopard_id.engine package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="leopard_id.losses.html">leopard_id.losses package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">leopard_id.metrics package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="leopard_id.model.html">leopard_id.model package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="leopard_id.scripts_preprocessing.html">leopard_id.scripts_preprocessing package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="leopard_id.visualization.html">leopard_id.visualization package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="leopard_id.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="leopard_id.html#leopard-id-inference-embeddings-module">leopard_id.inference_embeddings module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="leopard_id.html#leopard-id-train-module">leopard_id.train module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="leopard_id.html#module-leopard_id">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">SpotID: Leopard Individual Identification</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">leopard_id</a></li>
+          <li class="breadcrumb-item"><a href="leopard_id.html">leopard_id package</a></li>
+      <li class="breadcrumb-item active">leopard_id.metrics package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/leopard_id.metrics.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="leopard-id-metrics-package">
+<h1>leopard_id.metrics package<a class="headerlink" href="#leopard-id-metrics-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-leopard_id.metrics.eval_metrics">
+<span id="leopard-id-metrics-eval-metrics-module"></span><h2>leopard_id.metrics.eval_metrics module<a class="headerlink" href="#module-leopard_id.metrics.eval_metrics" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="leopard_id.metrics.eval_metrics.compute_average_angular_separation">
+<span class="sig-prename descclassname"><span class="pre">leopard_id.metrics.eval_metrics.</span></span><span class="sig-name descname"><span class="pre">compute_average_angular_separation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dist_mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/leopard_id/metrics/eval_metrics.html#compute_average_angular_separation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#leopard_id.metrics.eval_metrics.compute_average_angular_separation" title="Link to this definition"></a></dt>
+<dd><p>Compute average angular separation for same class and different class pairs,
+and store the top 10 smallest angular separations. Use the cosine distance
+matrix for this, taking the arccos (expensive operation, hence why this is
+only computed for test set) for this. It then masks the correct and different
+class pairs and computes the average angular separation for each.</p>
+<p>Useful for understanding how the embedding space behaves in high dimensional space.
+In a good embedding space, the same class pairs should have significantly smaller
+angular separations than different class pairs. Different class pairs should be
+close to orthogonal.</p>
+<p>Args:
+dist_mat (torch.Tensor): Cosine distance matrix
+targets (torch.Tensor): Class labels for each sample</p>
+<p>Returns:
+tuple: (avg_same_class_angle, avg_diff_class_angle, top_10_smallest_angles)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="leopard_id.metrics.eval_metrics.compute_class_distance_ratio">
+<span class="sig-prename descclassname"><span class="pre">leopard_id.metrics.eval_metrics.</span></span><span class="sig-name descname"><span class="pre">compute_class_distance_ratio</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dist_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/leopard_id/metrics/eval_metrics.html#compute_class_distance_ratio"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#leopard_id.metrics.eval_metrics.compute_class_distance_ratio" title="Link to this definition"></a></dt>
+<dd><p>Calculate the ratio of the average intra-class distance to the average
+inter-class distance. A lower value indicates that the model is learning
+correctly to tell the difference between different classes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dist_matrix</strong> – A 2D PyTorch tensor where dist_matrix[i, j]
+is the distance from sample i to sample j.</p></li>
+<li><p><strong>labels</strong> – A 1D PyTorch tensor with class labels for each sample.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The mean ratio of intra-class to inter-class distances.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="leopard_id.metrics.eval_metrics.compute_dynamic_top_k_avg_precision">
+<span class="sig-prename descclassname"><span class="pre">leopard_id.metrics.eval_metrics.</span></span><span class="sig-name descname"><span class="pre">compute_dynamic_top_k_avg_precision</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dist_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/leopard_id/metrics/eval_metrics.html#compute_dynamic_top_k_avg_precision"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#leopard_id.metrics.eval_metrics.compute_dynamic_top_k_avg_precision" title="Link to this definition"></a></dt>
+<dd><p>Calculate the top-k average precision for each sample, with dynamic
+adjustment based on class size,and return the mean of these
+values excluding cases where dynamic k is zero. Dynamic k is introduced
+because some classes just have a few exemplars per image, fewer than
+max_k. In these cases, the typical top k average precision would be
+capped at a maximum of num_exemplars_in_class / k, lower than 1.
+Calculated each batch. Obviously, the larger the dataset, the lower
+the precision, as the chance of finding the correct match is lower.
+Metric is much stricter than top k match rate.
+It gives higher precision to those having matches
+closer to the anchor, as they’ll count for all the k comparisons.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dist_matrix</strong> – A 2D PyTorch tensor where dist_matrix[i, j]
+is the distance from sample i to sample j.</p></li>
+<li><p><strong>labels</strong> – A 1D PyTorch tensor with class labels for each sample.</p></li>
+<li><p><strong>max_k</strong> – The maximum k for calculating average precision.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The mean average precision across all valid samples.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="leopard_id.metrics.eval_metrics.compute_top_k_rank_match_detection">
+<span class="sig-prename descclassname"><span class="pre">leopard_id.metrics.eval_metrics.</span></span><span class="sig-name descname"><span class="pre">compute_top_k_rank_match_detection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dist_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/leopard_id/metrics/eval_metrics.html#compute_top_k_rank_match_detection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#leopard_id.metrics.eval_metrics.compute_top_k_rank_match_detection" title="Link to this definition"></a></dt>
+<dd><p>Calculate the Top-k Rank match detection: Calculates the ratio of images
+that contain a match in the top-k most similar ranks. Return
+the accuracy for each k from 1 to max_k. Used for figure 8 in paper.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dist_matrix</strong> – A 2D PyTorch tensor where dist_matrix[i, j]
+is the distance from sample i to sample j.</p></li>
+<li><p><strong>labels</strong> – A 1D PyTorch tensor with class labels for each sample.</p></li>
+<li><p><strong>max_k</strong> – The maximum k for calculating rank accuracy.</p></li>
+<li><p><strong>device</strong> – The device (CPU or GPU) to perform computations.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>mean match rates for each k in ascending order.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-leopard_id.metrics">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-leopard_id.metrics" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="leopard_id.losses.html" class="btn btn-neutral float-left" title="leopard_id.losses package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="leopard_id.model.html" class="btn btn-neutral float-right" title="leopard_id.model package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, David Colomer Matachana.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

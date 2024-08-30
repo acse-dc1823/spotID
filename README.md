@@ -2,9 +2,11 @@
 
 ![Project Logo](https://github.com/ese-msc-2023/irp-dc1823/raw/inference/interface/static/images/logo.jpg)
 
-This project attempts to use Deep Learning to create a Leopard Individual Identifier. It encodes each leopard image into N dimensional embeddings, and then these embeddings are compared with one another through a distance metric to decide which images correspond to the same leopard. Two methods were tried, Triplet Networks, and a modified CosFace. For more details, please read the attached paper. 
+This project attempts to use Deep Learning to create a Leopard Individual Identifier. Although the focus of the research was advancing the model, a basic user interface for wildlife researchers is provided. The model encodes each leopard image into N dimensional embeddings (vectors), and then these embeddings are compared with one another through a distance metric to decide which images correspond to the same leopard. Two methods were tried, Triplet Networks, and a modified CosFace. The one saved for the user is the modified CosFace, as it reached considerably higher performance compared to the Triplet Network. For more details, please read the attached paper. 
 
 ## Instructions for users and developers:
+
+A detailed tutorial for users is provided here: https://youtu.be/YwfC2FA2kZw?si=TOp8Y36oe0Q_ulov
 
 ### Step 1: Install the Software
 Two options for this.
@@ -27,6 +29,14 @@ Replace path/to with the actual path where you cloned or extracted the project.
 
 
 ### Step 3: Create and Activate a Virtual Environment
+
+First, ensure you have Python 3.10 or later installed. You can check your Python version by running:
+```bash
+python --version
+```
+
+If you need to upgrade, visit the official Python website to download and install the latest version.
+
 Create a virtual environment:
 
 ```bash
@@ -51,12 +61,15 @@ With the virtual environment activated, install all the required software packag
 pip install -r requirements.txt
 ```
 
-### Step 5: Navigate to the leopard_id Directory
-Change to the leopard_id directory within the project:
-```bash
-cd leopard_id
-```
 You are now ready to use the software for encoding images into embeddings.
+
+### Alternative to Step 3 and 4:
+Alternatively, an `environment.yml` is provided, meaning you can create everything seamlessly if you have conda installed: 
+
+```bash
+conda env create -f environment.yml
+conda activate leopard-id
+```
 
 ## Instructions for users only
 
@@ -136,7 +149,7 @@ For computer savvy users: `inference_embeddings.py` is the python file that gets
 
 ## Instructions for developers:
 
-If you are a developer wishing to modify/test the training of the model, follow these instructions. First follow the instructions above in "Instructions for users and developers". Then:
+If you are a developer wishing to modify/test the training of the model, follow these instructions. First follow the instructions above in "Instructions for users and developers". Please note that precompiled documentation is available at `docs/build/index.html`. Then:
 
 ### data:
 
@@ -192,7 +205,7 @@ The provided data was already cropped, hence the crop pipeline will probably tak
 Once you have done this, we can run the preprocessing.
 
 ```bash
-cd scripts_preprocessing
+cd leopard_id/scripts_preprocessing
 ```
 
 ```bash
@@ -240,7 +253,13 @@ From leopard_id, open config.json, and modify it accordingly. The parameters are
 ```
 The current config.json contains all the optimum parameters that were found for the Nature Conservation Foundation's training leopard data. A minimum usable dataset is provided with the preprocessing already performed, hence one can directly try the training loops without preprocessing.
 
-With this, we can start training. Simply run:
+With this, we can start training from `leopard_id`. Hence, if you are still in `scripts_preprocessing`, navigate one folder up:
+
+```bash
+cd ../
+```
+
+Then, simply run:
 
 ```bash
 python3 train.py
@@ -254,7 +273,25 @@ tensorboard --logdir runs
 
 ### Pytests
 
-Testing is provided under `tests`. They are integrated under the Github workflows.
+Testing is provided under `tests`. They are integrated under the Github workflows and run automatically when there is a commit. If they need to be ran locally, then:
+
+```bash
+export PYTHONPATH=path/to/irp-dc1823:$PYTHONPATH
+pytest tests/
+```
+
+## Citation
+If you use this work as part of your research, please cite "Deep Learning for Leopard Individual Identification: An Adaptive Angular Margin Approach":
+
+```bibtex
+@misc{colomer2024leopard,
+  author       = {Colomer Matachana, David},
+  title        = {Deep Learning for Leopard Individual Identification: An Adaptive Angular Margin Approach},
+  year         = {2024},
+  month        = {August},
+  note         = {Unpublished manuscript, available at \url{https://github.com/ese-msc-2023/irp-dc1823}},
+}
+```
 
 
 

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>leopard_id.inference_embeddings &mdash; SpotID: Leopard Individual Identification 30/08/2024 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=3c203f6c"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            SpotID: Leopard Individual Identification
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">leopard_id</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">SpotID: Leopard Individual Identification</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">leopard_id.inference_embeddings</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for leopard_id.inference_embeddings</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">PIL</span> <span class="kn">import</span> <span class="n">Image</span>
+<span class="kn">from</span> <span class="nn">torchvision</span> <span class="kn">import</span> <span class="n">transforms</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span><span class="p">,</span> <span class="n">Dataset</span>
+<span class="kn">from</span> <span class="nn">torchvision.transforms.functional</span> <span class="kn">import</span> <span class="n">to_tensor</span>
+
+<span class="kn">from</span> <span class="nn">model</span> <span class="kn">import</span> <span class="n">EmbeddingNetwork</span>
+<span class="kn">from</span> <span class="nn">losses</span> <span class="kn">import</span> <span class="n">euclidean_dist</span><span class="p">,</span> <span class="n">cosine_dist</span>
+<span class="kn">from</span> <span class="nn">scripts_preprocessing</span> <span class="kn">import</span> <span class="n">crop_images_folder</span><span class="p">,</span> <span class="n">remove_background_processor</span><span class="p">,</span> <span class="n">edge_detection</span>
+
+<span class="n">project_root</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+
+<div class="viewcode-block" id="InferenceDataset">
+<a class="viewcode-back" href="../../leopard_id.html#leopard_id.inference_embeddings.InferenceDataset">[docs]</a>
+<span class="k">class</span> <span class="nc">InferenceDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A custom Dataset for inference on leopard images.</span>
+<span class="sd">    </span>
+<span class="sd">    This dataset loads image and mask (edge detection) pairs, applies transformations,</span>
+<span class="sd">    and prepares them for inference in the leopard identification model.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        image_folder (str): Path to the folder containing leopard images.</span>
+<span class="sd">        mask_folder (str): Path to the folder containing corresponding mask images.</span>
+<span class="sd">        transform (callable, optional): Optional transform to be applied on images.</span>
+<span class="sd">        transform_binary (callable, optional): Optional transform to be applied on mask images.</span>
+<span class="sd">        pairs (list): List of tuples containing pairs of (image_path, mask_path).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image_folder</span><span class="p">,</span> <span class="n">mask_folder</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">transform_binary</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">existing_files</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">image_folder</span> <span class="o">=</span> <span class="n">image_folder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_folder</span> <span class="o">=</span> <span class="n">mask_folder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform_binary</span> <span class="o">=</span> <span class="n">transform_binary</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pairs</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="n">existing_files</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">existing_files</span><span class="p">)</span> <span class="k">if</span> <span class="n">existing_files</span> <span class="k">else</span> <span class="nb">set</span><span class="p">()</span>
+        
+        <span class="k">for</span> <span class="n">dirpath</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">filenames</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">image_folder</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">filename</span><span class="o">.</span><span class="n">endswith</span><span class="p">((</span><span class="s1">&#39;.png&#39;</span><span class="p">,</span> <span class="s1">&#39;.jpg&#39;</span><span class="p">,</span> <span class="s1">&#39;.jpeg&#39;</span><span class="p">)):</span>
+                    <span class="n">img_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dirpath</span><span class="p">,</span> <span class="n">filename</span><span class="p">))</span>
+
+                    <span class="k">if</span> <span class="n">img_path</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">existing_files</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_folder</span><span class="p">:</span>
+                            <span class="n">relative_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">img_path</span><span class="p">,</span> <span class="n">image_folder</span><span class="p">)</span>
+                            <span class="n">mask_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">mask_folder</span><span class="p">,</span> <span class="n">relative_path</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">mask_path</span><span class="p">):</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">pairs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">img_path</span><span class="p">,</span> <span class="n">mask_path</span><span class="p">))</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">pairs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">img_path</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+        
+        <span class="c1"># Sort pairs to ensure consistent ordering</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pairs</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pairs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+        <span class="n">img_name</span><span class="p">,</span> <span class="n">mask_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pairs</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">img_name</span><span class="p">)</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s1">&#39;RGB&#39;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">mask_name</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">mask_name</span><span class="p">)</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span><span class="s1">&#39;L&#39;</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">:</span>
+                <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">image</span> <span class="o">=</span> <span class="n">to_tensor</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform_binary</span><span class="p">:</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform_binary</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">to_tensor</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+
+            <span class="n">combined</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">image</span><span class="p">,</span> <span class="n">mask</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">:</span>
+                <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">image</span> <span class="o">=</span> <span class="n">to_tensor</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+            <span class="n">combined</span> <span class="o">=</span> <span class="n">image</span>
+
+        <span class="k">return</span> <span class="n">combined</span><span class="p">,</span> <span class="n">img_name</span><span class="p">,</span> <span class="n">mask_name</span></div>
+
+
+<div class="viewcode-block" id="load_model">
+<a class="viewcode-back" href="../../leopard_id.html#leopard_id.inference_embeddings.load_model">[docs]</a>
+<span class="k">def</span> <span class="nf">load_model</span><span class="p">(</span><span class="n">config</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Load the pre-trained leopard identification model.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        config (dict): Configuration dictionary containing model parameters.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        EmbeddingNetwork: The loaded and initialized model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">EmbeddingNetwork</span><span class="p">(</span><span class="n">backbone_model</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;backbone_model&quot;</span><span class="p">),</span>
+                           <span class="n">num_dims</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;num_dimensions&quot;</span><span class="p">),</span>
+                           <span class="n">input_channels</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;input_channels&quot;</span><span class="p">))</span>
+    <span class="n">model_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_root</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;model_path&quot;</span><span class="p">]))</span>
+
+    <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_path</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">model</span></div>
+
+
+
+<div class="viewcode-block" id="create_transforms">
+<a class="viewcode-back" href="../../leopard_id.html#leopard_id.inference_embeddings.create_transforms">[docs]</a>
+<span class="k">def</span> <span class="nf">create_transforms</span><span class="p">(</span><span class="n">config</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create image transformation pipelines based on the configuration.</span>
+<span class="sd">    Same normalization and resizing as applied in training.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        config (dict): Configuration dictionary containing transformation parameters.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: A tuple containing:</span>
+<span class="sd">            - common_transforms (transforms.Compose): Transformations for regular images.</span>
+<span class="sd">            - binary_transforms (transforms.Compose): Transformations for binary mask images.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">common_transforms</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">Resize</span><span class="p">((</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;resize_height&#39;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;resize_width&#39;</span><span class="p">])),</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(),</span>
+        <span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;mean_normalize&#39;</span><span class="p">],</span> <span class="n">std</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;std_normalize&#39;</span><span class="p">])</span>
+    <span class="p">])</span>
+    
+    <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mean_normalize_binary_mask&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;std_normalize_binary_mask&#39;</span><span class="p">):</span>
+        <span class="n">binary_transforms</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span>
+            <span class="n">transforms</span><span class="o">.</span><span class="n">Resize</span><span class="p">((</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;resize_height&#39;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;resize_width&#39;</span><span class="p">])),</span>
+            <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">(),</span>
+            <span class="n">transforms</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">mean</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;mean_normalize_binary_mask&#39;</span><span class="p">],</span> <span class="n">std</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;std_normalize_binary_mask&#39;</span><span class="p">])</span>
+        <span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">binary_transforms</span> <span class="o">=</span> <span class="n">transforms</span><span class="o">.</span><span class="n">Compose</span><span class="p">([</span>
+            <span class="n">transforms</span><span class="o">.</span><span class="n">Resize</span><span class="p">((</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;resize_height&#39;</span><span class="p">],</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;resize_width&#39;</span><span class="p">])),</span>
+            <span class="n">transforms</span><span class="o">.</span><span class="n">ToTensor</span><span class="p">()</span>
+        <span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">common_transforms</span><span class="p">,</span> <span class="n">binary_transforms</span></div>
+
+
+
+<div class="viewcode-block" id="run_inference">
+<a class="viewcode-back" href="../../leopard_id.html#leopard_id.inference_embeddings.run_inference">[docs]</a>
+<span class="k">def</span> <span class="nf">run_inference</span><span class="p">(</span><span class="n">config_path</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run the inference process for leopard identification.</span>
+
+<span class="sd">    This function performs the following steps:</span>
+<span class="sd">    1. Load configuration</span>
+<span class="sd">    2. Set up directories</span>
+<span class="sd">    3. Preprocess images if required</span>
+<span class="sd">    4. Load existing data (if any)</span>
+<span class="sd">    5. Run inference on new images</span>
+<span class="sd">    6. Update embeddings and distance matrix</span>
+<span class="sd">    7. Save results</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        config_path (str): Path to the configuration JSON file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">config_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+    
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+
+    <span class="c1"># Convert relative paths to absolute paths based on script location</span>
+    <span class="n">output_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_root</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;output_folder&#39;</span><span class="p">]))</span>
+    <span class="n">base_input_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_root</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;unprocessed_image_folder&#39;</span><span class="p">]))</span>
+    <span class="n">base_crop_output_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_root</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;crop_output_folder&#39;</span><span class="p">]))</span>
+    <span class="n">base_bg_removed_output_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_root</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;bg_removed_output_folder&#39;</span><span class="p">]))</span>
+    <span class="n">base_binary_output_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_root</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;base_binary_output_folder&#39;</span><span class="p">]))</span>
+
+    <span class="c1"># Create output folders if they don&#39;t exist</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">output_folder</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">base_crop_output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">base_bg_removed_output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">base_binary_output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;preprocess&quot;</span><span class="p">]:</span>
+        <span class="n">crop_images_folder</span><span class="p">(</span><span class="n">base_input_dir</span><span class="p">,</span> <span class="n">base_crop_output_dir</span><span class="p">,</span> <span class="n">store_full_images</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">remove_background_processor</span><span class="p">(</span><span class="n">base_crop_output_dir</span><span class="p">,</span> <span class="n">base_bg_removed_output_dir</span><span class="p">)</span>
+        <span class="n">edge_detection</span><span class="p">(</span><span class="n">base_bg_removed_output_dir</span><span class="p">,</span> <span class="n">base_binary_output_dir</span><span class="p">)</span>
+    
+    <span class="c1"># Load existing filepaths and embeddings</span>
+    <span class="n">image_filenames_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_folder</span><span class="p">,</span> <span class="s1">&#39;image_filenames.txt&#39;</span><span class="p">)</span>
+    <span class="n">binary_image_filenames_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_folder</span><span class="p">,</span> <span class="s1">&#39;binary_image_filenames.txt&#39;</span><span class="p">)</span>
+    <span class="n">embeddings_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_folder</span><span class="p">,</span> <span class="s1">&#39;embeddings.npy&#39;</span><span class="p">)</span>
+
+    <span class="n">existing_image_files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">existing_binary_files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">image_filenames_path</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">image_filenames_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">existing_image_files</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">binary_image_filenames_path</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">binary_image_filenames_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">existing_binary_files</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
+
+    <span class="n">existing_embeddings</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">embeddings_path</span><span class="p">)</span> <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">embeddings_path</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="n">common_transform</span><span class="p">,</span> <span class="n">binary_transform</span> <span class="o">=</span> <span class="n">create_transforms</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">InferenceDataset</span><span class="p">(</span>
+        <span class="n">base_crop_output_dir</span><span class="p">,</span>
+        <span class="n">base_binary_output_dir</span><span class="p">,</span>
+        <span class="n">transform</span><span class="o">=</span><span class="n">common_transform</span><span class="p">,</span>
+        <span class="n">transform_binary</span><span class="o">=</span><span class="n">binary_transform</span><span class="p">,</span>
+        <span class="n">existing_files</span><span class="o">=</span><span class="n">existing_image_files</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dataset</span><span class="o">.</span><span class="n">pairs</span><span class="p">:</span>
+        <span class="c1"># Run inference on new images</span>
+        <span class="n">data_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">],</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="n">new_embeddings</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">new_image_files</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">new_binary_files</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">batch</span><span class="p">,</span> <span class="n">img_paths</span><span class="p">,</span> <span class="n">mask_paths</span> <span class="ow">in</span> <span class="n">data_loader</span><span class="p">:</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+                <span class="n">new_embeddings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+                <span class="n">new_image_files</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">img_paths</span><span class="p">])</span>
+                <span class="n">new_binary_files</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">if</span> <span class="n">path</span> <span class="o">!=</span> <span class="s2">&quot;No corresponding binary image&quot;</span> <span class="k">else</span> <span class="n">path</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">mask_paths</span><span class="p">])</span>
+
+        <span class="n">new_embeddings</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">new_embeddings</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Concatenate with existing embeddings</span>
+        <span class="k">if</span> <span class="n">existing_embeddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">all_embeddings</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">existing_embeddings</span><span class="p">,</span> <span class="n">new_embeddings</span><span class="o">.</span><span class="n">numpy</span><span class="p">()],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">all_embeddings</span> <span class="o">=</span> <span class="n">new_embeddings</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="c1"># Update filepath lists</span>
+        <span class="n">all_image_files</span> <span class="o">=</span> <span class="n">existing_image_files</span> <span class="o">+</span> <span class="n">new_image_files</span>
+        <span class="n">all_binary_files</span> <span class="o">=</span> <span class="n">existing_binary_files</span> <span class="o">+</span> <span class="n">new_binary_files</span>
+
+        <span class="c1"># Save updated filepaths</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">image_filenames_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f_img</span><span class="p">,</span> <span class="nb">open</span><span class="p">(</span><span class="n">binary_image_filenames_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f_binary</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">img_path</span><span class="p">,</span> <span class="n">binary_path</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">all_image_files</span><span class="p">,</span> <span class="n">all_binary_files</span><span class="p">):</span>
+                <span class="n">f_img</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">img_path</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">f_binary</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">binary_path</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Save updated embeddings</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">embeddings_path</span><span class="p">,</span> <span class="n">all_embeddings</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updated embeddings saved to </span><span class="si">{</span><span class="n">embeddings_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Recompute distance matrix</span>
+        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;distance_metric&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;cosine&quot;</span><span class="p">:</span>
+            <span class="n">distance_matrix</span> <span class="o">=</span> <span class="n">cosine_dist</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">all_embeddings</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">all_embeddings</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">distance_matrix</span> <span class="o">=</span> <span class="n">euclidean_dist</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">all_embeddings</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">all_embeddings</span><span class="p">))</span>
+
+        <span class="c1"># Save updated distance matrix</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_folder</span><span class="p">,</span> <span class="s1">&#39;distance_matrix.npy&#39;</span><span class="p">),</span> <span class="n">distance_matrix</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updated distance matrix saved to </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">output_folder</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;distance_matrix.npy&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">new_image_files</span><span class="p">)</span><span class="si">}</span><span class="s2"> new images processed and added.&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No new images found. Embeddings and distance matrix remain unchanged.&quot;</span><span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">config_path</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">config_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">project_root</span><span class="p">,</span> <span class="s1">&#39;config_inference.json&#39;</span><span class="p">)</span>
+    <span class="n">run_inference</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, David Colomer Matachana.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

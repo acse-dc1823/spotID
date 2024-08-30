@@ -24,7 +24,26 @@ class Normalize(nn.Module):
 
 
 class CustomResNet(nn.Module):
+    """
+    A custom ResNet model that supports a variable number of input channels.
+
+    This class modifies a pre-trained ResNet model to work with input tensors
+    that have more than 3 channels or exactly 1 channel.
+
+    Attributes:
+        conv1 (nn.Conv2d): The modified first convolutional layer.
+    """
     def __init__(self, original_model, num_input_channels):
+        """
+        Initialize the CustomResNet module.
+
+        Args:
+            original_model (nn.Module): The original pre-trained ResNet model.
+            num_input_channels (int): The number of input channels for the new model.
+
+        Raises:
+            AssertionError: If num_input_channels is not > 3 or == 1.
+        """
         super(CustomResNet, self).__init__()
         assert (num_input_channels > 3) or (
             num_input_channels == 1
@@ -49,6 +68,16 @@ class CustomResNet(nn.Module):
                 setattr(self, name, module)
 
     def _initialize_weights(self, original_first_layer, num_input_channels):
+        """
+        Initialize the weights of the modified first convolutional layer.
+
+        This method copies weights from the original layer and initializes
+        additional channels when necessary.
+
+        Args:
+            original_first_layer (nn.Conv2d): The first convolutional layer of the original model.
+            num_input_channels (int): The number of input channels for the new model.
+        """
         with torch.no_grad():
             if num_input_channels == 1:
                 # For 1-channel input, use the mean of the original weights across the channel dimension
@@ -65,6 +94,15 @@ class CustomResNet(nn.Module):
                 self.conv1.bias.data = original_first_layer.bias.data.clone()
 
     def forward(self, x):
+        """
+        Defines the forward pass of the CustomResNet.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+
+        Returns:
+            torch.Tensor: Output tensor after forward pass through the network.
+        """
         # Use the modified first layer and then proceed with the original layers
         x = self.conv1(x)
         # Continue with the rest of the original model's forward pass
@@ -74,7 +112,23 @@ class CustomResNet(nn.Module):
 
 
 class CustomEfficientNet(nn.Module):
+    """
+    A custom EfficientNet model that supports a variable number of input channels.
+
+    This class modifies a pre-trained EfficientNet model to work with input tensors
+    that have a different number of channels than the original model.
+
+    Attributes:
+        conv_stem (nn.Conv2d): The modified first convolutional layer (stem).
+    """
     def __init__(self, original_model, num_input_channels):
+        """
+        Initialize the CustomEfficientNet module.
+
+        Args:
+            original_model (nn.Module): The original pre-trained EfficientNet model.
+            num_input_channels (int): The number of input channels for the new model.
+        """
         super(CustomEfficientNet, self).__init__()
         # Deep copy the original model to modify
         original_model = deepcopy(original_model)
@@ -105,6 +159,17 @@ class CustomEfficientNet(nn.Module):
                 setattr(self, name, module)
 
     def _initialize_weights(self, new_layer, original_layer, num_input_channels):
+        """
+        Initialize the weights of the modified first convolutional layer (stem).
+
+        This method copies weights from the original layer and initializes
+        additional channels when necessary.
+
+        Args:
+            new_layer (nn.Conv2d): The new convolutional stem layer.
+            original_layer (nn.Conv2d): The original convolutional stem layer.
+            num_input_channels (int): The number of input channels for the new model.
+        """
         with torch.no_grad():
             if num_input_channels == 1:
                 # For 1-channel input, use the mean of the original weights across the channel dimension
@@ -121,6 +186,15 @@ class CustomEfficientNet(nn.Module):
                 new_layer.bias.data = original_layer.bias.data.clone()
 
     def forward(self, x):
+        """
+        Defines the forward pass of the CustomEfficientNet.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+
+        Returns:
+            torch.Tensor: Output tensor after forward pass through the network.
+        """
         # Manually handle the forward pass for each layer
         x = self.conv_stem(x)
         for name, module in self.named_children():
@@ -130,9 +204,35 @@ class CustomEfficientNet(nn.Module):
 
 
 class EmbeddingNetwork(nn.Module):
+    """
+    An embedding network that uses a backbone model to generate embeddings.
+
+    This network can use different backbone models (EfficientNet v2 b2 and v2 b3,
+    ResNet18) and supports a variable number of input channels. It produces normalized
+    and scaled embeddings.
+
+    Attributes:
+        s (float): Scaling factor for the embeddings.
+        final_backbone (nn.Module): The backbone network used for feature extraction.
+        embedding_layer (nn.Linear): Linear layer that produces the final embeddings.
+        normalization (Normalize): Normalization layer for the embeddings.
+    """
     def __init__(
         self, backbone_model="tf_efficientnetv2_b2", num_dims=256, input_channels=3, s=64.0
     ):
+        """
+        Initialize the EmbeddingNetwork.
+
+        Args:
+            backbone_model (str, optional): Name of the backbone model to use. Defaults to
+            "tf_efficientnetv2_b2".
+            num_dims (int, optional): Dimensionality of the output embeddings. Defaults to 256.
+            input_channels (int, optional): Number of input channels. Defaults to 3.
+            s (float, optional): Scaling factor for the embeddings. Defaults to 64.0.
+
+        Raises:
+            ValueError: If an unsupported backbone model is specified.
+        """
         super(EmbeddingNetwork, self).__init__()
         self.s = s
         print("num input channels: ", input_channels)
@@ -173,6 +273,18 @@ class EmbeddingNetwork(nn.Module):
         self.normalization = Normalize()
 
     def forward(self, x):
+        """
+        Defines the forward pass of the EmbeddingNetwork.
+
+        This method passes the input through the backbone network, embedding layer,
+        normalization, and applies scaling.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+
+        Returns:
+            torch.Tensor: Scaled, normalized embedding tensor.
+        """
         # Forward pass through the backbone model
         features = self.final_backbone(x)
 

@@ -35,9 +35,9 @@ First, ensure you have Python 3.10 or later installed. You can check your Python
 python --version
 ```
 
-If you need to upgrade, visit the official Python website to download and install the latest version.
+If you need to upgrade, visit the official Python website to download and install the latest version at https://www.python.org/downloads/.
 
-Create a virtual environment:
+Create a virtual environment. For example, you could run:
 
 ```bash
 python -m venv leopard_env
@@ -54,6 +54,8 @@ On macOS and Linux:
 ```bash
 source leopard_env/bin/activate
 ```
+
+Please remember that, whenever you launch the program again a second time, you have to first re-activate the virtual environment (without creating a new one nor installing the requirements as below).
 
 ### Step 4: Install Required Packages
 With the virtual environment activated, install all the required software packages for the project:

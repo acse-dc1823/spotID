@@ -9,6 +9,7 @@ import networkx as nx
 import json
 from waitress import serve
 import subprocess
+import sys
 
 
 app = Flask(__name__)
@@ -129,7 +130,8 @@ def run_model_from_scratch():
     # Run the inference script
     try:
         subprocess.run(
-            ["python", "../leopard_id/inference_embeddings.py", temp_config_path], check=True
+            [sys.executable, "../leopard_id/inference_embeddings.py", temp_config_path],
+            check=True
         )
     except subprocess.CalledProcessError as e:
         return jsonify({"status": "error", "message": f"Error running inference: {str(e)}"})

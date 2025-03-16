@@ -30,7 +30,7 @@ Replace path/to with the actual path where you cloned or extracted the project.
 
 ### Step 3: Create and Activate a Virtual Environment
 
-First, ensure you have Python 3.10 or later installed. You can check your Python version by running:
+First, ensure you have Python 3.10 and lower than 3.12 installed. You can check your Python version by running:
 ```bash
 python --version
 ```

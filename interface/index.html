@@ -1,0 +1,393 @@
+<!--
+  author: David Colomer Matachana
+  GitHub username: acse-dc1823
+
+  leopard Individual Identification
+  This is the main HTMl template for the SpotID application.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpotID: leopard Individual Identification</title>
+    
+    <!-- Debug Mode -->
+    <script>
+        window.DEBUG = true;
+        function debuglog(message) {
+            if (window.DEBUG) {
+                consele.log('[DEBUG]:', message);
+            }
+        }
+    </script>
+
+    <!-- Third Party Scripts -->
+    <script src="https://cdnjs.cloudlare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudlare.com/ajax/libs/react/17.0.2/umd/react.development.js"></script>
+    <script src="https://cdnjs.cloudlare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.development.js"></script>
+    <script src="https://cdnjs.cloudlare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Our Scripts -->
+    <script src="js/handlers.js"></script>
+
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+        }
+        #logo-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: white;
+            z-index: 1000;
+            transition: opacity 1s ease-in-out;
+        }
+        #logo {
+            max-width: 70%;
+            max-height: 70%;
+            transition: all 1s ease-in-out;
+        }
+        #content {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #small-logo {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            max-width: 200px;
+            max-height: 100px;
+        }
+        .image-container {
+            position: relative;
+            overflow: hidden;
+            cursor: zoom-in;
+        }
+        .zoomed {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            cursor: zoom-out;
+        }
+        .zoomed img {
+            max-width: 100%;
+            max-height: 48vh;
+            object-fit: contain;
+            margin: 10px 0;
+        }
+        #landing-page {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: white;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 2000;
+        }
+        .option {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 400px;
+        }
+        .option input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        .option button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .option button:hover {
+            background-color: #45a049;
+        }
+        #loading-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            z-index: 2001;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="landing-page">
+        <img src="static/images/logo.jpg" alt="SpotID logo" style="max-width: 300px; margin-bottom: 30px;">
+        <div class="option">
+            <h2>Open Existing Embeddings</h2>
+            <input type="file" id="embeddings-file" accept=".npy,.json">
+            <button onclick="handleEmbeddingsUpload()">load Embeddings</button>
+        </div>
+        <div class="option">
+            <h2>Run Model from Scratch</h2>
+            <input type="file" id="images-input" multiple accept="image/*">
+            <button onclick="handleImagesUpload()">Process Images</button>
+        </div>
+    </div>
+
+    <div id="logo-container">
+        <img id="logo" src="static/images/logo.jpg" alt="SpotID logo">
+    </div>
+
+    <div id="content">
+        <img id="small-logo" src="static/images/logo.jpg" alt="SpotID logo">
+        <div id="root"></div>
+    </div>
+
+    <div id="loading-message"></div>
+
+    <script>
+        debuglog('Initializing application...');
+
+        // Initalize our handlers
+        const storageHandler = new localStorageHandler();
+        const fileHandler = new FileHandler();
+        const imageProcessor = new ImageProccessor();
+
+        function showloadingMessage(message) {
+            debuglog('Show loading: ' + message);
+            const loadingMessage = document.getElementById('loading-message');
+            loadingMessage.textContent = message;
+            loadingMessage.style.display = 'block';
+        }
+
+        function hideloadingMessage() {
+            debuglog('Hide loading message');
+            document.getElementById('loading-message').style.display = 'none';
+        }
+
+        async function handleEmbeddingsUpload() {
+            debuglog('Handling embeddings upload...');
+            const fileInput = document.getElementById('embeddings-file');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select an embeddings file');
+                return;
+            }
+
+            showloadingMessage('loading embeddings...');
+            try {
+                const embeddings = await fileHandler.loadEmbeddingsFromJson(file);
+                storageHandler.saveEmbeddings(embeddings);
+                hidelandingPage();
+            } catch (error) {
+                debuglog('Error loading embeddings:', error);
+                alert('Error loading embeddings file');
+            }
+            hideloadingMessage();
+        }
+
+        async function handleImagesUpload() {
+            debuglog('Handling image upload...');
+            const fileInput = document.getElementById('images-input');
+            const files = Array.from(fileInput.files);
+            
+            if (files.length === 0) {
+                alert('Please select some images');
+                return;
+            }
+
+            showloadingMessage('Processing images...');
+            // TODO: Implement image processing
+            hideloadingMessage();
+            hidelandingPage();
+        }
+
+        function hidelandingPage() {
+            debuglog('Hiding landing page');
+            document.getElementById('landing-page').style.display = 'none';
+            $('#logo-container').css('opacity', '1');
+            setTimeout(function() {
+                $('#logo-container').css('opacity', '0');
+                $('#logo').css({
+                    'max-width': '200px',
+                    'max-height': '100px',
+                    'position': 'absolute',
+                    'top': '10px',
+                    'left': '10px'
+                });
+                setTimeout(function() {
+                    $('#logo-container').hide();
+                    $('#content').css('display', 'flex');
+                    const event = new Event('appReady');
+                    document.dispatchEvent(event);
+                }, 1000);
+            }, 2000);
+        }
+
+        debuglog('Setup complete');
+    </script>
+
+    <script type="text/babel">
+        debuglog('Initializing React components...');
+
+        const { useState, useEffect } = React;
+
+        const SideBySideZoomableImages = ({ anchorImage, comparisonImage, anchorPath, comparisonPath, binaryAnchorImage, binaryComparisonImage, showEdgeDetected }) => {
+            const [zoomed, setZoomed] = useState(false);
+
+            const toggleZoom = () => {
+                setZoomed(!zoomed);
+            };
+
+            return (
+                <div className="relative">
+                    <div className="flex space-x-4 mb-4 cursor-zoom-in" onclick={toggleZoom}>
+                        <div className="border rounded p-4 w-[600px]">
+                            <h2 className="text-xl mb-2">Anchor Image</h2>
+                            <img src={showEdgeDetected ? binaryAnchorImage : anchorImage} alt="Anchor" className="w-full h-auto" />
+                            <p className="text-xs mt-2 break-all">{anchorPath}</p>
+                        </div>
+                        <div className="border rounded p-4 w-[600px]">
+                            <h2 className="text-xl mb-2">Comparison Image</h2>
+                            <img src={showEdgeDetected ? binaryComparisonImage : comparisonImage} alt="Comparison" className="w-full h-auto" />
+                            <p className="text-xs mt-2 break-all">{comparisonPath}</p>
+                        </div>
+                    </div>
+                    {zoomed && (
+                        <div className="zoomed" onclick={toggleZoom}>
+                            <img src={showEdgeDetected ? binaryAnchorImage : anchorImage} alt="Anchor" />
+                            <img src={showEdgeDetected ? binaryComparisonImage : comparisonImage} alt="Comparison" />
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const leopardImageValidation = () => {
+            const [anchorImage, setAnchorImage] = useState('');
+            const [comparisonImage, setComparisonImage] = useState('');
+            const [binaryAnchorImage, setBinaryAnchorImage] = useState('');
+            const [binaryComparisonImage, setBinaryComparisonImage] = useState('');
+            const [showEdgeDetected, setShowEdgeDetected] = useState(false);
+            const [confidence, setConfidence] = useState(0);
+            const [currentComparisonIndex, setCurrentComparisonIndex] = useState(0);
+            const [anchorIndex, setAnchorIndex] = useState(0);
+            const [similarImages, setSimilarImages] = useState([]);
+            const [binarySimilarImages, setBinarySimilarImages] = useState([]);
+            const [similarPaths, setSimilarPaths] = useState([]);
+            const [similarIndices, setSimilarIndices] = useState([]);
+            const [confidences, setConfidences] = useState([]);
+            const [anchorPath, setAnchorPath] = useState('');
+            const [comparisonPath, setComparisonPath] = useState('');
+            const [isReady, setIsReady] = useState(false);
+
+            useEffect(() => {
+                debuglog('Setting up app ready handler');
+                const handleAppReady = () => setIsReady(true);
+                document.addEventlistener('appReady', handleAppReady);
+                return () => document.removeEventlistener('appReady', handleAppReady);
+            }, []);
+
+            useEffect(() => {
+                if (isReady) {
+                    debuglog('App is ready, starting match process');
+                    fetchNextMatch();
+                }
+            }, [isReady]);
+
+            const fetchNextMatch = () => {
+                debuglog('Fetching next match...');
+                // TODO: Implement match logic using local storage
+            };
+
+            return (
+                <div className="flex flex-col items-center p-4">
+                    <h1 className="text-2xl font-bold mb-4">SpotID: leopard Individual Identification</h1>
+
+                    <button 
+                        onclick={() => setShowEdgeDetected(!showEdgeDetected)}
+                        className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded mb-4"
+                    >
+                        {showEdgeDetected ? "Show Original" : "Show Edge Detected"}
+                    </button>
+
+                    <SideBySideZoomableImages
+                        anchorImage={anchorImage}
+                        comparisonImage={comparisonImage}
+                        binaryAnchorImage={binaryAnchorImage}
+                        binaryComparisonImage={binaryComparisonImage}
+                        anchorPath={anchorPath}
+                        comparisonPath={comparisonPath}
+                        showEdgeDetected={showEdgeDetected}
+                    />
+
+                    <p className="text-lg mb-4">Confidence: {confidence.toFixed(2)}%</p>
+                    
+                    <div className="flex space-x-4 mb-4">
+                        <button 
+                            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                            onclick={() => handleDecision(true)}
+                        >
+                            Match
+                        </button>
+                        <button 
+                            className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+                            onclick={() => handleDecision(false)}
+                        >
+                            Not a Match
+                        </button>
+                    </div>
+
+                    <button 
+                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                        onclick={fetchNextMatch}
+                    >
+                        Next Anchor Image
+                    </button>
+                </div>
+            );
+        };
+
+        debuglog('Rendering main component');
+        ReactDOM.render(<leopardImageValidation />, document.getElementById('root'));
+    </script>
+</body>
+</html>

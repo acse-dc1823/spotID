@@ -21,3 +21,10 @@ runs/
 stderr
 stdout
 *.log
+
+# ignore envs
+leopard_env/
+interface/leopard_matches.json
+leopard_matches.json
+dist/
+build/

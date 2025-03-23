@@ -30,7 +30,7 @@ Replace path/to with the actual path where you cloned or extracted the project.
 
 ### Step 3: Create and Activate a Virtual Environment
 
-First, ensure you have Python 3.10 or later installed. You can check your Python version by running:
+First, ensure you have Python 3.10 or 3.11 installed. You can check your Python version by running:
 ```bash
 python --version
 ```
@@ -41,6 +41,12 @@ Create a virtual environment. For example, you could run:
 
 ```bash
 python -m venv leopard_env
+```
+
+or to use exactly 3.11
+
+```bash
+python3.11 -m venv leopard_env
 ```
 
 Activate the virtual environment:

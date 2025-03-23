@@ -5,6 +5,10 @@ import os
 import sys
 import json
 import torch
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 import numpy as np
 from PIL import Image
 from torchvision import transforms
@@ -16,6 +20,8 @@ from losses import euclidean_dist, cosine_dist
 from scripts_preprocessing import crop_images_folder, remove_background_processor, edge_detection
 
 project_root = os.path.dirname(os.path.abspath(__file__))
+
+import logging
 
 
 class InferenceDataset(Dataset):
@@ -161,6 +167,7 @@ def run_inference(config_path):
     Args:
         config_path (str): Path to the configuration JSON file.
     """
+    logging.info(f"Running inference with configuration file: {config_path}")
     config_path = os.path.abspath(config_path)
     
     with open(config_path, 'r') as file:

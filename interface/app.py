@@ -11,6 +11,7 @@ from waitress import serve
 import subprocess
 import sys
 
+import logging
 
 app = Flask(__name__)
 
@@ -106,12 +107,20 @@ def open_existing_embeddings():
 @app.route("/run_model_from_scratch", methods=["POST"])
 def run_model_from_scratch():
     """Run the inference model to create embeddings from scratch using specified folders."""
+    print("Running model from scratch")
     output_folder = request.json["output_folder"]
     unprocessed_image_folder = request.json["unprocessed_image_folder"]
 
-    # Get the absolute path to the config file
+    # Get the absolute path to the config file, handling both development and bundled paths
+    if getattr(sys, 'frozen', False):
+        # Running in a bundle
+        base_path = sys._MEIPASS
+    else:
+        # Running in normal Python environment
+        base_path = os.path.dirname(os.path.dirname(__file__))
+    
     config_path = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "leopard_id", "config_inference.json")
+        os.path.join(base_path, "leopard_id", "config_inference.json")
     )
 
     # Load the existing config
@@ -129,8 +138,15 @@ def run_model_from_scratch():
 
     # Run the inference script
     try:
+        if getattr(sys, 'frozen', False):
+            # Running in a bundle
+            script_path = os.path.join(sys._MEIPASS, "leopard_id", "inference_embeddings.py")
+        else:
+            # Running in normal Python environment
+            script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "leopard_id", "inference_embeddings.py")
+        
         subprocess.run(
-            [sys.executable, "../leopard_id/inference_embeddings.py", temp_config_path],
+            [sys.executable, script_path, temp_config_path],
             check=True
         )
     except subprocess.CalledProcessError as e:

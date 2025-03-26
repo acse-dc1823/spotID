@@ -4,6 +4,7 @@
 import torch.nn as nn
 import timm
 import torch
+import os
 
 import logging
 
@@ -240,13 +241,29 @@ class EmbeddingNetwork(nn.Module):
         self.s = s
         print("num input channels: ", input_channels)
         if input_channels == 3:
-            # Load the pre-trained model directly if there are 3 input channels
+            # Load the pre-trained model with local weights if available
+            weights_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "weights", f"{backbone_model}_pretrained.pth")
+            pretrained = False  # Don't download from HuggingFace
+            
             self.final_backbone = timm.create_model(
-                backbone_model, pretrained=True, features_only=False
+                backbone_model, pretrained=pretrained, features_only=False
             )
+            if os.path.exists(weights_path):
+                self.final_backbone.load_state_dict(torch.load(weights_path, map_location='cpu'))
+                logging.info(f"Loaded local pretrained weights from {weights_path}")
+            else:
+                logging.warning(f"Local pretrained weights not found at {weights_path}, using random initialization")
         else:
             # Use a custom modification if there are not 3 input channels
-            original_model = timm.create_model(backbone_model, pretrained=True, features_only=False)
+            weights_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "weights", f"{backbone_model}_pretrained.pth")
+            pretrained = False  # Don't download from HuggingFace
+            
+            original_model = timm.create_model(backbone_model, pretrained=pretrained, features_only=False)
+            if os.path.exists(weights_path):
+                original_model.load_state_dict(torch.load(weights_path, map_location='cpu'))
+                logging.info(f"Loaded local pretrained weights from {weights_path}")
+            else:
+                logging.warning(f"Local pretrained weights not found at {weights_path}, using random initialization")
             if backbone_model == "tf_efficientnetv2_b2" or backbone_model == "tf_efficientnetv2_b3":
                 logging.info("creating custom efficientnet")
                 self.final_backbone = CustomEfficientNet(

@@ -8,7 +8,6 @@ import csv
 import networkx as nx
 import json
 from waitress import serve
-import subprocess
 import sys
 
 import logging
@@ -28,7 +27,6 @@ last_processed_index = -1
 EMBEDDINGS_PATH = ""
 UNCROPPED_IMAGES_PATH = ""
 
-
 def load_embeddings(embeddings_folder):
     """Load embeddings and related data from the specified folder."""
     global embeddings, distance_matrix, image_filenames, binary_image_filenames, EMBEDDINGS_PATH
@@ -43,7 +41,6 @@ def load_embeddings(embeddings_folder):
     with open(os.path.join(embeddings_folder, "binary_image_filenames.txt"), "r") as file:
         binary_image_filenames = [line.strip() for line in file]
     print(len(binary_image_filenames), "binary images loaded")
-
 
 def load_or_create_db(db_name):
     """Load an existing database or create a new one if it doesn't exist."""
@@ -71,18 +68,15 @@ def load_or_create_db(db_name):
     save_db()
     return action
 
-
 def save_db():
     """Save the current graph and last processed index to the database file."""
     data = {"graph": nx.node_link_data(graph), "last_processed_index": last_processed_index}
     with open(CURRENT_DB, "w") as f:
         json.dump(data, f)
 
-
 @app.route("/")
 def home():
     return render_template("index.html")
-
 
 @app.route("/set_match_dir", methods=["POST"])
 def set_match_dir():
@@ -93,7 +87,6 @@ def set_match_dir():
         os.makedirs(GLOBAL_MATCH_DIR)
     return jsonify({"status": "success", "message": f"Directory set to {GLOBAL_MATCH_DIR}"})
 
-
 @app.route("/open_existing_embeddings", methods=["POST"])
 def open_existing_embeddings():
     """Load existing embeddings from a specified path."""
@@ -103,7 +96,6 @@ def open_existing_embeddings():
     load_embeddings(embeddings_path)
     return jsonify({"status": "success", "message": "Embeddings loaded successfully"})
 
-
 @app.route("/run_model_from_scratch", methods=["POST"])
 def run_model_from_scratch():
     """Run the inference model to create embeddings from scratch using specified folders."""
@@ -111,55 +103,54 @@ def run_model_from_scratch():
     output_folder = request.json["output_folder"]
     unprocessed_image_folder = request.json["unprocessed_image_folder"]
 
-    # Get the absolute path to the config file, handling both development and bundled paths
-    if getattr(sys, 'frozen', False):
-        # Running in a bundle
-        base_path = sys._MEIPASS
-    else:
-        # Running in normal Python environment
-        base_path = os.path.dirname(os.path.dirname(__file__))
-    
-    config_path = os.path.abspath(
-        os.path.join(base_path, "leopard_id", "config_inference.json")
-    )
-
-    # Load the existing config
-    with open(config_path, "r") as f:
-        config = json.load(f)
-
-    # Update the config with new values
-    config["output_folder"] = output_folder
-    config["unprocessed_image_folder"] = unprocessed_image_folder
-
-    # Save the updated config to a temporary file
     temp_config_path = os.path.join(os.path.dirname(__file__), "temp_config_inference.json")
-    with open(temp_config_path, "w") as f:
-        json.dump(config, f)
+    print("Temp config path:", temp_config_path)
 
-    # Run the inference script
     try:
+        # Get the absolute path to the config file for both development and bundled contexts
         if getattr(sys, 'frozen', False):
-            # Running in a bundle
-            script_path = os.path.join(sys._MEIPASS, "leopard_id", "inference_embeddings.py")
+            base_path = sys._MEIPASS
         else:
-            # Running in normal Python environment
-            script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "leopard_id", "inference_embeddings.py")
+            base_path = os.path.dirname(os.path.dirname(__file__))
+        print("Base path:", base_path)
         
-        subprocess.run(
-            [sys.executable, script_path, temp_config_path],
-            check=True
+        config_path = os.path.abspath(
+            os.path.join(base_path, "leopard_id", "config_inference.json")
         )
-    except subprocess.CalledProcessError as e:
+        print("Config path:", config_path)
+        
+        # Load the base config and update with new paths
+        with open(config_path, "r") as f:
+            config = json.load(f)
+            print("successfully loaded config")
+            config["output_folder"] = output_folder
+            config["unprocessed_image_folder"] = unprocessed_image_folder
+        
+        # Save updated config to temporary file and ensure it's properly written
+        with open(temp_config_path, "w") as f:
+            json.dump(config, f, indent=4)
+            f.flush()
+            os.fsync(f.fileno())
+            print("successfully saved temp config")
+        
+        # Import and run inference
+        from leopard_id.inference_embeddings import run_inference
+        print("successfully imported run_inference")
+        run_inference(temp_config_path)
+        
+        # Load the newly created embeddings
+        load_embeddings(output_folder)
+        return jsonify({"status": "success", "message": "Model run successfully and embeddings loaded"})
+
+    except Exception as e:
+        if os.path.exists(temp_config_path):
+            os.remove(temp_config_path)
         return jsonify({"status": "error", "message": f"Error running inference: {str(e)}"})
 
-    # Load the newly created embeddings
-    load_embeddings(output_folder)
-
-    # Clean up temporary config file
-    os.remove(temp_config_path)
-
-    return jsonify({"status": "success", "message": "Model run successfully and embeddings loaded"})
-
+    finally:
+        # Clean up temp file if it exists
+        if os.path.exists(temp_config_path):
+            os.remove(temp_config_path)
 
 @app.route("/set_uncropped_images_path", methods=["POST"])
 def set_uncropped_images_path():
@@ -170,7 +161,6 @@ def set_uncropped_images_path():
         return jsonify({"status": "error", "message": "Uncropped images folder does not exist"})
     return jsonify({"status": "success", "message": "Uncropped images path set successfully"})
 
-
 @app.route("/create_or_open_db", methods=["POST"])
 def create_or_open_db():
     """Create a new database or open an existing one."""
@@ -179,7 +169,6 @@ def create_or_open_db():
     return jsonify(
         {"status": "success", "message": f"Database {CURRENT_DB} {action} and set as current"}
     )
-
 
 def distance_to_confidence(distance):
     """
@@ -190,7 +179,6 @@ def distance_to_confidence(distance):
     """
     score = 100 * np.exp(-2 * (max(distance - 0.45, 0)))
     return score
-
 
 @app.route("/validate_match", methods=["POST"])
 def validate_match():
@@ -203,7 +191,6 @@ def validate_match():
 
     return jsonify({"status": "success"})
 
-
 @app.route("/images/<path:filename>")
 def serve_image(filename):
     """Serve an image file to front end."""
@@ -212,7 +199,6 @@ def serve_image(filename):
         return send_file(full_path)
     return "File not found", 404
 
-
 @app.route("/binary_images/<path:filename>")
 def serve_binary_image(filename):
     """Serve a binary image file to front end."""
@@ -220,7 +206,6 @@ def serve_binary_image(filename):
     if full_path and os.path.exists(full_path):
         return send_file(full_path)
     return "File not found", 404
-
 
 @app.route("/get_next_anchor", methods=["GET"])
 def get_next_anchor():
@@ -255,7 +240,6 @@ def get_next_anchor():
         organize_final_output()
 
     return jsonify({"next_index": next_index})
-
 
 @app.route("/get_anchor_and_similar", methods=["GET"])
 def get_anchor_and_similar():
@@ -320,7 +304,6 @@ def get_anchor_and_similar():
         }
     )
 
-
 def organize_final_output():
     """Organize the final output by copying matched images to their respective directories."""
     if not GLOBAL_MATCH_DIR:
@@ -355,14 +338,12 @@ def organize_final_output():
 
     return f"Final output organized in {GLOBAL_MATCH_DIR}", 200
 
-
 @app.route("/end_session", methods=["POST"])
 def end_session():
     """End the current session and organize the final output."""
     print("Ending session")
     message, status_code = organize_final_output()
     return jsonify({"status": "success" if status_code == 200 else "error", "message": message})
-
 
 def add_match(anchor, match):
     """Add a match between two images in the graph."""
@@ -381,7 +362,6 @@ def add_match(anchor, match):
     save_db()
     print_graph_state()
 
-
 def print_graph_state():
     """Print the current state of the graph for debugging purposes."""
     print("\nCurrent Graph State:")
@@ -393,7 +373,6 @@ def print_graph_state():
     print(f"Total number of nodes: {graph.number_of_nodes()}")
     print(f"Total number of edges: {graph.number_of_edges()}")
     print(f"Number of connected components: {nx.number_connected_components(graph)}")
-
 
 @app.route("/debug_graph", methods=["GET"])
 def debug_graph():
@@ -415,7 +394,6 @@ def debug_graph():
             "largest_component_nodes": list(largest_component),
         }
     )
-
 
 if __name__ == "__main__":
     load_or_create_db(CURRENT_DB)

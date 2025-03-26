@@ -8,10 +8,12 @@ a = Analysis(
     binaries=[],
     datas=[
         ('interface/templates', 'interface/templates'),
+        ('leopard_id/weights/tf_efficientnetv2_b2_pretrained.pth', 'leopard_id/weights'),  # Add pretrained backbone weights
         ('interface/static', 'interface/static'),
         ('interface/app.py', 'interface'),
         ('leopard_id/weights/best-model-cosface.pth', 'leopard_id/weights'),
         ('leopard_id/data/minimum_train_data_cropped', 'leopard_id/data/minimum_train_data_cropped'),
+        ('leopard_id/data/histogram_matching', 'leopard_id/data/histogram_matching'),
         ('leopard_id/config_inference.json', 'leopard_id'),
         ('leopard_id/model', 'leopard_id/model'),
         ('leopard_id/losses', 'leopard_id/losses'),

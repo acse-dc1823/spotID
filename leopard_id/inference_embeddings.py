@@ -15,9 +15,11 @@ from torchvision import transforms
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms.functional import to_tensor
 
-from model import EmbeddingNetwork
-from losses import euclidean_dist, cosine_dist
-from scripts_preprocessing import crop_images_folder, remove_background_processor, edge_detection
+from leopard_id.model.EmbeddingNetwork import EmbeddingNetwork
+from leopard_id.losses import euclidean_dist, cosine_dist
+from leopard_id.scripts_preprocessing.background_removal import remove_background_processor
+from leopard_id.scripts_preprocessing.bbox_creation import crop_images_folder
+from leopard_id.scripts_preprocessing.edge_detection import edge_detection
 
 project_root = os.path.dirname(os.path.abspath(__file__))
 
@@ -190,8 +192,11 @@ def run_inference(config_path):
 
     if config["preprocess"]:
         crop_images_folder(base_input_dir, base_crop_output_dir, store_full_images=False)
+        logging.info("Cropping complete!!")
         remove_background_processor(base_crop_output_dir, base_bg_removed_output_dir)
+        logging.info("Background removal complete!!")
         edge_detection(base_bg_removed_output_dir, base_binary_output_dir)
+        logging.info("Edge detection complete!!")
 
     # Load existing filepaths and embeddings
     image_filenames_path = os.path.join(output_folder, 'image_filenames.txt')

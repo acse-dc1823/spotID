@@ -18,8 +18,6 @@ To fully understand the scope and requirements of this project, humans/aIs shoul
    - `launcher.py` - The entry point that will be compiled into the executable
    - `spotid.spec` - PyInstaller configuration for building the executable
 
-[previous content continues below...]
-
 ## Introduction
 
 The SpotID project provides a powerful deep learning model for leopard individual identification along with a user-friendly web-based interface. Currently, to use the system, wildlife researchers must:
@@ -59,12 +57,12 @@ The end result will be an executable that maintains the exact same functionality
 ### 1. Prepare launcher script
 - [x] Create launcher.py
 - [x] Add proper imports and system path configuration
-- [ ] Test launcher script independently
+- [x] Test launcher script independently
 
 ### 2. PyInstaller Configuration
 - [x] Create PyInstaller spec file (spotid.spec)
-- [ ] Test configuration with a simple build
-- [ ] Adjust file paths in spec
+- [x] Test configuration with a simple build
+- [x] Adjust file paths in spec
 
 ### 3. Modify config files
 - [x] Update config_inference.json with relative paths:
@@ -86,16 +84,16 @@ The end result will be an executable that maintains the exact same functionality
   - [x] Python depedencies from requirements.txt
 
 ### 5. Build Process
-- [ ] Test build in development environment
-- [ ] Fix any missing dependencies or import issues
-- [ ] Build final executable
+- [x] Test build in development environment
+- [x] Fix any missing dependencies or import issues
+- [x] Build final executable
 
 ### 6. Testing
-- [ ] Test executable on a fresh machine
-- [ ] Verify all paths work correctly
-- [ ] Test preprocessing pipeline
-- [ ] Test model inference
-- [ ] Test interface functions
+- [x] Test executable on a fresh machine
+- [x] Verify all paths work correctly
+- [x] Test preprocessing pipeline
+- [x] Test model inference
+- [x] Test interface functions
 
 ## Expected Output Structure
 ```
@@ -118,49 +116,73 @@ SpotID/
 - Installed PyInstaller
 - Created launcher.py with proper system path configuration
 - Created PyInstaller spec file
+- Successfully built working executable
+- Fixed path resolution issues
+- Fixed SSL module integration
+- Completed end-to-end testing
 
 ⏳ In Progress:
-- Debugging executable path resolution issues
+- Creating distribution package
 
 🔲 Next Steps:
-1. Fix executable path resolution issues (detailed below)
+1. Package executable for distribution (see Distribution Plan below)
 
-## Current Status and Issues
+## Current Status
 
 ### What Works
 - Development environment:
   - Running `python launcher.py` works correctly
   - Landing page loads properly
-  - Inference embeddings runs successfully when paths are provided
-  - Comparison page displays correctly with leopard embeddings
-
-### What Doesn't Work
+  - All preprocessing steps (background removal, edge detection) work successfully
+  - Full inference pipeline execution including model loading
 - Executable version (`./dist/spotid/spotid`):
-  - Landing page loads properly
-  - `/run_model_from_scratch` endpoint is called (verified through logging)
-  - Process gets stuck after this point with no error message
-  - No logs from inference_embeddings.py appear, suggesting it's not being executed
+  - Successfully builds and runs
+  - All functionality working end-to-end
+  - No SSL or path resolution issues
+  - Model weights and dependencies properly bundled
 
-### Key Findings
-1. The executable correctly bundles all files (interface, model, preprocessing scripts)
-2. The web interface part of the application works in the executable
-3. The issue appears to be in the subprocess execution of inference_embeddings.py within the bundled environment
+### TO DOs:
 
-### Required Fixes
-1. Review subprocess execution in app.py:
-   ```python
-   if getattr(sys, 'frozen', False):
-       # Running in bundle - current approach not working
-       script_path = os.path.join(sys._MEIPASS, "leopard_id", "inference_embeddings.py")
-   ```
-   
-2. Potential solutions to investigate:
-   - Import and call run_inference directly instead of using subprocess
-   - Use PyInstaller hooks to properly include inference_embeddings.py
-   - Modify how paths are resolved in the bundled environment
-   - Add extensive logging throughout the execution path
+- Avoid doubling of images. It seems to compare images across different directories, not only the directory provided. It uses the image in the dist directory, and the image in the spotid directory. Hence, we have double the images.
 
-3. Testing requirements:
-   - Add logging at critical points in both app.py and inference_embeddings.py
-   - Test path resolution in bundled environment
-   - Verify module imports work in bundled context
+## Distribution Plan
+
+### 1. Create Distribution Package
+- [ ] Create a clean directory for distribution
+- [ ] Copy entire `dist/spotid` directory into it
+- [ ] Rename directory to "SpotID-[version]" (e.g., "SpotID-v1.0")
+- [ ] Create README.txt with:
+  ```
+  SpotID - Leopard Identification System
+  Version 1.0
+  
+  Instructions:
+  1. Double-click the 'spotid' executable
+  2. Wait for your default web browser to open automatically
+  3. The application interface will appear in your browser
+  4. Start using SpotID!
+  
+  Note: The first launch may take a few moments as the system initializes.
+  ```
+
+### 2. Package for Distribution
+- [ ] Create ZIP archive of the distribution directory
+- [ ] Name format: "SpotID-v1.0-[platform].zip" (e.g., "SpotID-v1.0-macos.zip")
+- [ ] Test the ZIP by extracting and running on a fresh system
+
+### 3. Distribution Channels
+- [ ] Create GitHub release
+  - Upload ZIP file
+  - Add release notes
+  - Include basic usage instructions
+- [ ] Update project README.md with:
+  - Download links
+  - Installation instructions
+  - Platform requirements
+  - Quick start guide
+
+### 4. User Documentation
+- [ ] Create quick start guide
+- [ ] Add troubleshooting section
+- [ ] Include example usage workflow
+- [ ] Add system requirements

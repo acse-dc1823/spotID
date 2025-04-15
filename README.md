@@ -4,6 +4,30 @@
 
 This project attempts to use Deep Learning to create a Leopard Individual Identifier. Although the focus of the research was advancing the model, a basic user interface for wildlife researchers is provided. The model encodes each leopard image into N dimensional embeddings (vectors), and then these embeddings are compared with one another through a distance metric to decide which images correspond to the same leopard. Two methods were tried, Triplet Networks, and a modified CosFace. The one saved for the user is the modified CosFace, as it reached considerably higher performance compared to the Triplet Network. For more details, please read the [attached paper](paper/dc1823-final-report.pdf).
 
+## Building and Using the Distribution
+
+### For Developers: Building the Distribution
+1. Make sure you have activated your virtual environment:
+```bash
+source leopard_env/bin/activate  # macOS/Linux
+leopard_env\Scripts\activate     # Windows
+```
+
+2. Run PyInstaller to create the distribution:
+```bash
+pyinstaller spotid.spec
+```
+
+The distribution will be created in the `dist/spotid` directory.
+
+### For Users: Running the Distribution
+1. Download the `spotid` folder from the distribution
+2. Run the application:
+   - On macOS/Linux: Double click the `spotid` executable or run `./spotid` in terminal
+   - On Windows: Double click the `spotid.exe` executable
+
+The application will open in your default web browser. No Python installation or technical knowledge required!
+
 ## Instructions for users and developers:
 
 A detailed tutorial for users is provided here: https://youtu.be/YwfC2FA2kZw?si=TOp8Y36oe0Q_ulov

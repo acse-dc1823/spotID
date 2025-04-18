@@ -21,12 +21,13 @@ pyinstaller spotid.spec
 The distribution will be created in the `dist/spotid` directory.
 
 ### For Users: Running the Distribution
-1. Download the `spotid` folder from the distribution
+1. Download the `spotid` folder from the distribution. Please download the distribution for your system, whether that is mac or windows.
 2. Run the application:
-   - On macOS/Linux: Double click the `spotid` executable or run `./spotid` in terminal
-   - On Windows: Double click the `spotid.exe` executable
+Double click the `spotid` executable or run `./spotid` in terminal
 
 The application will open in your default web browser. No Python installation or technical knowledge required!
+
+You can follow the instructions in the Spot ID guide pdf above for usage guide.
 
 ## Instructions for users and developers:
 

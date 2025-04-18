@@ -2,7 +2,7 @@ numpy==1.26.4
 PytorchWildlife==1.0.2.15
 rembg==2.0.64
 opencv-python==4.10.0.82
-#pytest
+pytest
 timm==1.0.7
 scikit-learn==1.5.0
 torch==2.3.1
@@ -16,3 +16,4 @@ Werkzeug==3.0.3
 waitress==3.0.0
 networkx==2.8
 scikit-image==0.23.2
+onnxruntime==1.21.0

@@ -5,17 +5,25 @@ import os
 import sys
 import json
 import torch
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 import numpy as np
 from PIL import Image
 from torchvision import transforms
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms.functional import to_tensor
 
-from model import EmbeddingNetwork
-from losses import euclidean_dist, cosine_dist
-from scripts_preprocessing import crop_images_folder, remove_background_processor, edge_detection
+from leopard_id.model.EmbeddingNetwork import EmbeddingNetwork
+from leopard_id.losses import euclidean_dist, cosine_dist
+from leopard_id.scripts_preprocessing.background_removal import remove_background_processor
+from leopard_id.scripts_preprocessing.bbox_creation import crop_images_folder
+from leopard_id.scripts_preprocessing.edge_detection import edge_detection
 
 project_root = os.path.dirname(os.path.abspath(__file__))
+
+import logging
 
 
 class InferenceDataset(Dataset):
@@ -161,6 +169,7 @@ def run_inference(config_path):
     Args:
         config_path (str): Path to the configuration JSON file.
     """
+    logging.info(f"Running inference with configuration file: {config_path}")
     config_path = os.path.abspath(config_path)
     
     with open(config_path, 'r') as file:
@@ -169,22 +178,37 @@ def run_inference(config_path):
     # Convert relative paths to absolute paths based on script location
     output_folder = os.path.abspath(os.path.join(project_root, config['output_folder']))
     base_input_dir = os.path.abspath(os.path.join(project_root, config['unprocessed_image_folder']))
-    base_crop_output_dir = os.path.abspath(os.path.join(project_root, config['crop_output_folder']))
-    base_bg_removed_output_dir = os.path.abspath(os.path.join(project_root,
-                                                              config['bg_removed_output_folder']))
-    base_binary_output_dir = os.path.abspath(os.path.join(project_root,
-                                                          config['base_binary_output_folder']))
-
-    # Create output folders if they don't exist
+    
+    # Get the last component of the input directory path
+    input_dir_name = os.path.basename(os.path.normpath(base_input_dir))
+    
+    # Function to create unique directory path
+    def get_unique_path(base_path, suffix):
+        path = os.path.join(project_root, f"{base_path}_{suffix}")
+        counter = 1
+        while os.path.exists(path):
+            path = os.path.join(project_root, f"{base_path}_{suffix}_{counter}")
+            counter += 1
+        return path
+    
+    # Create unique paths for each output directory
+    base_crop_output_dir = get_unique_path(config['crop_output_folder'], input_dir_name)
+    base_bg_removed_output_dir = get_unique_path(config['bg_removed_output_folder'], input_dir_name)
+    base_binary_output_dir = get_unique_path(config['base_binary_output_folder'], input_dir_name)
+    
+    # Create output folders
     os.makedirs(output_folder, exist_ok=True)
-    os.makedirs(base_crop_output_dir, exist_ok=True)
-    os.makedirs(base_bg_removed_output_dir, exist_ok=True)
-    os.makedirs(base_binary_output_dir, exist_ok=True)
+    os.makedirs(base_crop_output_dir)
+    os.makedirs(base_bg_removed_output_dir)
+    os.makedirs(base_binary_output_dir)
 
     if config["preprocess"]:
         crop_images_folder(base_input_dir, base_crop_output_dir, store_full_images=False)
+        logging.info("Cropping complete!!")
         remove_background_processor(base_crop_output_dir, base_bg_removed_output_dir)
+        logging.info("Background removal complete!!")
         edge_detection(base_bg_removed_output_dir, base_binary_output_dir)
+        logging.info("Edge detection complete!!")
 
     # Load existing filepaths and embeddings
     image_filenames_path = os.path.join(output_folder, 'image_filenames.txt')

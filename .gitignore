@@ -14,10 +14,16 @@ scripts_preprocessing/stdout
 __pycache__/
 
 # Ignore weights and runs
-weights/
 runs/
 
 # Ignore stderr and stdout and logging
 stderr
 stdout
 *.log
+
+# ignore envs
+leopard_env/
+interface/leopard_matches.json
+leopard_matches.json
+dist/
+build/

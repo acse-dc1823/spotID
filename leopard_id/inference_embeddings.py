@@ -21,9 +21,19 @@ from leopard_id.scripts_preprocessing.background_removal import remove_backgroun
 from leopard_id.scripts_preprocessing.bbox_creation import crop_images_folder
 from leopard_id.scripts_preprocessing.edge_detection import edge_detection
 
+def get_resource_path(relative_path):
+    """
+    Get absolute path to a bundled resource, whether running via PyInstaller or not.
+    """
+    if getattr(sys, 'frozen', False):
+        # If bundled by PyInstaller
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
 project_root = os.path.dirname(os.path.abspath(__file__))
 
 import logging
+
 
 
 class InferenceDataset(Dataset):
@@ -111,8 +121,8 @@ def load_model(config):
     model = EmbeddingNetwork(backbone_model=config.get("backbone_model"),
                              num_dims=config.get("num_dimensions"),
                              input_channels=config.get("input_channels"))
-    model_path = os.path.abspath(os.path.join(project_root, config["model_path"]))
-
+    model_path = get_resource_path(config["model_path"])
+    
     model.load_state_dict(torch.load(model_path, map_location='cpu'))
     model.eval()
     return model

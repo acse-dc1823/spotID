@@ -5,8 +5,19 @@ import torch.nn as nn
 import timm
 import torch
 import os
+import sys
 
 import logging
+
+def get_resource_path(relative_path):
+    """
+    Get absolute path to a bundled resource, whether running via PyInstaller or not.
+    """
+    if getattr(sys, 'frozen', False):
+        # If bundled by PyInstaller
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
 
 from copy import deepcopy
 
@@ -242,7 +253,7 @@ class EmbeddingNetwork(nn.Module):
         print("num input channels: ", input_channels)
         if input_channels == 3:
             # Load the pre-trained model with local weights if available
-            weights_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "weights", f"{backbone_model}_pretrained.pth")
+            weights_path = get_resource_path(os.path.join("leopard_id", "weights", f"{backbone_model}_pretrained.pth"))
             pretrained = False  # Don't download from HuggingFace
             
             self.final_backbone = timm.create_model(
@@ -255,7 +266,7 @@ class EmbeddingNetwork(nn.Module):
                 logging.warning(f"Local pretrained weights not found at {weights_path}, using random initialization")
         else:
             # Use a custom modification if there are not 3 input channels
-            weights_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "weights", f"{backbone_model}_pretrained.pth")
+            weights_path = get_resource_path(os.path.join("leopard_id", "weights", f"{backbone_model}_pretrained.pth"))
             pretrained = False  # Don't download from HuggingFace
             
             original_model = timm.create_model(backbone_model, pretrained=pretrained, features_only=False)
